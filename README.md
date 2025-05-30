@@ -1,6 +1,8 @@
-# Aura: Decentralized Trust & Data Oracle
+# Aura: Decentralized ID - Trust & Data
 
 **Your Data, Your Rules, Verifiably.**
+
+![Aura Logo](images/aura_logo.png)
 
 ## Overview
 
@@ -21,19 +23,28 @@ This is the Phase 1 implementation (Foundation & Core Infrastructure) of the Aur
 ## Architecture
 
 ```
-┌─────────────────────┐     ┌─────────────────────┐     ┌─────────────────────┐
-│   Aura Wallet       │────▶│    Aura Network     │◀────│   Relying Party     │
-│  (Identity Agent)   │     │                     │     │  (Verifier)         │
-└─────────────────────┘     │  ┌───────────────┐ │     └─────────────────────┘
-                           │  │  Aura Ledger  │ │
-                           │  │   (DLT)       │ │
-                           │  └───────────────┘ │
-                           │                     │
-                           │  ┌───────────────┐ │
-                           │  │  Aura Nodes   │ │
-                           │  │               │ │
-                           │  └───────────────┘ │
-                           └─────────────────────┘
++-----------------------+      +-------------------------+      +-----------------------+
+|     Issuers           |----->| Aura Identity Wallet    |<---->|    Relying Parties    |
+| (e.g., Gov, Uni, Emp) |      | (User Agent)            |      | (e.g., Websites, Apps)|
++-----------------------+      | - DID Management        |      +-----------------------+
+           |                   | - VC Storage (Encrypted)|               |
+           | Issues VCs        | - Selective Disclosure  | Presents VPs  | Verifies VPs
+           |                   | - ZKP Generation        |               |
+           V                   +-------------------------+               |
++------------------------------------------------------------------------+
+|                            Aura Network                                |
+|                                                                        |
+|  +---------------------+   +-------------------------------------+     |
+|  | Aura Nodes          |<->| Aura Ledger (DLT)                   |     |
+|  | - Validators        |   | - DID Registry                      |     |
+|  | - Query Nodes       |   | - VC Schema Registry                |     |
+|  | (- Storage Nodes)   |   | - Issuer Key Registry               |     |
+|  +---------------------+   | - Revocation Registry               |     |
+|                            +-------------------------------------+     |
+|                                                                        |
+|  User-Controlled Off-Chain Storage (Encrypted VCs & PII)               |
+|  (Device, Personal Cloud, Decentralized Storage like IPFS)             |
++------------------------------------------------------------------------+
 ```
 
 ## Getting Started
@@ -41,18 +52,37 @@ This is the Phase 1 implementation (Foundation & Core Infrastructure) of the Aur
 ### Prerequisites
 
 - Rust 1.70+ (install from https://rustup.rs)
-- RocksDB dependencies
+- C/C++ development tools (gcc, g++)
+- System libraries:
+  - rocksdb-devel (RocksDB database)
+  - libzstd-devel (zstd compression)
+  - clang/llvm (for bindgen)
 
 ### Building
 
 ```bash
 # Clone the repository
-git clone https://github.com/aura-decentraltrust/aura
-cd aura
+git clone https://github.com/doublegate/Aura-DecentralTrust
+cd Aura-DecentralTrust
+
+# Install system dependencies (Fedora/RHEL/Bazzite)
+sudo dnf install -y rocksdb-devel libzstd-devel clang-devel
 
 # Build all components
 cargo build --release
+
+# If you encounter bindgen/clang issues:
+BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-redhat-linux/15/include" \
+ZSTD_SYS_USE_PKG_CONFIG=1 \
+cargo build --release
 ```
+
+### Special Build Notes
+
+- **Fedora/RHEL/Bazzite**: Install rocksdb-devel and use environment variables if needed
+- **Ubuntu/Debian**: Install `librocksdb-dev` and `clang` packages
+- **macOS**: Install Xcode Command Line Tools
+- **Windows**: Use WSL2 or MSYS2 with mingw-w64
 
 ### Running a Node
 
@@ -65,9 +95,12 @@ cargo run --bin aura-node -- --node-type validator
 
 # Specify custom data directory and API port
 cargo run --bin aura-node -- --data-dir ./mydata --api-addr 127.0.0.1:8081
+
+# Specify custom data directory and API port
+cargo run --bin aura-node -- --data-dir ./mydata --api-addr 127.0.0.1:8081
 ```
 
-### Running the Example
+#### Running the Example
 
 ```bash
 cargo run --example basic_usage
@@ -90,7 +123,7 @@ Blockchain implementation with:
 - DID registry
 - VC schema registry
 - Revocation registry
-- RocksDB storage
+- RocksDB storage (high-performance embedded database)
 
 ### aura-wallet-core
 Identity wallet functionality:
@@ -118,15 +151,26 @@ The Aura node exposes the following REST API endpoints:
 - `POST /transaction` - Submit a transaction
 - `GET /revocation/{list_id}/{index}` - Check revocation status
 
+## API Endpoints
+
+The Aura node exposes the following REST API endpoints:
+
+- `GET /` - API information
+- `GET /node/info` - Node status and information
+- `GET /did/{did}` - Resolve a DID
+- `GET /schema/{id}` - Get a credential schema
+- `POST /transaction` - Submit a transaction
+- `GET /revocation/{list_id}/{index}` - Check revocation status
+
 ## Development Roadmap
 
-### Phase 1: Foundation & Core Infrastructure ✅ (Complete)
+### Phase 1: Foundation & Core Infrastructure ✅ (Complete) (Complete)
 - Core ledger with PoA consensus
 - Basic DID and VC functionality
 - Identity wallet core
 - Network infrastructure
 
-### Phase 2: Ecosystem Growth & Advanced Features (Next)
+### Phase 2: Ecosystem Growth & Advanced Features (Next) (Next)
 - Transition to Proof-of-Stake consensus
 - Zero-Knowledge Proof integration
 - SDKs for multiple languages

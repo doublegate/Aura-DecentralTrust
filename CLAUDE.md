@@ -24,6 +24,7 @@ The system consists of four main components:
 - System libraries:
   - rocksdb-devel (RocksDB database) - **REQUIRED for main branch**
   - libzstd-devel (zstd compression)
+  - clang/clang-devel (for bindgen)
   - Development headers for C standard library
 
 ### Building the Project
@@ -33,12 +34,19 @@ The system consists of four main components:
 git clone https://github.com/doublegate/Aura-DecentralTrust
 cd Aura-DecentralTrust
 
-# With rocksdb-devel installed:
+# Install system dependencies first (Fedora/RHEL/Bazzite):
+sudo dnf install -y rocksdb-devel libzstd-devel clang-devel
+
+# Standard build (should work with dependencies installed):
 cargo build --release
 
-# If you still have issues on Fedora 42/Bazzite:
+# If you still have bindgen/clang issues:
 BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-redhat-linux/15/include" \
 ZSTD_SYS_USE_PKG_CONFIG=1 \
+cargo build --release
+
+# For Ubuntu/Debian:
+sudo apt-get install -y librocksdb-dev libzstd-dev clang
 cargo build --release
 ```
 
@@ -61,7 +69,7 @@ cargo build --release
 
 ## Current Status
 
-Phase 1 (Foundation & Core Infrastructure) is mostly complete. The project includes:
+Phase 1 (Foundation & Core Infrastructure) is complete. The project includes:
 
 - Functional blockchain with PoA consensus
 - W3C-compliant DID and VC implementations  
@@ -69,7 +77,7 @@ Phase 1 (Foundation & Core Infrastructure) is mostly complete. The project inclu
 - P2P network node with REST API
 - Basic examples and integration tests
 
-Currently updating dependencies and fixing build issues for modern systems.
+See `PHASE1_SUMMARY.md` for detailed implementation status.
 
 ## Build Commands
 
@@ -99,37 +107,18 @@ cargo fmt
 cargo clippy
 ```
 
-## Session Development Notes
+## Recent Updates (2025-05-30)
 
-### 2025-05-30 Session Summary
+### Dependency Updates
+The project has been updated to work with latest dependencies:
+- **bincode**: Updated to 2.0 with new encode/decode API
+- **libp2p**: Updated to 0.55.0 with new NetworkBehaviour macro syntax
+- **axum**: Updated to 0.8.4 with new serve API
+- **All other deps**: Updated to latest versions as of 2025-05-30
 
-#### Morning Session (build-fixes-sled branch)
-- **Branch Status**: Created `build-fixes-sled` branch, pushed to GitHub, marked as deprecated
-- **Main Achievement**: Fixed all compilation errors on Fedora 42/Bazzite using sled database
-- **Key Changes**: Migrated RocksDB → sled, updated to bincode 2.0, fixed API compatibility
-- **Result**: Full compilation success but missing some blockchain features
+### Build Requirements
+- **RocksDB**: Requires rocksdb-devel system package on Fedora/RHEL
+- **Clang**: Required for bindgen to generate RocksDB bindings
+- **Environment**: May need BINDGEN_EXTRA_CLANG_ARGS on some systems
 
-#### Afternoon Session (main branch)
-- **Branch Status**: Switched back to `main` branch to preserve RocksDB implementation
-- **Progress**: Fixed most Rust compilation errors, updated all dependencies to latest versions
-- **Successfully Building**: aura-common, aura-crypto, aura-wallet-core
-- **Blocker**: RocksDB C++ compilation errors (missing headers in bundled code)
-- **Next Step**: User installing rocksdb-devel system package, will retry after reboot
-
-#### Key Learnings Documented
-- Created `to-dos/ROCKSDB_BUILD_GUIDE.md` for RocksDB build instructions
-- Created `to-dos/DEPENDENCY_UPDATE_GUIDE.md` for API migration notes
-- Updated build instructions based on compilation attempts
-
-### Important Reminders
-- The `main` branch uses RocksDB (requires rocksdb-devel system package)
-- The `build-fixes-sled` branch is deprecated and should not be used
-- Most Rust code is updated for modern dependencies (bincode 2.0, latest libp2p/axum)
-- See session summaries in `to-dos/` for detailed progress tracking
-
-## Known Build Issues
-
-- **RocksDB on Fedora 42**: Bundled RocksDB has C++ compatibility issues
-  - Solution: Install rocksdb-devel system package
-- **Dependency versions**: All updated to latest as of 2025-05-30
-- **bincode 2.0**: API changed from serialize/deserialize to encode/decode
+See `CHANGELOG.md` for complete list of changes.
