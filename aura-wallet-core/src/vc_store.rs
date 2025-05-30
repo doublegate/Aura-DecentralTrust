@@ -126,7 +126,8 @@ impl VcStore {
             return Err(AuraError::Internal("VC store not initialized".to_string()));
         }
         
-        let data = serde_json::to_vec(&self.credentials)?;
+        let data = serde_json::to_vec(&self.credentials)
+            .map_err(|e| AuraError::Serialization(e.to_string()))?;
         let encrypted = encryption::encrypt(self.encryption_key.as_ref().unwrap(), &data)
             .map_err(|e| AuraError::Crypto(e.to_string()))?;
         
@@ -145,7 +146,8 @@ impl VcStore {
         let data = encryption::decrypt(self.encryption_key.as_ref().unwrap(), &encrypted)
             .map_err(|e| AuraError::Crypto(e.to_string()))?;
         
-        let credentials: HashMap<String, StoredCredential> = serde_json::from_slice(&data)?;
+        let credentials: HashMap<String, StoredCredential> = serde_json::from_slice(&data)
+            .map_err(|e| AuraError::Serialization(e.to_string()))?;
         
         self.credentials.extend(credentials);
         

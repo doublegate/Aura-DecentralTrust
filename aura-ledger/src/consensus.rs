@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use aura_common::{AuraError, Result, BlockNumber};
 use aura_crypto::{PublicKey, PrivateKey, Signature, signing};
-use crate::{Block, BlockHeader, Transaction};
+use crate::Block;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProofOfAuthority {

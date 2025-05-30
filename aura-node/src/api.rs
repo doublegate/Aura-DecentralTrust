@@ -92,9 +92,8 @@ pub async fn start_api_server(addr: &str) -> anyhow::Result<()> {
     let addr: SocketAddr = addr.parse()?;
     info!("API server listening on {}", addr);
     
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await?;
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    axum::serve(listener, app).await?;
     
     Ok(())
 }
@@ -104,7 +103,7 @@ async fn root() -> &'static str {
 }
 
 async fn get_node_info(
-    State(state): State<Arc<ApiState>>,
+    State(_state): State<Arc<ApiState>>,
 ) -> Json<ApiResponse<NodeInfo>> {
     let info = NodeInfo {
         version: "1.0.0".to_string(),
@@ -118,24 +117,24 @@ async fn get_node_info(
 }
 
 async fn resolve_did(
-    Path(did): Path<String>,
-    State(state): State<Arc<ApiState>>,
+    Path(_did): Path<String>,
+    State(_state): State<Arc<ApiState>>,
 ) -> Result<Json<ApiResponse<DidResolutionResponse>>, StatusCode> {
     // In a real implementation, this would query the DID registry
     Err(StatusCode::NOT_FOUND)
 }
 
 async fn get_schema(
-    Path(schema_id): Path<String>,
-    State(state): State<Arc<ApiState>>,
+    Path(_schema_id): Path<String>,
+    State(_state): State<Arc<ApiState>>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, StatusCode> {
     // In a real implementation, this would query the schema registry
     Err(StatusCode::NOT_FOUND)
 }
 
 async fn submit_transaction(
-    State(state): State<Arc<ApiState>>,
-    Json(request): Json<TransactionRequest>,
+    State(_state): State<Arc<ApiState>>,
+    Json(_request): Json<TransactionRequest>,
 ) -> Json<ApiResponse<TransactionResponse>> {
     // In a real implementation, this would validate and submit the transaction
     let response = TransactionResponse {
@@ -147,8 +146,8 @@ async fn submit_transaction(
 }
 
 async fn check_revocation(
-    Path((list_id, index)): Path<(String, u32)>,
-    State(state): State<Arc<ApiState>>,
+    Path((_list_id, _index)): Path<(String, u32)>,
+    State(_state): State<Arc<ApiState>>,
 ) -> Json<ApiResponse<bool>> {
     // In a real implementation, this would check the revocation registry
     Json(ApiResponse::success(false))

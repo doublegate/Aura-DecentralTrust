@@ -55,9 +55,33 @@ impl PrivateKey {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct PublicKey {
     key: VerifyingKey,
+}
+
+impl bincode::Encode for PublicKey {
+    fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> std::result::Result<(), bincode::error::EncodeError> {
+        self.key.to_bytes().encode(encoder)
+    }
+}
+
+impl bincode::Decode<()> for PublicKey {
+    fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> std::result::Result<Self, bincode::error::DecodeError> {
+        let bytes = <[u8; 32]>::decode(decoder)?;
+        let key = VerifyingKey::from_bytes(&bytes)
+            .map_err(|_| bincode::error::DecodeError::Other("Invalid public key"))?;
+        Ok(Self { key })
+    }
+}
+
+impl<'de> bincode::BorrowDecode<'de, ()> for PublicKey {
+    fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(decoder: &mut D) -> std::result::Result<Self, bincode::error::DecodeError> {
+        let bytes = <[u8; 32]>::borrow_decode(decoder)?;
+        let key = VerifyingKey::from_bytes(&bytes)
+            .map_err(|_| bincode::error::DecodeError::Other("Invalid public key"))?;
+        Ok(Self { key })
+    }
 }
 
 impl PublicKey {
@@ -84,6 +108,17 @@ impl PublicKey {
 pub struct KeyPair {
     private_key: PrivateKey,
     public_key: PublicKey,
+}
+
+impl Clone for KeyPair {
+    fn clone(&self) -> Self {
+        let private_key = PrivateKey::from_bytes(&self.private_key.to_bytes()).unwrap();
+        let public_key = private_key.public_key();
+        Self {
+            private_key,
+            public_key,
+        }
+    }
 }
 
 impl KeyPair {

@@ -24,7 +24,7 @@ pub enum AuraError {
     Validation(String),
     
     #[error("Serialization error: {0}")]
-    Serialization(#[from] serde_json::Error),
+    Serialization(String),
     
     #[error("Invalid signature")]
     InvalidSignature,

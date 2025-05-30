@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use aura_crypto::{KeyPair, PublicKey};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeConfig {

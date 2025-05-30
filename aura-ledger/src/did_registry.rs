@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use aura_common::{
     AuraError, Result, AuraDid, DidDocument, DidRecord, BlockNumber,
 };
@@ -7,11 +6,11 @@ use aura_crypto::{hashing, PublicKey};
 use crate::storage::Storage;
 
 pub struct DidRegistry {
-    storage: Storage,
+    storage: Arc<Storage>,
 }
 
 impl DidRegistry {
-    pub fn new(storage: Storage) -> Self {
+    pub fn new(storage: Arc<Storage>) -> Self {
         Self { storage }
     }
     
@@ -31,7 +30,9 @@ impl DidRegistry {
         // Create DID record
         let did_record = DidRecord {
             did_id: did_id.clone(),
-            did_document_hash: hashing::blake3_json(did_document)?.to_vec(),
+            did_document_hash: hashing::blake3_json(did_document)
+                .map_err(|e| AuraError::Crypto(e.to_string()))?
+                .to_vec(),
             owner_public_key: owner_public_key.to_bytes().to_vec(),
             last_updated_block: block_number.0,
             active: true,
@@ -71,7 +72,9 @@ impl DidRegistry {
         }
         
         // Update record
-        did_record.did_document_hash = hashing::blake3_json(new_did_document)?.to_vec();
+        did_record.did_document_hash = hashing::blake3_json(new_did_document)
+            .map_err(|e| AuraError::Crypto(e.to_string()))?
+            .to_vec();
         did_record.last_updated_block = block_number.0;
         
         // Store updated record and document

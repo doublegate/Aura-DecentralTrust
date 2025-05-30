@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use crate::{AuraDid, Timestamp, Result};
+use bincode::{Encode, Decode};
+use crate::{AuraDid, Timestamp};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,7 +130,7 @@ pub struct CredentialSchema {
     pub schema: Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
 pub struct SchemaRecord {
     pub schema_id: String,
     pub schema_content_hash: Vec<u8>,

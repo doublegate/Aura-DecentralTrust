@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use aura_common::{AuraError, Result, Timestamp, BlockNumber, TransactionId};
+use aura_common::{Timestamp, BlockNumber};
 use aura_crypto::{hashing, PublicKey};
 use crate::transaction::Transaction;
 
@@ -42,7 +42,7 @@ impl Block {
     }
     
     pub fn hash(&self) -> [u8; 32] {
-        hashing::blake3_json(&self.header).unwrap()
+        hashing::blake3_json(&self.header).unwrap_or([0u8; 32])
     }
     
     pub fn calculate_merkle_root(transactions: &[Transaction]) -> [u8; 32] {

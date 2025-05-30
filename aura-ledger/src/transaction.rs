@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use aura_common::{
     AuraError, Result, Timestamp, TransactionId, AuraDid,
-    DidDocument, VerifiableCredential, CredentialSchema,
+    DidDocument, CredentialSchema,
 };
 use aura_crypto::{PublicKey, Signature};
 

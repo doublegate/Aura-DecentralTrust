@@ -37,17 +37,18 @@ cd Aura-DecentralTrust
 # Install system dependencies first (Fedora/RHEL/Bazzite):
 sudo dnf install -y rocksdb-devel libzstd-devel clang-devel
 
-# Standard build (should work with dependencies installed):
-cargo build --release
+# Standard build with system RocksDB:
+ROCKSDB_LIB_DIR=/usr/lib64 LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo build --release
 
 # If you still have bindgen/clang issues:
 BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-redhat-linux/15/include" \
-ZSTD_SYS_USE_PKG_CONFIG=1 \
+ROCKSDB_LIB_DIR=/usr/lib64 \
+LIBROCKSDB_SYS_DISABLE_BUNDLED=1 \
 cargo build --release
 
 # For Ubuntu/Debian:
 sudo apt-get install -y librocksdb-dev libzstd-dev clang
-cargo build --release
+ROCKSDB_LIB_DIR=/usr/lib LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo build --release
 ```
 
 ## Key Technical Decisions
@@ -77,7 +78,7 @@ Phase 1 (Foundation & Core Infrastructure) is complete. The project includes:
 - P2P network node with REST API
 - Basic examples and integration tests
 
-See `PHASE1_SUMMARY.md` for detailed implementation status.
+See `docs/PHASE1_SUMMARY.md` for detailed implementation status.
 
 ## Build Commands
 
@@ -117,8 +118,11 @@ The project has been updated to work with latest dependencies:
 - **All other deps**: Updated to latest versions as of 2025-05-30
 
 ### Build Requirements
-- **RocksDB**: Requires rocksdb-devel system package on Fedora/RHEL
+- **RocksDB**: Requires rocksdb-devel system package and environment variables
 - **Clang**: Required for bindgen to generate RocksDB bindings
-- **Environment**: May need BINDGEN_EXTRA_CLANG_ARGS on some systems
+- **Environment Variables**:
+  - `ROCKSDB_LIB_DIR`: Path to system RocksDB libraries
+  - `LIBROCKSDB_SYS_DISABLE_BUNDLED=1`: Use system RocksDB instead of bundled
+  - `BINDGEN_EXTRA_CLANG_ARGS`: May be needed for clang headers
 
 See `CHANGELOG.md` for complete list of changes.

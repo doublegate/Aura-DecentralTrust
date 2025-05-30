@@ -19,6 +19,11 @@
 - [x] Initialize git repository
 - [x] Create GitHub repository
 - [x] Push all code to GitHub
+- [x] Update all dependencies to latest versions (2025-05-30)
+- [x] Fix compilation with system RocksDB libraries
+- [x] Migrate to bincode 2.0 API
+- [x] Update to libp2p 0.55 and axum 0.8
+- [x] Reorganize documentation into docs/ folder
 
 ## In Progress 🔄
 

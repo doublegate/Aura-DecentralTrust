@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use aura_common::{
     AuraError, Result, AuraDid, CredentialSchema, SchemaRecord, BlockNumber,
 };
@@ -5,11 +6,11 @@ use aura_crypto::hashing;
 use crate::storage::Storage;
 
 pub struct VcSchemaRegistry {
-    storage: Storage,
+    storage: Arc<Storage>,
 }
 
 impl VcSchemaRegistry {
-    pub fn new(storage: Storage) -> Self {
+    pub fn new(storage: Arc<Storage>) -> Self {
         Self { storage }
     }
     
@@ -34,7 +35,9 @@ impl VcSchemaRegistry {
         // Create schema record
         let schema_record = SchemaRecord {
             schema_id: schema_id.clone(),
-            schema_content_hash: hashing::blake3_json(schema)?.to_vec(),
+            schema_content_hash: hashing::blake3_json(schema)
+                .map_err(|e| AuraError::Crypto(e.to_string()))?
+                .to_vec(),
             issuer_did: issuer_did.clone(),
             registered_at_block: block_number.0,
         };

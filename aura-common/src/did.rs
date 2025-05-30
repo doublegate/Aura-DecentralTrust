@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use crate::{AuraDid, PublicKey, ServiceEndpoint, Timestamp, Result};
+use bincode::{Encode, Decode};
+use crate::{AuraDid, ServiceEndpoint, Timestamp};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -68,7 +69,7 @@ pub enum VerificationRelationship {
     Embedded(VerificationMethod),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
 pub struct DidRecord {
     pub did_id: AuraDid,
     pub did_document_hash: Vec<u8>,

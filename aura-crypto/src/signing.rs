@@ -1,8 +1,9 @@
 use ed25519_dalek::{Signature as Ed25519Signature, Signer, Verifier};
 use serde::{Deserialize, Serialize};
+use bincode::{Encode, Decode};
 use crate::{CryptoError, Result, PrivateKey, PublicKey};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
 pub struct Signature(pub Vec<u8>);
 
 impl Signature {

@@ -10,6 +10,20 @@ This directory contains all task tracking and planning documents for the Aura De
 - **[PHASE2_PLANNING.md](./PHASE2_PLANNING.md)** - Detailed Phase 2 roadmap
 - **[DESKTOP_WALLET_MVP.md](./DESKTOP_WALLET_MVP.md)** - Desktop wallet implementation plan
 
+### Technical Documents
+- **[TECHNICAL_SPECIFICATIONS.md](./TECHNICAL_SPECIFICATIONS.md)** - Core technical requirements
+- **[ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md)** - Key architectural choices
+- **[WALLET_FEATURES_DETAILED.md](./WALLET_FEATURES_DETAILED.md)** - Comprehensive wallet features
+- **[USE_CASES_IMPLEMENTATION.md](./USE_CASES_IMPLEMENTATION.md)** - Real-world use cases
+
+### Development Guides
+- **[DEPENDENCY_UPDATE_GUIDE.md](./DEPENDENCY_UPDATE_GUIDE.md)** - Dependency update instructions
+- **[ROCKSDB_BUILD_GUIDE.md](./ROCKSDB_BUILD_GUIDE.md)** - RocksDB build guide
+
+### Session Summaries
+- **[SESSION_SUMMARY_2025-05-30_MAIN_BRANCH.md](./SESSION_SUMMARY_2025-05-30_MAIN_BRANCH.md)** - Initial dependency updates
+- **[SESSION_SUMMARY_2025-05-30_BUILD_FIXES.md](./SESSION_SUMMARY_2025-05-30_BUILD_FIXES.md)** - Build fixes and doc reorganization
+
 ### How It Works
 1. All tasks are tracked in markdown files for version control
 2. Claude Code automatically updates these files as work progresses

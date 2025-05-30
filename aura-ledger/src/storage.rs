@@ -1,8 +1,8 @@
 use std::path::Path;
-use rocksdb::{DB, Options, WriteBatch};
-use serde::{Deserialize, Serialize};
+use rocksdb::{DB, Options};
 use aura_common::{AuraError, Result, AuraDid, DidDocument, DidRecord, SchemaRecord};
-use crate::{Block, BlockNumber};
+use crate::Block;
+use aura_common::BlockNumber;
 
 const CF_BLOCKS: &str = "blocks";
 const CF_DID_RECORDS: &str = "did_records";
@@ -42,8 +42,8 @@ impl Storage {
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
         
         let key = block.header.block_number.0.to_be_bytes();
-        let value = bincode::serialize(block)
-            .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?;
+        let value = serde_json::to_vec(block)
+            .map_err(|e| AuraError::Serialization(e.to_string()))?;
         
         self.db.put_cf(cf, key, value)
             .map_err(|e| AuraError::Storage(e.to_string()))?;
@@ -59,8 +59,8 @@ impl Storage {
         
         match self.db.get_cf(cf, key) {
             Ok(Some(data)) => {
-                let block = bincode::deserialize(&data)
-                    .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?;
+                let block = serde_json::from_slice(&data)
+                    .map_err(|e| AuraError::Serialization(e.to_string()))?;
                 Ok(Some(block))
             }
             Ok(None) => Ok(None),
@@ -99,8 +99,8 @@ impl Storage {
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
         
         let key = did.0.as_bytes();
-        let value = bincode::serialize(record)
-            .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?;
+        let value = bincode::encode_to_vec(record, bincode::config::standard())
+            .map_err(|e| AuraError::Serialization(e.to_string()))?;
         
         self.db.put_cf(cf, key, value)
             .map_err(|e| AuraError::Storage(e.to_string()))?;
@@ -116,8 +116,9 @@ impl Storage {
         
         match self.db.get_cf(cf, key) {
             Ok(Some(data)) => {
-                let record = bincode::deserialize(&data)
-                    .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?;
+                let record = bincode::decode_from_slice(&data, bincode::config::standard())
+                    .map(|(record, _)| record)
+                    .map_err(|e| AuraError::Serialization(e.to_string()))?;
                 Ok(Some(record))
             }
             Ok(None) => Ok(None),
@@ -130,7 +131,8 @@ impl Storage {
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
         
         let key = did.0.as_bytes();
-        let value = serde_json::to_vec(document)?;
+        let value = serde_json::to_vec(document)
+            .map_err(|e| AuraError::Serialization(e.to_string()))?;
         
         self.db.put_cf(cf, key, value)
             .map_err(|e| AuraError::Storage(e.to_string()))?;
@@ -146,7 +148,8 @@ impl Storage {
         
         match self.db.get_cf(cf, key) {
             Ok(Some(data)) => {
-                let document = serde_json::from_slice(&data)?;
+                let document = serde_json::from_slice(&data)
+                    .map_err(|e| AuraError::Serialization(e.to_string()))?;
                 Ok(Some(document))
             }
             Ok(None) => Ok(None),
@@ -160,8 +163,8 @@ impl Storage {
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
         
         let key = schema_id.as_bytes();
-        let value = bincode::serialize(schema)
-            .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?;
+        let value = bincode::encode_to_vec(schema, bincode::config::standard())
+            .map_err(|e| AuraError::Serialization(e.to_string()))?;
         
         self.db.put_cf(cf, key, value)
             .map_err(|e| AuraError::Storage(e.to_string()))?;
@@ -177,8 +180,9 @@ impl Storage {
         
         match self.db.get_cf(cf, key) {
             Ok(Some(data)) => {
-                let schema = bincode::deserialize(&data)
-                    .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?;
+                let schema = bincode::decode_from_slice(&data, bincode::config::standard())
+                    .map(|(schema, _)| schema)
+                    .map_err(|e| AuraError::Serialization(e.to_string()))?;
                 Ok(Some(schema))
             }
             Ok(None) => Ok(None),

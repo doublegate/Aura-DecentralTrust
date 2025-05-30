@@ -1,9 +1,11 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 use serde::{Deserialize, Serialize};
+use bincode::{Encode, Decode};
 use aura_common::{AuraError, Result, AuraDid, BlockNumber};
 use crate::storage::Storage;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
 pub struct RevocationList {
     pub list_id: String,
     pub issuer_did: AuraDid,
@@ -12,11 +14,11 @@ pub struct RevocationList {
 }
 
 pub struct RevocationRegistry {
-    storage: Storage,
+    storage: Arc<Storage>,
 }
 
 impl RevocationRegistry {
-    pub fn new(storage: Storage) -> Self {
+    pub fn new(storage: Arc<Storage>) -> Self {
         Self { storage }
     }
     
@@ -86,8 +88,9 @@ impl RevocationRegistry {
         
         match self.storage.db.get_cf(cf, key) {
             Ok(Some(data)) => {
-                let list = bincode::deserialize(&data)
-                    .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?;
+                let list = bincode::decode_from_slice(&data, bincode::config::standard())
+                    .map(|(list, _)| list)
+                    .map_err(|e| AuraError::Serialization(e.to_string()))?;
                 Ok(Some(list))
             }
             Ok(None) => Ok(None),
@@ -100,8 +103,8 @@ impl RevocationRegistry {
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
         
         let key = list.list_id.as_bytes();
-        let value = bincode::serialize(list)
-            .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?;
+        let value = bincode::encode_to_vec(list, bincode::config::standard())
+            .map_err(|e| AuraError::Serialization(e.to_string()))?;
         
         self.storage.db.put_cf(cf, key, value)
             .map_err(|e| AuraError::Storage(e.to_string()))?;

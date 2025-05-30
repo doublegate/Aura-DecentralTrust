@@ -95,12 +95,9 @@ cargo run --bin aura-node -- --node-type validator
 
 # Specify custom data directory and API port
 cargo run --bin aura-node -- --data-dir ./mydata --api-addr 127.0.0.1:8081
-
-# Specify custom data directory and API port
-cargo run --bin aura-node -- --data-dir ./mydata --api-addr 127.0.0.1:8081
 ```
 
-#### Running the Example
+### Running the Example
 
 ```bash
 cargo run --example basic_usage
@@ -151,26 +148,15 @@ The Aura node exposes the following REST API endpoints:
 - `POST /transaction` - Submit a transaction
 - `GET /revocation/{list_id}/{index}` - Check revocation status
 
-## API Endpoints
-
-The Aura node exposes the following REST API endpoints:
-
-- `GET /` - API information
-- `GET /node/info` - Node status and information
-- `GET /did/{did}` - Resolve a DID
-- `GET /schema/{id}` - Get a credential schema
-- `POST /transaction` - Submit a transaction
-- `GET /revocation/{list_id}/{index}` - Check revocation status
-
 ## Development Roadmap
 
-### Phase 1: Foundation & Core Infrastructure ✅ (Complete) (Complete)
+### Phase 1: Foundation & Core Infrastructure ✅ (Complete)
 - Core ledger with PoA consensus
 - Basic DID and VC functionality
 - Identity wallet core
 - Network infrastructure
 
-### Phase 2: Ecosystem Growth & Advanced Features (Next) (Next)
+### Phase 2: Ecosystem Growth & Advanced Features (Next)
 - Transition to Proof-of-Stake consensus
 - Zero-Knowledge Proof integration
 - SDKs for multiple languages
@@ -197,6 +183,8 @@ For security concerns, please email security@aura-network.org
 
 ## Learn More
 
-- [Project Outline](proj_outline.md) - Detailed technical specification
+- [Project Outline](docs/proj_outline.md) - Detailed technical specification
+- [Phase 1 Summary](docs/PHASE1_SUMMARY.md) - Implementation details and achievements
+- [Documentation Updates](docs/DOCUMENTATION_UPDATES.md) - Recent changes and updates
 - [Documentation](https://docs.aura-network.org) - Coming soon
 - [Community Forum](https://forum.aura-network.org) - Coming soon
