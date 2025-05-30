@@ -1,0 +1,29 @@
+[package]
+name = "aura-node"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+aura-common = { path = "../aura-common" }
+aura-crypto = { path = "../aura-crypto" }
+aura-ledger = { path = "../aura-ledger" }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+libp2p = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+clap = { version = "4.5", features = ["derive"] }
+toml = { workspace = true }
+uuid = { workspace = true }
+bincode = { workspace = true }
+futures = "0.3"
+axum = { workspace = true }
+tower-http = { workspace = true }

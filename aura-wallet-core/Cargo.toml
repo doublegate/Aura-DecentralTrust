@@ -1,0 +1,30 @@
+[package]
+name = "aura-wallet-core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+aura-common = { path = "../aura-common" }
+aura-crypto = { path = "../aura-crypto" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+getrandom = { version = "0.2", features = ["js"] }
+console_error_panic_hook = { version = "0.1", optional = true }
+uuid = { workspace = true }
+multibase = { workspace = true }
+hex = { workspace = true }
+bincode = { workspace = true }
+
+[features]
+default = []
+wasm = ["wasm-bindgen", "wasm-bindgen-futures", "console_error_panic_hook"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]

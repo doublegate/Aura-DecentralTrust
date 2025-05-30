@@ -1,0 +1,30 @@
+# Rust
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+/data/
+/node_data/
+config.toml
+*.log
+
+# Backup files
+*.bak
+*.backup
+
+# Test artifacts
+tarpaulin-report.html
+cobertura.xml
