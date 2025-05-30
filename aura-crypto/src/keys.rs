@@ -4,16 +4,30 @@ use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
 use crate::{CryptoError, Result};
 
-#[derive(Zeroize)]
-#[zeroize(drop)]
 pub struct PrivateKey {
     key: SigningKey,
+}
+
+impl std::fmt::Debug for PrivateKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PrivateKey")
+            .field("key", &"[REDACTED]")
+            .finish()
+    }
+}
+
+impl Drop for PrivateKey {
+    fn drop(&mut self) {
+        // Manually zeroize the key bytes
+        let mut bytes = self.key.to_bytes();
+        bytes.zeroize();
+    }
 }
 
 impl PrivateKey {
     pub fn generate() -> Result<Self> {
         let mut csprng = OsRng;
-        let key = SigningKey::generate(&mut csprng);
+        let key = SigningKey::from_bytes(&rand::Rng::gen::<[u8; 32]>(&mut csprng));
         Ok(Self { key })
     }
     
@@ -66,7 +80,7 @@ impl PublicKey {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct KeyPair {
     private_key: PrivateKey,
     public_key: PublicKey,

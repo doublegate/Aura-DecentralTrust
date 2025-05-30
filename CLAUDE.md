@@ -12,55 +12,34 @@ The system consists of four main components:
 
 1. **Aura Ledger** (`aura-ledger`) - A specialized DLT for DIDs and credential metadata (Rust)
 2. **Aura Identity Wallets** (`aura-wallet-core`) - User agents for managing identity and credentials (Rust core + JS/TS frontend)
-3. **Aura Nodes** (`aura-nodes`) - Network participants maintaining the ledger (Rust)
+3. **Aura Nodes** (`aura-node`) - Network participants maintaining the ledger (Rust)
 4. **Off-Chain Storage** - User-controlled encrypted storage for actual credentials and PII
 
 ## Development Setup
 
-**Note:** This project is in the initial planning phase. No build infrastructure exists yet.
+### Prerequisites
 
-### To initialize the Rust workspace:
+- Rust 1.70+ (install from https://rustup.rs)
+- C/C++ development tools (gcc, gcc-c++, clang)
+- System libraries:
+  - rocksdb-devel (RocksDB database) - **REQUIRED for main branch**
+  - libzstd-devel (zstd compression)
+  - Development headers for C standard library
+
+### Building the Project
 
 ```bash
-# Create workspace root
-cargo init --name aura-workspace
+# Clone the repository
+git clone https://github.com/doublegate/Aura-DecentralTrust
+cd Aura-DecentralTrust
 
-# Create individual crates
-cargo new aura-ledger --lib
-cargo new aura-wallet-core --lib
-cargo new aura-nodes --bin
+# With rocksdb-devel installed:
+cargo build --release
 
-# Install WASM tooling for wallet core
-cargo install wasm-pack
-```
-
-### Expected project structure:
-
-```
-aura-workspace/
-├── Cargo.toml (workspace root)
-├── aura-ledger/
-│   ├── Cargo.toml
-│   └── src/
-│       ├── lib.rs
-│       ├── did_registry/
-│       ├── vc_schema_registry/
-│       ├── revocation_registry/
-│       ├── consensus/
-│       └── p2p/
-├── aura-wallet-core/
-│   ├── Cargo.toml
-│   └── src/
-│       ├── lib.rs
-│       ├── key_manager/
-│       ├── did_manager/
-│       ├── vc_store/
-│       ├── presentation_generator/
-│       └── zkp_handler/
-└── aura-nodes/
-    ├── Cargo.toml
-    └── src/
-        └── main.rs
+# If you still have issues on Fedora 42/Bazzite:
+BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-redhat-linux/15/include" \
+ZSTD_SYS_USE_PKG_CONFIG=1 \
+cargo build --release
 ```
 
 ## Key Technical Decisions
@@ -71,6 +50,7 @@ aura-workspace/
 - **Cryptography**: Ed25519/ECDSA for signing, AES-GCM for encryption
 - **P2P Networking**: libp2p for node communication
 - **Standards**: W3C DIDs and Verifiable Credentials
+- **Database**: RocksDB for persistent storage (main branch)
 
 ## Important Implementation Notes
 
@@ -78,6 +58,18 @@ aura-workspace/
 - All PII and credentials are stored off-chain with user-controlled encryption
 - Initial consensus will use Proof-of-Authority, later transitioning to Proof-of-Stake
 - ZKP integration is planned for Phase 2 using libraries like arkworks-rs or bellman
+
+## Current Status
+
+Phase 1 (Foundation & Core Infrastructure) is mostly complete. The project includes:
+
+- Functional blockchain with PoA consensus
+- W3C-compliant DID and VC implementations  
+- Identity wallet with key management
+- P2P network node with REST API
+- Basic examples and integration tests
+
+Currently updating dependencies and fixing build issues for modern systems.
 
 ## Build Commands
 
@@ -107,14 +99,37 @@ cargo fmt
 cargo clippy
 ```
 
-## Current Status
+## Session Development Notes
 
-Phase 1 (Foundation & Core Infrastructure) is complete. The project now includes:
+### 2025-05-30 Session Summary
 
-- Functional blockchain with PoA consensus
-- W3C-compliant DID and VC implementations  
-- Identity wallet with key management
-- P2P network node with REST API
-- Basic examples and integration tests
+#### Morning Session (build-fixes-sled branch)
+- **Branch Status**: Created `build-fixes-sled` branch, pushed to GitHub, marked as deprecated
+- **Main Achievement**: Fixed all compilation errors on Fedora 42/Bazzite using sled database
+- **Key Changes**: Migrated RocksDB → sled, updated to bincode 2.0, fixed API compatibility
+- **Result**: Full compilation success but missing some blockchain features
 
-See `PHASE1_SUMMARY.md` for detailed implementation status.
+#### Afternoon Session (main branch)
+- **Branch Status**: Switched back to `main` branch to preserve RocksDB implementation
+- **Progress**: Fixed most Rust compilation errors, updated all dependencies to latest versions
+- **Successfully Building**: aura-common, aura-crypto, aura-wallet-core
+- **Blocker**: RocksDB C++ compilation errors (missing headers in bundled code)
+- **Next Step**: User installing rocksdb-devel system package, will retry after reboot
+
+#### Key Learnings Documented
+- Created `to-dos/ROCKSDB_BUILD_GUIDE.md` for RocksDB build instructions
+- Created `to-dos/DEPENDENCY_UPDATE_GUIDE.md` for API migration notes
+- Updated build instructions based on compilation attempts
+
+### Important Reminders
+- The `main` branch uses RocksDB (requires rocksdb-devel system package)
+- The `build-fixes-sled` branch is deprecated and should not be used
+- Most Rust code is updated for modern dependencies (bincode 2.0, latest libp2p/axum)
+- See session summaries in `to-dos/` for detailed progress tracking
+
+## Known Build Issues
+
+- **RocksDB on Fedora 42**: Bundled RocksDB has C++ compatibility issues
+  - Solution: Install rocksdb-devel system package
+- **Dependency versions**: All updated to latest as of 2025-05-30
+- **bincode 2.0**: API changed from serialize/deserialize to encode/decode

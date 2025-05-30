@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-use serde_json::Value;
 use aura_common::{
-    AuraError, Result, AuraDid, VerifiableCredential, VerifiablePresentation,
+    AuraError, Result, AuraDid, VerifiablePresentation,
     Proof, Timestamp,
 };
 use aura_crypto::{signing, PublicKey};

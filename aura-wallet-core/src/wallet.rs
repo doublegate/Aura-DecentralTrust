@@ -14,8 +14,8 @@ pub struct AuraWallet {
 impl AuraWallet {
     pub fn new() -> Self {
         let key_manager = KeyManager::new();
-        let did_manager = DidManager::new(key_manager);
-        let vc_store = VcStore::new();
+        let _did_manager = DidManager::new(key_manager);
+        let _vc_store = VcStore::new();
         
         // We need to clone these for the presentation generator
         let key_manager_clone = KeyManager::new();

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use aura_common::{
-    AuraError, Result, AuraDid, VerifiableCredential, Proof, Timestamp,
+    AuraError, Result, AuraDid, VerifiableCredential, Timestamp,
 };
 use aura_crypto::{encryption, PublicKey, signing};
 
@@ -14,8 +14,8 @@ pub struct StoredCredential {
 }
 
 pub struct VcStore {
-    credentials: HashMap<String, StoredCredential>,
-    encryption_key: Option<[u8; 32]>,
+    pub(crate) credentials: HashMap<String, StoredCredential>,
+    pub(crate) encryption_key: Option<[u8; 32]>,
 }
 
 impl VcStore {
@@ -130,8 +130,8 @@ impl VcStore {
         let encrypted = encryption::encrypt(self.encryption_key.as_ref().unwrap(), &data)
             .map_err(|e| AuraError::Crypto(e.to_string()))?;
         
-        Ok(bincode::serialize(&encrypted)
-            .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?)
+        Ok(bincode::encode_to_vec(&encrypted, bincode::config::standard())
+            .map_err(|e| AuraError::Internal(format!("Failed to serialize encrypted credentials: {}", e)))?)
     }
     
     pub fn import_credentials(&mut self, encrypted_data: &[u8]) -> Result<()> {
@@ -139,8 +139,8 @@ impl VcStore {
             return Err(AuraError::Internal("VC store not initialized".to_string()));
         }
         
-        let encrypted: encryption::EncryptedData = bincode::deserialize(encrypted_data)
-            .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?;
+        let (encrypted, _): (encryption::EncryptedData, _) = bincode::decode_from_slice(encrypted_data, bincode::config::standard())
+            .map_err(|e| AuraError::Internal(format!("Failed to deserialize encrypted credentials: {}", e)))?;
         
         let data = encryption::decrypt(self.encryption_key.as_ref().unwrap(), &encrypted)
             .map_err(|e| AuraError::Crypto(e.to_string()))?;

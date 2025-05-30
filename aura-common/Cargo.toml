@@ -16,4 +16,4 @@ sha2 = { workspace = true }
 blake3 = { workspace = true }
 multibase = { workspace = true }
 multicodec = { workspace = true }
-did_url = { workspace = true }
+# did_url = { workspace = true }  # Removed - not used and causes form_urlencoded issues

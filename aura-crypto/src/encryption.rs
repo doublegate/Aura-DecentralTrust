@@ -3,9 +3,10 @@ use aes_gcm::{
     Aes256Gcm, Key, Nonce,
 };
 use serde::{Deserialize, Serialize};
+use bincode::{Encode, Decode};
 use crate::{CryptoError, Result};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
 pub struct EncryptedData {
     pub ciphertext: Vec<u8>,
     pub nonce: Vec<u8>,

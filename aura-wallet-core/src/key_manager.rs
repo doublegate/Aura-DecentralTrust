@@ -12,8 +12,8 @@ pub struct StoredKey {
 }
 
 pub struct KeyManager {
-    keys: HashMap<AuraDid, StoredKey>,
-    master_key: Option<[u8; 32]>,
+    pub(crate) keys: HashMap<AuraDid, StoredKey>,
+    pub(crate) master_key: Option<[u8; 32]>,
 }
 
 impl KeyManager {
@@ -61,8 +61,8 @@ impl KeyManager {
         let stored_key = StoredKey {
             did: did.clone(),
             public_key: key_pair.public_key().clone(),
-            encrypted_private_key: bincode::serialize(&encrypted_private_key)
-                .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?,
+            encrypted_private_key: bincode::encode_to_vec(&encrypted_private_key, bincode::config::standard())
+                .map_err(|e| AuraError::Internal(format!("Failed to serialize encrypted key: {}", e)))?,
             created_at: chrono::Utc::now(),
         };
         
@@ -81,8 +81,8 @@ impl KeyManager {
         
         // Decrypt the private key
         let master_key = self.master_key.as_ref().unwrap();
-        let encrypted_data: encryption::EncryptedData = bincode::deserialize(&stored_key.encrypted_private_key)
-            .map_err(|e| AuraError::Serialization(serde_json::Error::custom(e)))?;
+        let (encrypted_data, _): (encryption::EncryptedData, _) = bincode::decode_from_slice(&stored_key.encrypted_private_key, bincode::config::standard())
+            .map_err(|e| AuraError::Internal(format!("Failed to deserialize encrypted key: {}", e)))?;
         
         let private_key_bytes = encryption::decrypt(master_key, &encrypted_data)
             .map_err(|e| AuraError::Crypto(e.to_string()))?;
