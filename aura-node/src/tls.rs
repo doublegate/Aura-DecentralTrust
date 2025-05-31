@@ -26,6 +26,21 @@ impl TlsConfig {
         Ok(TlsAcceptor::from(Arc::new(config)))
     }
     
+    /// Convert to rustls ServerConfig for axum-server
+    pub fn into_server_config(self) -> rustls::ServerConfig {
+        // Install default crypto provider if not already installed
+        let _ = rustls::crypto::aws_lc_rs::default_provider()
+            .install_default();
+            
+        let certs = load_certs(&self.cert_path).expect("Failed to load certificates");
+        let key = load_key(&self.key_path).expect("Failed to load private key");
+        
+        rustls::ServerConfig::builder()
+            .with_no_client_auth()
+            .with_single_cert(certs, key)
+            .expect("Failed to create TLS config")
+    }
+    
     /// Generate self-signed certificate for development
     pub fn generate_self_signed() -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
         use rcgen::{generate_simple_self_signed, CertifiedKey};

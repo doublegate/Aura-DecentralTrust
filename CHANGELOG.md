@@ -30,12 +30,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Timestamp utility methods: `from_unix()` and `as_unix()`
 - hex dependency to aura-ledger for transaction logging
 - Comprehensive testing documentation: `NODE_TESTING_SUMMARY.md`, `WARNING_FIXES_SUMMARY.md`
+- Configuration directory structure with example config template
+- API integration tests covering all endpoints
+- Performance testing with concurrent request handling
+- TLS/HTTPS support with axum-server integration
+- Mock API endpoint implementations for testing
 
 ### Changed
 - **Documentation**: Moved key docs to `docs/` folder for better organization
   - `DOCUMENTATION_UPDATES.md` → `docs/DOCUMENTATION_UPDATES.md`
   - `PHASE1_SUMMARY.md` → `docs/PHASE1_SUMMARY.md`
   - `proj_outline.md` → `docs/proj_outline.md`
+  - `SECURITY_NOTICE.md` → `docs/SECURITY_NOTICE.md`
+- **Configuration**: Moved config file to dedicated directory
+  - `config.toml` → `config/config.toml`
+  - Added `config/config.example.toml` as user template
+  - Updated default config path in aura-node
 - **Build Process**: Now requires system RocksDB libraries with environment variables
 - **Dependencies**: Updated all to latest versions as of 2025-05-30
   - bincode: 1.3.3 → 2.0.1 (major API change)
@@ -76,6 +86,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Compilation**: All warnings eliminated with appropriate `#[allow(dead_code)]` attributes
 - **Runtime**: Fixed borrow vs move issues with Timestamp
 - **Runtime**: Fixed auth middleware compatibility issues
+- **API**: Implemented all endpoint handlers with mock responses
+- **API**: Fixed parameterized route authentication
+- **Tests**: Added comprehensive integration test suite
+- **Build**: Fixed wallet-core compilation issues
 
 ### Security
 - Completed comprehensive security audit of Phase 1 implementation

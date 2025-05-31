@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use aura_common::{AuraError, Result, AuraDid};
-use aura_crypto::{KeyPair, PrivateKey, PublicKey, encryption, hashing};
-use zeroize::{Zeroize, Zeroizing};
+use aura_crypto::{KeyPair, PrivateKey, PublicKey, encryption};
+use zeroize::Zeroizing;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StoredKey {
@@ -143,7 +143,6 @@ impl KeyManager {
     fn derive_key_from_password(&self, password: &str, salt: &[u8]) -> [u8; 32] {
         // Use PBKDF2 with SHA-256, 100,000 iterations
         use aura_crypto::hashing;
-        use std::num::NonZeroU32;
         
         const ITERATIONS: u32 = 100_000;
         let mut output = [0u8; 32];

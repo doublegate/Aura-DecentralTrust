@@ -1,0 +1,22 @@
+[package]
+name = "aura-tests"
+version = "0.1.0"
+edition = "2021"
+
+[[test]]
+name = "api_integration_tests"
+path = "../tests/api_integration_tests.rs"
+
+[dependencies]
+aura-common = { path = "../aura-common" }
+aura-crypto = { path = "../aura-crypto" }
+aura-ledger = { path = "../aura-ledger" }
+aura-wallet-core = { path = "../aura-wallet-core" }
+aura-node = { path = "../aura-node" }
+
+tokio = { version = "1.45", features = ["full", "test-util"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.12", features = ["json"] }
+axum = { version = "0.8", features = ["macros"] }
+tower = { version = "0.5" }

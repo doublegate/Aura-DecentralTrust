@@ -126,15 +126,16 @@ pub async fn start_api_server(addr: &str, enable_tls: bool, data_dir: std::path:
     if enable_tls {
         // Setup TLS
         let tls_config = crate::tls::setup_tls(&data_dir).await?;
-        let _tls_acceptor = tls_config.build_acceptor().await?;
         
         info!("API server listening on https://{}", addr);
-        info!("WARNING: TLS support is not fully implemented yet. Using HTTP for now.");
         
-        // For now, just use HTTP even when TLS is requested
-        // Full TLS implementation would require axum-server or similar
-        let listener = tokio::net::TcpListener::bind(addr).await?;
-        axum::serve(listener, app).await?;
+        // Use axum-server for TLS support
+        let rustls_config = axum_server::tls_rustls::RustlsConfig::from_config(
+            Arc::new(tls_config.into_server_config())
+        );
+        axum_server::bind_rustls(addr, rustls_config)
+            .serve(app.into_make_service())
+            .await?;
     } else {
         info!("API server listening on http://{}", addr);
         info!("WARNING: Running without TLS. Use --enable-tls for production!");
@@ -176,20 +177,35 @@ async fn auth_middleware(
     req: axum::http::Request<axum::body::Body>,
     next: axum::middleware::Next,
 ) -> Result<axum::response::Response, StatusCode> {
+    use tracing::debug;
+    
+    debug!("Auth middleware called for path: {}", req.uri().path());
+    
     // Extract and validate token from Authorization header
     let auth_header = req.headers()
         .get(axum::http::header::AUTHORIZATION)
-        .and_then(|value| value.to_str().ok())
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+        .and_then(|value| value.to_str().ok());
+    
+    debug!("Auth header present: {}", auth_header.is_some());
+    
+    let auth_header = auth_header.ok_or_else(|| {
+        debug!("No Authorization header found");
+        StatusCode::UNAUTHORIZED
+    })?;
     
     if !auth_header.starts_with("Bearer ") {
+        debug!("Invalid auth header format");
         return Err(StatusCode::UNAUTHORIZED);
     }
     
     let token = &auth_header[7..];
     auth::verify_token(token)
-        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+        .map_err(|e| {
+            debug!("Token verification failed: {:?}", e);
+            StatusCode::UNAUTHORIZED
+        })?;
     
+    debug!("Auth successful for path: {}", req.uri().path());
     Ok(next.run(req).await)
 }
 
@@ -216,8 +232,29 @@ async fn resolve_did(
         return Ok(Json(ApiResponse::error(format!("Invalid DID: {}", e))));
     }
     
-    // In a real implementation, this would query the DID registry
-    Err(StatusCode::NOT_FOUND)
+    // TODO: In a real implementation, this would query the DID registry
+    // For now, return a mock response
+    let response = DidResolutionResponse {
+        did_document: serde_json::json!({
+            "@context": ["https://www.w3.org/ns/did/v1"],
+            "id": did,
+            "verificationMethod": [{
+                "id": format!("{}#key-1", did),
+                "type": "Ed25519VerificationKey2020",
+                "controller": did,
+                "publicKeyMultibase": "z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"
+            }],
+            "authentication": [format!("{}#key-1", did)],
+            "assertionMethod": [format!("{}#key-1", did)]
+        }),
+        metadata: DidMetadata {
+            created: chrono::Utc::now().to_rfc3339(),
+            updated: chrono::Utc::now().to_rfc3339(),
+            deactivated: false,
+        },
+    };
+    
+    Ok(Json(ApiResponse::success(response)))
 }
 
 async fn get_schema(
@@ -229,8 +266,41 @@ async fn get_schema(
         return Ok(Json(ApiResponse::error(format!("Invalid schema ID: {}", e))));
     }
     
-    // In a real implementation, this would query the schema registry
-    Err(StatusCode::NOT_FOUND)
+    // TODO: In a real implementation, this would query the schema registry
+    // For now, return a mock schema
+    let schema = serde_json::json!({
+        "@context": [
+            "https://www.w3.org/2018/credentials/v1",
+            "https://w3id.org/vc-json-schemas/v1"
+        ],
+        "id": format!("did:aura:schema:{}", schema_id),
+        "type": "JsonSchema",
+        "version": "1.0",
+        "name": "Example Credential Schema",
+        "description": "A schema for example credentials",
+        "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of the credential subject"
+                },
+                "dateOfBirth": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "The date of birth of the credential subject"
+                }
+            },
+            "required": ["name"]
+        },
+        "metadata": {
+            "created": chrono::Utc::now().to_rfc3339(),
+            "updated": chrono::Utc::now().to_rfc3339()
+        }
+    });
+    
+    Ok(Json(ApiResponse::success(schema)))
 }
 
 async fn submit_transaction(

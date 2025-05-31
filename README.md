@@ -1,4 +1,4 @@
-# Aura: Decentralized ID - Trust & Data
+# Aura: Decentralized ID Wallet - Trust & Data Management
 
 **Your Data, Your Rules, Verifiably.**
 
@@ -87,6 +87,9 @@ cargo build --release
 ### Running a Node
 
 ```bash
+# First time setup - copy example config
+cp config/config.example.toml config/config.toml
+
 # Run a query node (default)
 cargo run --bin aura-node
 
@@ -95,6 +98,9 @@ cargo run --bin aura-node -- --node-type validator
 
 # Specify custom data directory and API port
 cargo run --bin aura-node -- --data-dir ./mydata --api-addr 127.0.0.1:8081
+
+# Use a custom config file
+cargo run --bin aura-node -- --config /path/to/custom/config.toml
 ```
 
 ### Running the Example

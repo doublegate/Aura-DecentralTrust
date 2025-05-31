@@ -219,7 +219,7 @@ mod tests {
     fn test_invalid_did() {
         assert!(validate_did("did:other:abc123").is_err());
         assert!(validate_did("not-a-did").is_err());
-        assert!(validate_did(&"did:aura:".to_string() + &"a".repeat(2000)).is_err());
+        assert!(validate_did(&("did:aura:".to_string() + &"a".repeat(2000))).is_err());
     }
     
     #[test]

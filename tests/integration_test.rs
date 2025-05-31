@@ -147,3 +147,4 @@ fn test_proof_of_authority_consensus() {
     let validator = poa.get_block_validator(&BlockNumber(0)).unwrap();
     assert!(poa.is_validator(validator));
 }
+

@@ -36,7 +36,7 @@ impl AuraWallet {
         
         // Derive encryption key for VC store
         let encryption_key = aura_crypto::encryption::generate_encryption_key();
-        self.vc_store.initialize(encryption_key);
+        self.vc_store.initialize(*encryption_key);
         
         // Reinitialize other components with initialized key manager
         self.did_manager = DidManager::new(self.key_manager.clone());
@@ -189,7 +189,7 @@ impl Clone for KeyManager {
     fn clone(&self) -> Self {
         Self {
             keys: self.keys.clone(),
-            master_key: self.master_key,
+            master_key: self.master_key.clone(),
         }
     }
 }

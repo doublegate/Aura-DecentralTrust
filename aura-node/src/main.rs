@@ -16,7 +16,7 @@ use std::path::PathBuf;
 #[clap(about = "Aura Network Node", version)]
 struct Args {
     /// Path to configuration file
-    #[clap(short, long, default_value = "config.toml")]
+    #[clap(short, long, default_value = "config/config.toml")]
     config: PathBuf,
     
     /// Node type (validator or query)
