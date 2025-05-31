@@ -19,3 +19,4 @@ tracing = { workspace = true }
 thiserror = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+hex = "0.4"

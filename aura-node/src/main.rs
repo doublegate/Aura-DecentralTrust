@@ -68,7 +68,7 @@ async fn main() -> anyhow::Result<()> {
     // Create and start the node
     let node = node::AuraNode::new(
         config,
-        args.data_dir,
+        args.data_dir.clone(),
         args.node_type == "validator",
     ).await?;
     

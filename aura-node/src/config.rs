@@ -86,6 +86,7 @@ impl NodeConfig {
         }
     }
     
+    #[allow(dead_code)]
     pub fn save<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
         let content = toml::to_string_pretty(self)?;
         std::fs::write(path, content)?;

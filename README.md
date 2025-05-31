@@ -179,6 +179,8 @@ This project is dual-licensed under MIT and Apache 2.0 licenses.
 
 ## Security
 
+See [SECURITY_NOTICE.md](SECURITY_NOTICE.md) for important security information and best practices.
+
 For security concerns, please email security@aura-network.org
 
 ## Learn More
@@ -190,3 +192,7 @@ For security concerns, please email security@aura-network.org
 - [Documentation Index](docs/README.md) - All project documentation
 - [Documentation](https://docs.aura-network.org) - Coming soon
 - [Community Forum](https://forum.aura-network.org) - Coming soon
+
+## Metrics
+
+![Alt](https://repobeats.axiom.co/api/embed/b91bd1b950b741e8d35baf666dc9933c5289d418.svg "Repobeats Analytics")

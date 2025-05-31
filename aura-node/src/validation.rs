@@ -11,12 +11,14 @@ static SCHEMA_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^[a-zA-Z0-9\-_]{1,64}$").unwrap()
 });
 
+#[allow(dead_code)]
 static CHAIN_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^[a-zA-Z0-9\-]{1,32}$").unwrap()
 });
 
 // Size limits
 pub const MAX_TRANSACTION_SIZE: usize = 100 * 1024; // 100KB
+#[allow(dead_code)]
 pub const MAX_DID_DOCUMENT_SIZE: usize = 10 * 1024; // 10KB
 pub const MAX_CREDENTIAL_SIZE: usize = 50 * 1024; // 50KB
 pub const MAX_STRING_LENGTH: usize = 1024;
@@ -45,6 +47,7 @@ pub fn validate_schema_id(schema_id: &str) -> Result<()> {
 }
 
 /// Validate a chain ID
+#[allow(dead_code)]
 pub fn validate_chain_id(chain_id: &str) -> Result<()> {
     if !CHAIN_ID_REGEX.is_match(chain_id) {
         return Err(AuraError::Validation("Invalid chain ID format".to_string()));
@@ -54,6 +57,7 @@ pub fn validate_chain_id(chain_id: &str) -> Result<()> {
 }
 
 /// Validate URL format and prevent SSRF
+#[allow(dead_code)]
 pub fn validate_url(url: &str) -> Result<()> {
     if url.len() > MAX_STRING_LENGTH {
         return Err(AuraError::Validation("URL too long".to_string()));
@@ -98,6 +102,7 @@ pub fn validate_transaction_size(data: &[u8]) -> Result<()> {
 }
 
 /// Validate DID document
+#[allow(dead_code)]
 pub fn validate_did_document(doc: &aura_common::DidDocument) -> Result<()> {
     // Validate DID
     validate_did(&doc.id.to_string())?;
@@ -118,14 +123,12 @@ pub fn validate_did_document(doc: &aura_common::DidDocument) -> Result<()> {
     }
     
     // Validate service endpoints
-    if let Some(services) = &doc.service {
-        if services.len() > MAX_ARRAY_LENGTH {
-            return Err(AuraError::Validation("Too many service endpoints".to_string()));
-        }
-        
-        for service in services {
-            validate_url(&service.service_endpoint)?;
-        }
+    if doc.service.len() > MAX_ARRAY_LENGTH {
+        return Err(AuraError::Validation("Too many service endpoints".to_string()));
+    }
+    
+    for service in &doc.service {
+        validate_url(&service.service_endpoint)?;
     }
     
     Ok(())

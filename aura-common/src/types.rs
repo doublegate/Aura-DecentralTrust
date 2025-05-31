@@ -65,6 +65,16 @@ impl Timestamp {
     pub fn now() -> Self {
         Self::default()
     }
+    
+    pub fn from_unix(timestamp: i64) -> Self {
+        let dt = DateTime::from_timestamp(timestamp, 0)
+            .unwrap_or_else(|| Utc::now());
+        Self(dt)
+    }
+    
+    pub fn as_unix(&self) -> i64 {
+        self.0.timestamp()
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Encode, Decode)]

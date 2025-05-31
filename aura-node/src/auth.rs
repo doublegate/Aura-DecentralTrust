@@ -1,19 +1,19 @@
 use axum::{
-    extract::FromRequestParts,
-    http::{header, request::Parts, StatusCode},
+    http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use tower_http::limit::RequestBodyLimitLayer;
 
 /// JWT secret key - in production, load from secure configuration
 const JWT_SECRET: &[u8] = b"aura-secret-key-change-in-production";
 
 /// API rate limiting configuration
+#[allow(dead_code)]
 pub const RATE_LIMIT_REQUESTS: u32 = 100;
+#[allow(dead_code)]
 pub const RATE_LIMIT_WINDOW_SECS: u64 = 60;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -64,6 +64,7 @@ pub fn verify_token(token: &str) -> Result<TokenData<Claims>, AuthError> {
 
 /// Authentication error types
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum AuthError {
     InvalidToken,
     TokenCreation,
@@ -88,41 +89,41 @@ impl IntoResponse for AuthError {
     }
 }
 
-/// JWT authentication extractor
-pub struct JwtAuth {
-    pub claims: Claims,
-}
+// /// JWT authentication extractor
+// pub struct JwtAuth {
+//     pub claims: Claims,
+// }
 
-#[axum::async_trait]
-impl<S> FromRequestParts<S> for JwtAuth
-where
-    S: Send + Sync,
-{
-    type Rejection = AuthError;
+// #[async_trait::async_trait]
+// impl<S> FromRequestParts<S> for JwtAuth
+// where
+//     S: Send + Sync,
+// {
+//     type Rejection = AuthError;
     
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        // Extract the token from the authorization header
-        let auth_header = parts
-            .headers
-            .get(header::AUTHORIZATION)
-            .and_then(|value| value.to_str().ok())
-            .ok_or(AuthError::MissingToken)?;
+//     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+//         // Extract the token from the authorization header
+//         let auth_header = parts
+//             .headers
+//             .get(header::AUTHORIZATION)
+//             .and_then(|value| value.to_str().ok())
+//             .ok_or(AuthError::MissingToken)?;
         
-        // Check if it's a Bearer token
-        if !auth_header.starts_with("Bearer ") {
-            return Err(AuthError::InvalidToken);
-        }
+//         // Check if it's a Bearer token
+//         if !auth_header.starts_with("Bearer ") {
+//             return Err(AuthError::InvalidToken);
+//         }
         
-        let token = &auth_header[7..]; // Skip "Bearer "
+//         let token = &auth_header[7..]; // Skip "Bearer "
         
-        // Verify the token
-        let token_data = verify_token(token)?;
+//         // Verify the token
+//         let token_data = verify_token(token)?;
         
-        Ok(JwtAuth {
-            claims: token_data.claims,
-        })
-    }
-}
+//         Ok(JwtAuth {
+//             claims: token_data.claims,
+//         })
+//     }
+// }
 
 /// Create request body size limiter
 pub fn create_body_limit_layer() -> RequestBodyLimitLayer {

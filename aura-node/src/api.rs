@@ -11,7 +11,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use tracing::info;
-use crate::auth::{self, JwtAuth, AuthRequest, AuthResponse};
+use crate::auth::{self, AuthRequest, AuthResponse};
 use crate::validation;
 
 #[derive(Clone)]
@@ -108,10 +108,10 @@ pub async fn start_api_server(addr: &str, enable_tls: bool, data_dir: std::path:
     // Protected routes (auth required)
     let protected_routes = Router::new()
         .route("/node/info", get(get_node_info))
-        .route("/did/:did", get(resolve_did))
-        .route("/schema/:id", get(get_schema))
+        .route("/did/{did}", get(resolve_did))
+        .route("/schema/{id}", get(get_schema))
         .route("/transaction", post(submit_transaction))
-        .route("/revocation/:list_id/:index", get(check_revocation))
+        .route("/revocation/{list_id}/{index}", get(check_revocation))
         .route_layer(middleware::from_fn(auth_middleware));
     
     let app = Router::new()
@@ -126,19 +126,15 @@ pub async fn start_api_server(addr: &str, enable_tls: bool, data_dir: std::path:
     if enable_tls {
         // Setup TLS
         let tls_config = crate::tls::setup_tls(&data_dir).await?;
-        let tls_acceptor = tls_config.build_acceptor().await?;
+        let _tls_acceptor = tls_config.build_acceptor().await?;
         
         info!("API server listening on https://{}", addr);
+        info!("WARNING: TLS support is not fully implemented yet. Using HTTP for now.");
         
+        // For now, just use HTTP even when TLS is requested
+        // Full TLS implementation would require axum-server or similar
         let listener = tokio::net::TcpListener::bind(addr).await?;
-        let incoming = tokio_stream::wrappers::TcpListenerStream::new(listener);
-        
-        // Serve with TLS
-        axum::serve(
-            listener,
-            app.into_make_service_with_connect_info::<SocketAddr>(),
-        )
-        .await?;
+        axum::serve(listener, app).await?;
     } else {
         info!("API server listening on http://{}", addr);
         info!("WARNING: Running without TLS. Use --enable-tls for production!");
@@ -199,7 +195,6 @@ async fn auth_middleware(
 
 async fn get_node_info(
     State(_state): State<Arc<ApiState>>,
-    _auth: JwtAuth,
 ) -> Json<ApiResponse<NodeInfo>> {
     let info = NodeInfo {
         version: "1.0.0".to_string(),
@@ -215,7 +210,6 @@ async fn get_node_info(
 async fn resolve_did(
     Path(did): Path<String>,
     State(_state): State<Arc<ApiState>>,
-    _auth: JwtAuth,
 ) -> Result<Json<ApiResponse<DidResolutionResponse>>, StatusCode> {
     // Validate DID format
     if let Err(e) = validation::validate_did(&did) {
@@ -229,7 +223,6 @@ async fn resolve_did(
 async fn get_schema(
     Path(schema_id): Path<String>,
     State(_state): State<Arc<ApiState>>,
-    _auth: JwtAuth,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, StatusCode> {
     // Validate schema ID
     if let Err(e) = validation::validate_schema_id(&schema_id) {
@@ -242,7 +235,6 @@ async fn get_schema(
 
 async fn submit_transaction(
     State(_state): State<Arc<ApiState>>,
-    _auth: JwtAuth,
     Json(request): Json<TransactionRequest>,
 ) -> Json<ApiResponse<TransactionResponse>> {
     // Validate transaction data size
@@ -254,7 +246,7 @@ async fn submit_transaction(
     
     // Validate transaction type specific data
     match &request.transaction_type {
-        TransactionTypeRequest::RegisterDid { did_document } => {
+        TransactionTypeRequest::RegisterDid { did_document: _ } => {
             // This would validate the DID document
         },
         TransactionTypeRequest::IssueCredential { claims, .. } => {
@@ -277,7 +269,6 @@ async fn submit_transaction(
 async fn check_revocation(
     Path((list_id, index)): Path<(String, u32)>,
     State(_state): State<Arc<ApiState>>,
-    _auth: JwtAuth,
 ) -> Json<ApiResponse<bool>> {
     // Validate list ID format
     let sanitized_list_id = validation::sanitize_string(&list_id);

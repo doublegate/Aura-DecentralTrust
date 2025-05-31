@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::sync::Arc;
-use tokio_rustls::rustls::{self, Certificate, PrivateKey, ServerConfig};
+use tokio_rustls::rustls::{self, pki_types::{CertificateDer, PrivateKeyDer}};
 use tokio_rustls::TlsAcceptor;
 
 /// TLS configuration for the API server
@@ -12,11 +12,14 @@ pub struct TlsConfig {
 impl TlsConfig {
     /// Create TLS acceptor from certificate and key files
     pub async fn build_acceptor(&self) -> anyhow::Result<TlsAcceptor> {
+        // Install default crypto provider if not already installed
+        let _ = rustls::crypto::aws_lc_rs::default_provider()
+            .install_default();
+            
         let certs = load_certs(&self.cert_path)?;
         let key = load_key(&self.key_path)?;
         
         let config = rustls::ServerConfig::builder()
-            .with_safe_defaults()
             .with_no_client_auth()
             .with_single_cert(certs, key)?;
             
@@ -30,7 +33,7 @@ impl TlsConfig {
         let subject_alt_names = vec!["localhost".to_string(), "127.0.0.1".to_string()];
         let CertifiedKey { cert, key_pair } = generate_simple_self_signed(subject_alt_names)?;
         
-        let cert_pem = cert.serialize_pem()?;
+        let cert_pem = cert.pem();
         let key_pem = key_pair.serialize_pem();
         
         Ok((cert_pem.into_bytes(), key_pem.into_bytes()))
@@ -60,26 +63,25 @@ impl TlsConfig {
 }
 
 /// Load certificates from PEM file
-fn load_certs(path: &str) -> anyhow::Result<Vec<Certificate>> {
+fn load_certs(path: &str) -> anyhow::Result<Vec<CertificateDer<'static>>> {
     let cert_file = std::fs::File::open(path)?;
     let mut reader = std::io::BufReader::new(cert_file);
-    let certs = rustls_pemfile::certs(&mut reader)?
-        .into_iter()
-        .map(Certificate)
-        .collect();
+    let certs = rustls_pemfile::certs(&mut reader)
+        .map(|cert| cert.map(|c| c.to_owned()))
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(certs)
 }
 
 /// Load private key from PEM file
-fn load_key(path: &str) -> anyhow::Result<PrivateKey> {
+fn load_key(path: &str) -> anyhow::Result<PrivateKeyDer<'static>> {
     let key_file = std::fs::File::open(path)?;
     let mut reader = std::io::BufReader::new(key_file);
     
     loop {
         match rustls_pemfile::read_one(&mut reader)? {
-            Some(rustls_pemfile::Item::RSAKey(key)) => return Ok(PrivateKey(key)),
-            Some(rustls_pemfile::Item::PKCS8Key(key)) => return Ok(PrivateKey(key)),
-            Some(rustls_pemfile::Item::ECKey(key)) => return Ok(PrivateKey(key)),
+            Some(rustls_pemfile::Item::Pkcs1Key(key)) => return Ok(PrivateKeyDer::Pkcs1(key)),
+            Some(rustls_pemfile::Item::Pkcs8Key(key)) => return Ok(PrivateKeyDer::Pkcs8(key)),
+            Some(rustls_pemfile::Item::Sec1Key(key)) => return Ok(PrivateKeyDer::Sec1(key)),
             None => break,
             _ => {}
         }

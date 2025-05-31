@@ -66,7 +66,7 @@ impl Transaction {
     
     pub fn verify(&self) -> Result<bool> {
         // Check if transaction has expired
-        if let Some(expires_at) = self.expires_at {
+        if let Some(expires_at) = &self.expires_at {
             if Timestamp::now().as_unix() > expires_at.as_unix() {
                 return Ok(false);
             }

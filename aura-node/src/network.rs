@@ -3,7 +3,7 @@ use libp2p::{
     identify,
     kad::{self, store::MemoryStore},
     noise,
-    swarm::{NetworkBehaviour, SwarmEvent},
+    swarm::SwarmEvent,
     tcp,
     yamux,
     PeerId, SwarmBuilder,
@@ -155,6 +155,7 @@ impl NetworkManager {
         Ok(())
     }
     
+    #[allow(dead_code)]
     pub async fn broadcast_transaction(&mut self, tx_data: Vec<u8>) -> anyhow::Result<()> {
         let message = NetworkMessage::NewTransaction(tx_data);
         let data = bincode::encode_to_vec(&message, bincode::config::standard())
@@ -169,6 +170,7 @@ impl NetworkManager {
         Ok(())
     }
     
+    #[allow(dead_code)]
     pub async fn broadcast_did_update(&mut self, did_data: Vec<u8>) -> anyhow::Result<()> {
         let message = NetworkMessage::DidUpdate(did_data);
         let data = bincode::encode_to_vec(&message, bincode::config::standard())

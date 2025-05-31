@@ -108,7 +108,7 @@ cargo fmt
 cargo clippy
 ```
 
-## Recent Updates (2025-05-30)
+## Recent Updates (2025-05-31)
 
 ### Dependency Updates
 The project has been updated to work with latest dependencies:
@@ -124,5 +124,26 @@ The project has been updated to work with latest dependencies:
   - `ROCKSDB_LIB_DIR`: Path to system RocksDB libraries
   - `LIBROCKSDB_SYS_DISABLE_BUNDLED=1`: Use system RocksDB instead of bundled
   - `BINDGEN_EXTRA_CLANG_ARGS`: May be needed for clang headers
+
+### Security Features Implemented
+- **JWT Authentication**: All API endpoints protected with Bearer token auth
+- **TLS Support**: Self-signed certificate generation with `--enable-tls` flag
+- **Input Validation**: Comprehensive validation for DIDs, URLs, and data sizes
+- **Key Zeroization**: Cryptographic keys properly cleared from memory
+- **Replay Protection**: Transactions include nonces and expiration
+
+### Running the Node
+```bash
+# Standard run (HTTP)
+ROCKSDB_LIB_DIR=/usr/lib64 LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo run --bin aura-node
+
+# Run with TLS (generates certificates)
+ROCKSDB_LIB_DIR=/usr/lib64 LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo run --bin aura-node -- --enable-tls
+
+# Get auth token
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"node_id": "validator-node-1", "password": "validator-password-1"}'
+```
 
 See `CHANGELOG.md` for complete list of changes.

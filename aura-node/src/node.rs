@@ -20,7 +20,9 @@ pub struct AuraNode {
     storage: Arc<Storage>,
     consensus: Arc<RwLock<ProofOfAuthority>>,
     did_registry: Arc<RwLock<DidRegistry>>,
+    #[allow(dead_code)]
     schema_registry: Arc<RwLock<VcSchemaRegistry>>,
+    #[allow(dead_code)]
     revocation_registry: Arc<RwLock<RevocationRegistry>>,
     network: Arc<tokio::sync::Mutex<NetworkManager>>,
     validator_key: Option<KeyPair>,
@@ -262,6 +264,7 @@ impl AuraNode {
         Ok(())
     }
     
+    #[allow(dead_code)]
     async fn process_transaction(&self, tx: &Transaction, block_number: BlockNumber) -> anyhow::Result<()> {
         // Verify transaction
         if !tx.verify()? {
@@ -298,6 +301,7 @@ impl AuraNode {
         Ok(())
     }
     
+    #[allow(dead_code)]
     pub async fn submit_transaction(&self, transaction: Transaction) -> Result<()> {
         // Verify transaction
         if !transaction.verify()? {

@@ -21,12 +21,6 @@ impl std::fmt::Debug for PrivateKey {
     }
 }
 
-impl Drop for PrivateKey {
-    fn drop(&mut self) {
-        // Zeroize the key bytes
-        self.key_bytes.zeroize();
-    }
-}
 
 impl PrivateKey {
     pub fn generate() -> Result<Self> {

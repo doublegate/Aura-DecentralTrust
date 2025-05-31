@@ -28,3 +28,89 @@ config.toml
 # Test artifacts
 tarpaulin-report.html
 cobertura.xml
+test-results/
+coverage/
+
+# Security and secrets
+secrets/
+*.token
+*.jwt
+token.json
+token2.json
+auth-token.json
+*-token.json
+*.key
+*.pem
+*.cert
+*.crt
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+node-test.log
+node-test2.log
+node-tls-test.log
+node-tls-test2.log
+aura-node.log
+aura-node-tls.log
+aura-node-tls2.log
+*-test.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+rocksdb/
+
+# Build artifacts
+dist/
+build/
+out/
+
+# Documentation build
+docs/_build/
+docs/_site/
+
+# Python (for any scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# Node.js (for future wallet UI)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+
+# Wallet/Client builds
+aura-wallet-*/
+wallet-builds/
+
+# Performance test results
+benchmarks/
+perf-results/
+
+# Core dumps
+core
+core.*
+*.core
+
+# Session/state files
+.session
+.state
+*.session
+*.state
