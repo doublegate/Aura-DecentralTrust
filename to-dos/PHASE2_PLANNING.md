@@ -1,9 +1,12 @@
 # Phase 2 Planning - Ecosystem Growth & Advanced Features
 
+**Current Status**: Phase 1 v0.1.0 Released (June 1, 2025)  
+**Phase 2 Start**: After v1.0.0 (Desktop Wallet MVP)
+
 ## Overview
 Phase 2 focuses on expanding the Aura network's capabilities, improving consensus, and building developer tools.
 
-## Timeline: 2-4 Years
+## Timeline: Post v1.0.0 Release
 
 ## Major Milestones
 

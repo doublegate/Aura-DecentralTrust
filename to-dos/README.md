@@ -2,6 +2,8 @@
 
 This directory contains all task tracking and planning documents for the Aura DecentralTrust project.
 
+**Current Status**: Phase 1 is 95% complete with v0.1.0 released on June 1, 2025!
+
 ## Structure
 
 ### Core Documents
@@ -20,9 +22,12 @@ This directory contains all task tracking and planning documents for the Aura De
 - **[DEPENDENCY_UPDATE_GUIDE.md](./DEPENDENCY_UPDATE_GUIDE.md)** - Dependency update instructions
 - **[ROCKSDB_BUILD_GUIDE.md](./ROCKSDB_BUILD_GUIDE.md)** - RocksDB build guide
 
-### Session Summaries
+### Session Summaries & Updates
 - **[SESSION_SUMMARY_2025-05-30_MAIN_BRANCH.md](./SESSION_SUMMARY_2025-05-30_MAIN_BRANCH.md)** - Initial dependency updates
 - **[SESSION_SUMMARY_2025-05-30_BUILD_FIXES.md](./SESSION_SUMMARY_2025-05-30_BUILD_FIXES.md)** - Build fixes and doc reorganization
+- **[SESSION_SUMMARY_2025-05-31_CONFIG_MIGRATION.md](./SESSION_SUMMARY_2025-05-31_CONFIG_MIGRATION.md)** - Configuration migration
+- **[SESSION_SUMMARY_2025-05-31_POST_SECURITY.md](./SESSION_SUMMARY_2025-05-31_POST_SECURITY.md)** - Post-security implementation
+- **[BUILD_SUCCESS_2025-06-01.md](./BUILD_SUCCESS_2025-06-01.md)** - v0.1.0 release success!
 
 ### How It Works
 1. All tasks are tracked in markdown files for version control

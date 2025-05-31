@@ -2,6 +2,8 @@
 
 This directory contains comprehensive documentation for the Aura DecentralTrust project.
 
+**Latest Release**: v0.1.0 (June 1, 2025) - [Download](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0)
+
 ## Project Documentation
 
 ### Core Documentation
@@ -20,12 +22,14 @@ This directory contains comprehensive documentation for the Aura DecentralTrust 
 | Document | Last Updated | Status |
 |----------|--------------|--------|
 | proj_outline.md | 2025-05-29 | ✅ Complete |
-| PHASE1_SUMMARY.md | 2025-05-30 | ✅ Complete |
-| PHASE1_COMPLETION_REPORT.md | 2025-05-30 | ✅ Complete |
+| PHASE1_SUMMARY.md | 2025-06-01 | ✅ Updated for v0.1.0 |
+| PHASE1_COMPLETION_REPORT.md | 2025-06-01 | ✅ Updated for v0.1.0 |
 | DOCUMENTATION_UPDATES.md | 2025-05-30 | ✅ Complete |
-| SECURITY_AUDIT_PHASE1.md | 2025-05-30 | ✅ Complete |
+| SECURITY_AUDIT_PHASE1.md | 2025-06-01 | ✅ Updated for v0.1.0 |
 | SECURITY_REVIEW_NETWORK_API.md | 2025-05-30 | ✅ Complete |
 | SECURITY_IMPLEMENTATION_GUIDE.md | 2025-05-30 | ✅ Complete |
+| SECURITY_NOTICE.md | 2025-05-31 | ✅ Complete |
+| SECURITY_IMPLEMENTATION_SUMMARY.md | 2025-05-31 | ✅ Complete |
 
 ## Quick Links
 

@@ -14,6 +14,12 @@ use std::hash::{Hash, Hasher};
 use std::time::Duration;
 use tracing::{info, warn};
 
+// Security: Maximum message sizes to prevent DoS attacks
+const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1MB
+const MAX_BLOCK_SIZE: usize = 512 * 1024;    // 512KB
+const MAX_TRANSACTION_SIZE: usize = 64 * 1024; // 64KB
+const MAX_DID_UPDATE_SIZE: usize = 16 * 1024;  // 16KB
+
 #[derive(libp2p::swarm::NetworkBehaviour)]
 pub struct AuraNetworkBehaviour {
     gossipsub: gossipsub::Behaviour,
@@ -149,6 +155,15 @@ impl NetworkManager {
     }
 
     pub async fn broadcast_block(&mut self, block_data: Vec<u8>) -> anyhow::Result<()> {
+        // Security: Validate size before broadcasting
+        if block_data.len() > MAX_BLOCK_SIZE {
+            return Err(anyhow::anyhow!(
+                "Block size ({} bytes) exceeds maximum allowed size ({} bytes)",
+                block_data.len(),
+                MAX_BLOCK_SIZE
+            ));
+        }
+
         let message = NetworkMessage::NewBlock(block_data);
         let data = bincode::encode_to_vec(&message, bincode::config::standard())
             .map_err(|e| anyhow::anyhow!("Failed to serialize message: {}", e))?;
@@ -164,6 +179,15 @@ impl NetworkManager {
 
     #[allow(dead_code)]
     pub async fn broadcast_transaction(&mut self, tx_data: Vec<u8>) -> anyhow::Result<()> {
+        // Security: Validate size before broadcasting
+        if tx_data.len() > MAX_TRANSACTION_SIZE {
+            return Err(anyhow::anyhow!(
+                "Transaction size ({} bytes) exceeds maximum allowed size ({} bytes)",
+                tx_data.len(),
+                MAX_TRANSACTION_SIZE
+            ));
+        }
+
         let message = NetworkMessage::NewTransaction(tx_data);
         let data = bincode::encode_to_vec(&message, bincode::config::standard())
             .map_err(|e| anyhow::anyhow!("Failed to serialize message: {}", e))?;
@@ -179,6 +203,15 @@ impl NetworkManager {
 
     #[allow(dead_code)]
     pub async fn broadcast_did_update(&mut self, did_data: Vec<u8>) -> anyhow::Result<()> {
+        // Security: Validate size before broadcasting
+        if did_data.len() > MAX_DID_UPDATE_SIZE {
+            return Err(anyhow::anyhow!(
+                "DID update size ({} bytes) exceeds maximum allowed size ({} bytes)",
+                did_data.len(),
+                MAX_DID_UPDATE_SIZE
+            ));
+        }
+
         let message = NetworkMessage::DidUpdate(did_data);
         let data = bincode::encode_to_vec(&message, bincode::config::standard())
             .map_err(|e| anyhow::anyhow!("Failed to serialize message: {}", e))?;
@@ -190,6 +223,15 @@ impl NetworkManager {
             .map_err(|e| anyhow::anyhow!("Failed to publish DID update: {:?}", e))?;
 
         Ok(())
+    }
+
+    // Security: Validate message size based on type
+    fn validate_message_size(&self, msg: &NetworkMessage) -> bool {
+        match msg {
+            NetworkMessage::NewBlock(data) => data.len() <= MAX_BLOCK_SIZE,
+            NetworkMessage::NewTransaction(data) => data.len() <= MAX_TRANSACTION_SIZE,
+            NetworkMessage::DidUpdate(data) => data.len() <= MAX_DID_UPDATE_SIZE,
+        }
     }
 
     pub async fn run(&mut self) -> anyhow::Result<()> {
@@ -223,10 +265,20 @@ impl NetworkManager {
     async fn handle_behaviour_event(&mut self, event: AuraNetworkBehaviourEvent) {
         match event {
             AuraNetworkBehaviourEvent::Gossipsub(gossipsub::Event::Message {
-                propagation_source: _,
+                propagation_source,
                 message_id: _,
                 message,
             }) => {
+                // Security: Validate message size before processing
+                if message.data.len() > MAX_MESSAGE_SIZE {
+                    warn!(
+                        "Received oversized message ({} bytes) from peer {}, dropping",
+                        message.data.len(),
+                        propagation_source
+                    );
+                    return;
+                }
+
                 let topic = message.topic.clone();
 
                 match bincode::decode_from_slice::<NetworkMessage, _>(
@@ -236,6 +288,15 @@ impl NetworkManager {
                 .map(|(msg, _)| msg)
                 {
                     Ok(network_msg) => {
+                        // Validate specific message types
+                        if !self.validate_message_size(&network_msg) {
+                            warn!(
+                                "Message size validation failed for {:?} from {}",
+                                topic, propagation_source
+                            );
+                            return;
+                        }
+
                         if topic == self.topics.blocks.hash() {
                             self.handle_new_block(network_msg).await;
                         } else if topic == self.topics.transactions.hash() {

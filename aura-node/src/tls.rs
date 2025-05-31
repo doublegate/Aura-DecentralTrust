@@ -30,17 +30,18 @@ impl TlsConfig {
     }
 
     /// Convert to rustls ServerConfig for axum-server
-    pub fn into_server_config(self) -> rustls::ServerConfig {
+    pub fn into_server_config(self) -> anyhow::Result<rustls::ServerConfig> {
         // Install default crypto provider if not already installed
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
-        let certs = load_certs(&self.cert_path).expect("Failed to load certificates");
-        let key = load_key(&self.key_path).expect("Failed to load private key");
+        let certs = load_certs(&self.cert_path)?;
+        let key = load_key(&self.key_path)?;
 
-        rustls::ServerConfig::builder()
+        let config = rustls::ServerConfig::builder()
             .with_no_client_auth()
-            .with_single_cert(certs, key)
-            .expect("Failed to create TLS config")
+            .with_single_cert(certs, key)?;
+
+        Ok(config)
     }
 
     /// Generate self-signed certificate for development
@@ -116,13 +117,14 @@ pub async fn setup_tls(data_dir: &Path) -> anyhow::Result<TlsConfig> {
     if !cert_path.exists() || !key_path.exists() {
         tracing::info!("Generating self-signed certificate for HTTPS");
         let (cert, key) = TlsConfig::generate_self_signed()?;
-        TlsConfig::save_cert_and_key(
-            &cert,
-            &key,
-            cert_path.to_str().unwrap(),
-            key_path.to_str().unwrap(),
-        )
-        .await?;
+        let cert_path_str = cert_path
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("Invalid certificate path"))?;
+        let key_path_str = key_path
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("Invalid key path"))?;
+        
+        TlsConfig::save_cert_and_key(&cert, &key, cert_path_str, key_path_str).await?;
         tracing::info!("Self-signed certificate saved to {:?}", cert_path);
     }
 

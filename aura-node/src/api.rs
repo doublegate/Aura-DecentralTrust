@@ -17,6 +17,7 @@ use tracing::info;
 #[derive(Clone)]
 pub struct ApiState {
     // In a real implementation, this would contain references to the node components
+    pub config: Option<crate::config::NodeConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -101,8 +102,20 @@ pub async fn start_api_server(
     addr: &str,
     enable_tls: bool,
     data_dir: std::path::PathBuf,
+    config: Option<crate::config::NodeConfig>,
 ) -> anyhow::Result<()> {
-    let state = ApiState {};
+    // Get rate limit config
+    let (max_rpm, max_rph) = config.as_ref()
+        .map(|c| (c.security.rate_limit_rpm, c.security.rate_limit_rph))
+        .unwrap_or((60, 1000));
+
+    // Create rate limiter
+    let rate_limiter = crate::rate_limit::RateLimiter::new(max_rpm, max_rph);
+    
+    // Spawn cleanup task
+    crate::rate_limit::spawn_cleanup_task(rate_limiter.clone());
+
+    let state = ApiState { config };
 
     // Public routes (no auth required)
     let public_routes = Router::new()
@@ -123,6 +136,10 @@ pub async fn start_api_server(
         .merge(protected_routes)
         .layer(CorsLayer::permissive())
         .layer(auth::create_body_limit_layer())
+        .layer(middleware::from_fn_with_state(
+            rate_limiter,
+            crate::rate_limit::rate_limit_middleware,
+        ))
         .with_state(Arc::new(state));
 
     let addr: SocketAddr = addr.parse()?;
@@ -134,18 +151,22 @@ pub async fn start_api_server(
         info!("API server listening on https://{}", addr);
 
         // Use axum-server for TLS support
+        let server_config = tls_config.into_server_config()?;
         let rustls_config = axum_server::tls_rustls::RustlsConfig::from_config(Arc::new(
-            tls_config.into_server_config(),
+            server_config,
         ));
         axum_server::bind_rustls(addr, rustls_config)
-            .serve(app.into_make_service())
+            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
             .await?;
     } else {
         info!("API server listening on http://{}", addr);
         info!("WARNING: Running without TLS. Use --enable-tls for production!");
 
         let listener = tokio::net::TcpListener::bind(addr).await?;
-        axum::serve(listener, app).await?;
+        axum::serve(
+            listener, 
+            app.into_make_service_with_connect_info::<SocketAddr>()
+        ).await?;
     }
 
     Ok(())
@@ -156,7 +177,7 @@ async fn root() -> &'static str {
 }
 
 async fn login(
-    State(_state): State<Arc<ApiState>>,
+    State(state): State<Arc<ApiState>>,
     Json(req): Json<AuthRequest>,
 ) -> Result<Json<AuthResponse>, StatusCode> {
     // Validate credentials
@@ -165,15 +186,22 @@ async fn login(
     }
 
     // Get role
-    let role = auth::get_node_role(&req.node_id);
+    let role = auth::get_node_role(&req.node_id)
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    // Get token expiry from config (default to 24 hours)
+    let expiry_hours = state.config
+        .as_ref()
+        .map(|c| c.security.token_expiry_hours)
+        .unwrap_or(24);
 
     // Create token
-    let token =
-        auth::create_token(&req.node_id, role).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let token = auth::create_token(&req.node_id, &role, expiry_hours)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(AuthResponse {
         token,
-        expires_in: 86400, // 24 hours
+        expires_in: expiry_hours * 3600, // Convert to seconds
     }))
 }
 

@@ -1,4 +1,8 @@
-node_id = "a16bee58-3dec-4ee2-b148-75766a5b6228"
+# Aura Node Configuration Example
+# Copy this file to config.toml and customize as needed
+
+# Node identification - will be auto-generated if not specified
+node_id = "aura-node-1"
 
 [network]
 listen_addresses = ["/ip4/0.0.0.0/tcp/9000"]
@@ -6,6 +10,7 @@ bootstrap_nodes = []
 max_peers = 50
 
 [consensus]
+# validator_key_path = "./secrets/validator.key"  # Uncomment for validator nodes
 block_time_secs = 5
 max_transactions_per_block = 1000
 
@@ -16,4 +21,12 @@ cache_size_mb = 128
 [api]
 listen_address = "127.0.0.1:8080"
 enable_cors = true
-max_request_size = 10485760
+max_request_size = 10485760  # 10MB
+
+[security]
+# IMPORTANT: Set JWT secret via AURA_JWT_SECRET environment variable for production!
+# jwt_secret = "change-me-in-production"  # DO NOT use this default!
+credentials_path = "./config/credentials.json"
+token_expiry_hours = 24
+rate_limit_rpm = 60
+rate_limit_rph = 1000

@@ -112,6 +112,9 @@ cargo fmt
 
 # Run linter
 cargo clippy
+
+# Run linter with CI settings (strict)
+cargo clippy --all-targets --all-features -- -D warnings
 ```
 
 ## Recent Updates (2025-06-01)
@@ -155,13 +158,27 @@ curl -X POST http://localhost:8080/auth/login \
 ### CI/CD Status - FULLY OPERATIONAL ✅ (2025-06-01)
 - **GitHub Actions**: CI pipeline working perfectly on Ubuntu and macOS
 - **Automated Testing**: All tests passing on PRs and pushes to main
-- **Release Automation**: Ready for v0.1.0 binary builds
+- **Release Automation**: Successfully deployed v0.1.0 with multi-platform binaries
 - **Dependency Updates**: Dependabot configured and working
 - **Build Status**: 
   - ✅ Test Suite: PASSING (all platforms)
   - ✅ Security Audit: PASSING
   - ✅ Code Coverage: OPERATIONAL
   - ✅ All format/clippy issues: RESOLVED
+  - ✅ Release Workflow: OPERATIONAL with auto-generated notes
+
+### Release Workflow Commands
+```bash
+# Create and push a new tag (triggers release workflow)
+git tag -a v0.1.0 -m "Phase 1 Foundation Release"
+git push origin v0.1.0
+
+# The release workflow automatically:
+# - Builds binaries for Linux, macOS (Intel/ARM), Windows
+# - Generates release notes from commit messages
+# - Creates GitHub release with all artifacts
+# - No manual intervention needed!
+```
 
 ### Release History
 - **v0.1.0** (2025-06-01): Phase 1 Foundation Release
@@ -169,10 +186,20 @@ curl -X POST http://localhost:8080/auth/login \
   - Security hardening complete
   - Multi-platform CI/CD pipeline
   - Binary releases for all major platforms
+  - 23 documentation files archived after completion
 
 ### Next Milestones
 - **v0.2.0**: API-blockchain integration complete
 - **v0.3.0**: P2P message handlers implemented
 - **v1.0.0**: Desktop wallet MVP included
+
+### Documentation Organization
+- **Active docs**: In `to-dos/` directory for current work
+- **Archived docs**: In `to-dos/Archive/` with subdirectories:
+  - `build-fixes/`: Historical build troubleshooting
+  - `completed-features/`: Finished implementations
+  - `session-summaries/`: Past work sessions
+  - `security-updates/`: Security implementation records
+  - See `to-dos/Archive/README.md` for full index
 
 See `CHANGELOG.md` for complete list of changes.

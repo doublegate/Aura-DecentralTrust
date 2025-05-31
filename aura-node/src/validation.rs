@@ -3,12 +3,21 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 // Validation regexes
-static DID_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^did:aura:[a-zA-Z0-9\-_]+$").unwrap());
+static DID_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^did:aura:[a-zA-Z0-9\-_]+$")
+        .expect("Failed to compile DID regex - this is a programming error")
+});
 
-static SCHEMA_ID_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z0-9\-_]{1,64}$").unwrap());
+static SCHEMA_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^[a-zA-Z0-9\-_]{1,64}$")
+        .expect("Failed to compile schema ID regex - this is a programming error")
+});
 
 #[allow(dead_code)]
-static CHAIN_ID_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z0-9\-]{1,32}$").unwrap());
+static CHAIN_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^[a-zA-Z0-9\-]{1,32}$")
+        .expect("Failed to compile chain ID regex - this is a programming error")
+});
 
 // Size limits
 pub const MAX_TRANSACTION_SIZE: usize = 100 * 1024; // 100KB

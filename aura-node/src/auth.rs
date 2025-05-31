@@ -4,17 +4,22 @@ use axum::{
     Json,
 };
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tower_http::limit::RequestBodyLimitLayer;
 
-/// JWT secret key - in production, load from secure configuration
-const JWT_SECRET: &[u8] = b"aura-secret-key-change-in-production";
+/// Global JWT secret storage
+static JWT_SECRET: OnceCell<Vec<u8>> = OnceCell::new();
 
-/// API rate limiting configuration
-#[allow(dead_code)]
-pub const RATE_LIMIT_REQUESTS: u32 = 100;
-#[allow(dead_code)]
-pub const RATE_LIMIT_WINDOW_SECS: u64 = 60;
+/// Credentials storage
+static CREDENTIALS: OnceCell<HashMap<String, Credential>> = OnceCell::new();
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Credential {
+    password_hash: String,
+    role: String,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -36,10 +41,76 @@ pub struct AuthResponse {
     pub expires_in: u64,
 }
 
+/// Initialize the authentication system with configuration
+pub fn initialize_auth(jwt_secret: Vec<u8>, credentials_path: Option<&str>) -> anyhow::Result<()> {
+    // Set JWT secret
+    JWT_SECRET
+        .set(jwt_secret)
+        .map_err(|_| anyhow::anyhow!("JWT secret already initialized"))?;
+
+    // Load credentials if path provided
+    if let Some(path) = credentials_path {
+        if std::path::Path::new(path).exists() {
+            let content = std::fs::read_to_string(path)?;
+            let creds: HashMap<String, Credential> = serde_json::from_str(&content)?;
+            CREDENTIALS
+                .set(creds)
+                .map_err(|_| anyhow::anyhow!("Credentials already initialized"))?;
+        } else {
+            // Create default credentials file for development
+            let mut default_creds = HashMap::new();
+            
+            // In production, these should be properly hashed passwords
+            // For now, using simple hash for development
+            default_creds.insert(
+                "validator-node-1".to_string(),
+                Credential {
+                    password_hash: hash_password("change-me-in-production"),
+                    role: "validator".to_string(),
+                },
+            );
+            default_creds.insert(
+                "query-node-1".to_string(),
+                Credential {
+                    password_hash: hash_password("change-me-in-production"),
+                    role: "query".to_string(),
+                },
+            );
+            
+            // Save default credentials
+            if let Some(parent) = std::path::Path::new(path).parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(path, serde_json::to_string_pretty(&default_creds)?)?;
+            
+            CREDENTIALS
+                .set(default_creds)
+                .map_err(|_| anyhow::anyhow!("Credentials already initialized"))?;
+        }
+    } else {
+        // No credentials file, initialize empty
+        CREDENTIALS
+            .set(HashMap::new())
+            .map_err(|_| anyhow::anyhow!("Credentials already initialized"))?;
+    }
+
+    Ok(())
+}
+
+/// Simple password hashing for development (use bcrypt or argon2 in production)
+fn hash_password(password: &str) -> String {
+    use sha2::{Sha256, Digest};
+    let mut hasher = Sha256::new();
+    hasher.update(password.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
 /// Create a new JWT token
-pub fn create_token(node_id: &str, role: &str) -> Result<String, AuthError> {
+pub fn create_token(node_id: &str, role: &str, expiry_hours: u64) -> Result<String, AuthError> {
+    let secret = JWT_SECRET.get().ok_or(AuthError::NotInitialized)?;
+    
     let now = chrono::Utc::now();
-    let exp = now + chrono::Duration::hours(24); // 24 hour expiry
+    let exp = now + chrono::Duration::hours(expiry_hours as i64);
 
     let claims = Claims {
         sub: node_id.to_string(),
@@ -51,16 +122,18 @@ pub fn create_token(node_id: &str, role: &str) -> Result<String, AuthError> {
     encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(JWT_SECRET),
+        &EncodingKey::from_secret(secret),
     )
     .map_err(|_| AuthError::TokenCreation)
 }
 
 /// Verify and decode a JWT token
 pub fn verify_token(token: &str) -> Result<TokenData<Claims>, AuthError> {
+    let secret = JWT_SECRET.get().ok_or(AuthError::NotInitialized)?;
+    
     decode::<Claims>(
         token,
-        &DecodingKey::from_secret(JWT_SECRET),
+        &DecodingKey::from_secret(secret),
         &Validation::default(),
     )
     .map_err(|_| AuthError::InvalidToken)
@@ -74,6 +147,7 @@ pub enum AuthError {
     TokenCreation,
     MissingToken,
     Unauthorized,
+    NotInitialized,
 }
 
 impl IntoResponse for AuthError {
@@ -85,6 +159,9 @@ impl IntoResponse for AuthError {
             }
             AuthError::MissingToken => (StatusCode::UNAUTHORIZED, "Missing authorization header"),
             AuthError::Unauthorized => (StatusCode::FORBIDDEN, "Unauthorized"),
+            AuthError::NotInitialized => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Authentication system not initialized")
+            }
         };
 
         let body = Json(serde_json::json!({
@@ -136,24 +213,24 @@ pub fn create_body_limit_layer() -> RequestBodyLimitLayer {
     RequestBodyLimitLayer::new(1024 * 1024) // 1MB limit
 }
 
-/// Validate node credentials (simplified for demo)
+/// Validate node credentials
 pub fn validate_credentials(node_id: &str, password: &str) -> bool {
-    // In production, validate against secure storage
-    // For now, accept specific test credentials
-    match node_id {
-        "validator-node-1" => password == "validator-password-1",
-        "query-node-1" => password == "query-password-1",
-        "admin" => password == "admin-password",
-        _ => false,
+    let credentials = match CREDENTIALS.get() {
+        Some(creds) => creds,
+        None => return false,
+    };
+
+    if let Some(cred) = credentials.get(node_id) {
+        // Compare password hash
+        let provided_hash = hash_password(password);
+        provided_hash == cred.password_hash
+    } else {
+        false
     }
 }
 
 /// Get role for node
-pub fn get_node_role(node_id: &str) -> &str {
-    match node_id {
-        "validator-node-1" => "validator",
-        "query-node-1" => "query",
-        "admin" => "admin",
-        _ => "query",
-    }
+pub fn get_node_role(node_id: &str) -> Option<String> {
+    let credentials = CREDENTIALS.get()?;
+    credentials.get(node_id).map(|cred| cred.role.clone())
 }

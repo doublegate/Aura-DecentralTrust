@@ -8,6 +8,7 @@ pub struct NodeConfig {
     pub consensus: ConsensusConfig,
     pub storage: StorageConfig,
     pub api: ApiConfig,
+    pub security: SecurityConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +38,21 @@ pub struct ApiConfig {
     pub max_request_size: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityConfig {
+    /// JWT secret key - should be loaded from environment in production
+    #[serde(skip_serializing)]
+    pub jwt_secret: Option<String>,
+    /// Path to credentials file (JSON format)
+    pub credentials_path: Option<String>,
+    /// Token expiration time in hours
+    pub token_expiry_hours: u64,
+    /// Rate limiting - requests per minute
+    pub rate_limit_rpm: u32,
+    /// Rate limiting - requests per hour
+    pub rate_limit_rph: u32,
+}
+
 impl Default for NodeConfig {
     fn default() -> Self {
         Self {
@@ -59,6 +75,13 @@ impl Default for NodeConfig {
                 listen_address: "127.0.0.1:8080".to_string(),
                 enable_cors: true,
                 max_request_size: 10 * 1024 * 1024, // 10MB
+            },
+            security: SecurityConfig {
+                jwt_secret: None, // Must be set via environment variable
+                credentials_path: Some("./config/credentials.json".to_string()),
+                token_expiry_hours: 24,
+                rate_limit_rpm: 60,
+                rate_limit_rph: 1000,
             },
         }
     }

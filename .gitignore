@@ -45,6 +45,7 @@ auth-token.json
 *.crt
 .env
 .env.*
+config/credentials.json
 
 # Logs
 logs/

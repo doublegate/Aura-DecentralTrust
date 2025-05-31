@@ -8,6 +8,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Security**: Externalized JWT secret configuration via environment variable
+- **Security**: File-based credential management with SHA256 password hashing
+- **Security**: P2P message size validation to prevent DoS attacks
+- **Security**: Rate limiting middleware with per-IP tracking
+- **Security**: Automatic rate limit cleanup task
+- Scripts for secure configuration generation
+- Scripts for testing rate limiting functionality
+- Comprehensive security fixes documentation
+- Release process documentation for automated release notes
+
+### Changed
+- **Security**: JWT secret now loaded from AURA_JWT_SECRET environment variable
+- **Security**: Credentials now stored in config/credentials.json (not hardcoded)
+- **Security**: All unwrap()/expect() replaced with proper error handling
+- **Security**: TLS configuration now returns Result instead of panicking
+- **Build**: Added sha2, base64, and proper rand dependency management
+- **API**: Updated to support configurable security settings
+- **Config**: Added SecurityConfig with JWT, credentials, and rate limiting settings
+- **Release**: Switched to auto-generated release notes with softprops/action-gh-release
+
+### Fixed
+- **Critical Security**: Hardcoded JWT secret vulnerability eliminated
+- **Critical Security**: Hardcoded test credentials removed from source
+- **High Security**: P2P messages now size-validated before processing
+- **High Security**: All panic-inducing unwrap() calls replaced
+- **High Security**: Rate limiting now properly enforced
+- Release workflow permissions for asset uploads
+
+### Security
+- Implemented secure credential storage with password hashing
+- Added comprehensive P2P message size limits
+- Enforced rate limiting on all API endpoints
+- Eliminated all hardcoded secrets from codebase
 
 ## [0.1.0] - 2025-06-01
 
