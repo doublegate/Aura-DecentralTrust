@@ -94,7 +94,7 @@ impl VcStore {
     pub fn remove_credential(&mut self, id: &str) -> Result<()> {
         self.credentials
             .remove(id)
-            .ok_or_else(|| AuraError::NotFound(format!("Credential {} not found", id)))?;
+            .ok_or_else(|| AuraError::NotFound(format!("Credential {id} not found")))?;
         Ok(())
     }
 
@@ -134,7 +134,7 @@ impl VcStore {
             .map_err(|e| AuraError::Crypto(e.to_string()))?;
 
         bincode::encode_to_vec(&encrypted, bincode::config::standard()).map_err(|e| {
-            AuraError::Internal(format!("Failed to serialize encrypted credentials: {}", e))
+            AuraError::Internal(format!("Failed to serialize encrypted credentials: {e}"))
         })
     }
 
@@ -147,8 +147,7 @@ impl VcStore {
             bincode::decode_from_slice(encrypted_data, bincode::config::standard()).map_err(
                 |e| {
                     AuraError::Internal(format!(
-                        "Failed to deserialize encrypted credentials: {}",
-                        e
+                        "Failed to deserialize encrypted credentials: {e}"
                     ))
                 },
             )?;

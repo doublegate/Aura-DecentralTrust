@@ -27,7 +27,7 @@ impl DidManager {
 
         // Add verification method
         let verification_method = VerificationMethod {
-            id: format!("{}#key-1", did),
+            id: format!("{did}#key-1"),
             controller: did.clone(),
             verification_type: "Ed25519VerificationKey2020".to_string(),
             public_key_multibase: self.encode_public_key(key_pair.public_key()),
@@ -38,22 +38,13 @@ impl DidManager {
         // Add verification relationships
         did_document
             .authentication
-            .push(VerificationRelationship::Reference(format!(
-                "{}#key-1",
-                did
-            )));
+            .push(VerificationRelationship::Reference(format!("{did}#key-1")));
         did_document
             .assertion_method
-            .push(VerificationRelationship::Reference(format!(
-                "{}#key-1",
-                did
-            )));
+            .push(VerificationRelationship::Reference(format!("{did}#key-1")));
         did_document
             .key_agreement
-            .push(VerificationRelationship::Reference(format!(
-                "{}#key-1",
-                did
-            )));
+            .push(VerificationRelationship::Reference(format!("{did}#key-1")));
 
         Ok((did, did_document, key_pair))
     }
@@ -83,7 +74,7 @@ impl DidManager {
         let _ = self.key_manager.get_public_key(did)?;
 
         let service = ServiceEndpoint {
-            id: format!("{}#service-{}", did, uuid::Uuid::new_v4()),
+            id: format!("{did}#service-{}", uuid::Uuid::new_v4()),
             service_type,
             service_endpoint,
         };
@@ -118,7 +109,7 @@ impl DidManager {
 
     pub fn decode_public_key(&self, multibase_key: &str) -> Result<PublicKey> {
         let (_, data) = multibase::decode(multibase_key)
-            .map_err(|e| AuraError::Crypto(format!("Invalid multibase key: {}", e)))?;
+            .map_err(|e| AuraError::Crypto(format!("Invalid multibase key: {e}")))?;
 
         // Skip multicodec prefix (2 bytes)
         if data.len() < 34 || data[0] != 0xed || data[1] != 0x01 {

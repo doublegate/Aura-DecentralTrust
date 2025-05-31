@@ -32,7 +32,7 @@ impl PresentationGenerator {
             let stored_cred = self
                 .vc_store
                 .get_credential(&id)?
-                .ok_or_else(|| AuraError::NotFound(format!("Credential {} not found", id)))?;
+                .ok_or_else(|| AuraError::NotFound(format!("Credential {id} not found")))?;
             credentials.push(stored_cred.credential.clone());
         }
 
@@ -59,7 +59,7 @@ impl PresentationGenerator {
             .vc_store
             .get_credential(&credential_id)?
             .ok_or_else(|| {
-                AuraError::NotFound(format!("Credential {} not found", credential_id))
+                AuraError::NotFound(format!("Credential {credential_id} not found"))
             })?;
 
         // Create a copy with only disclosed claims
@@ -107,7 +107,7 @@ impl PresentationGenerator {
         Ok(Proof {
             proof_type: "Ed25519Signature2020".to_string(),
             created: Timestamp::now(),
-            verification_method: format!("{}#key-1", holder_did),
+            verification_method: format!("{holder_did}#key-1"),
             proof_purpose: "authentication".to_string(),
             proof_value: hex::encode(signature.to_bytes()),
             challenge,

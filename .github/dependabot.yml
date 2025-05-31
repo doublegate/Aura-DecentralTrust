@@ -24,11 +24,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    ignore:
-      # Don't update these dependencies automatically
-      # Add any dependencies you want to manually control here
-      # - dependency-name: "rocksdb"
-      #   versions: [">=0.24.0"]
+    # ignore:
+    #   # Don't update these dependencies automatically
+    #   # Add any dependencies you want to manually control here
+    #   # - dependency-name: "rocksdb"
+    #   #   versions: [">=0.24.0"]
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"

@@ -55,8 +55,7 @@ impl KeyManager {
         // Check if key already exists
         if self.keys.contains_key(did) {
             return Err(AuraError::AlreadyExists(format!(
-                "Key for DID {} already exists",
-                did
+                "Key for DID {did} already exists"
             )));
         }
 
@@ -77,7 +76,7 @@ impl KeyManager {
                 bincode::config::standard(),
             )
             .map_err(|e| {
-                AuraError::Internal(format!("Failed to serialize encrypted key: {}", e))
+                AuraError::Internal(format!("Failed to serialize encrypted key: {e}"))
             })?,
             created_at: chrono::Utc::now(),
         };
@@ -97,7 +96,7 @@ impl KeyManager {
         let stored_key = self
             .keys
             .get(did)
-            .ok_or_else(|| AuraError::NotFound(format!("Key for DID {} not found", did)))?;
+            .ok_or_else(|| AuraError::NotFound(format!("Key for DID {did} not found")))?;
 
         // Decrypt the private key
         let master_key = self.master_key.as_ref().unwrap();
@@ -105,7 +104,7 @@ impl KeyManager {
             &stored_key.encrypted_private_key,
             bincode::config::standard(),
         )
-        .map_err(|e| AuraError::Internal(format!("Failed to deserialize encrypted key: {}", e)))?;
+        .map_err(|e| AuraError::Internal(format!("Failed to deserialize encrypted key: {e}")))?;
 
         let private_key_bytes = encryption::decrypt(&**master_key, &encrypted_data)
             .map_err(|e| AuraError::Crypto(e.to_string()))?;
@@ -120,7 +119,7 @@ impl KeyManager {
         let stored_key = self
             .keys
             .get(did)
-            .ok_or_else(|| AuraError::NotFound(format!("Key for DID {} not found", did)))?;
+            .ok_or_else(|| AuraError::NotFound(format!("Key for DID {did} not found")))?;
 
         Ok(stored_key.public_key.clone())
     }
@@ -132,7 +131,7 @@ impl KeyManager {
     pub fn remove_key(&mut self, did: &AuraDid) -> Result<()> {
         self.keys
             .remove(did)
-            .ok_or_else(|| AuraError::NotFound(format!("Key for DID {} not found", did)))?;
+            .ok_or_else(|| AuraError::NotFound(format!("Key for DID {did} not found")))?;
         Ok(())
     }
 
