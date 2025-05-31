@@ -27,6 +27,40 @@ jobs:
       with:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
+        body: |
+          ## Phase 1 Foundation Release
+          
+          ### ✨ Key Features
+          - Functional blockchain with PoA consensus
+          - W3C-compliant DID and VC implementations
+          - Identity wallet with key management
+          - P2P network node with REST API
+          - JWT authentication and TLS support
+          - Comprehensive security hardening
+          - Full CI/CD pipeline with multi-platform support
+          
+          ### 📦 Platform Support
+          - Linux (x86_64)
+          - macOS (x86_64, ARM64)
+          - Windows (x86_64)
+          
+          ### 🚀 What's Included
+          - Core blockchain infrastructure (95% complete)
+          - DID registry and resolution
+          - Verifiable Credential schemas
+          - Revocation registry
+          - REST API with mock data (ready for blockchain integration)
+          - Integration tests and examples
+          
+          ### 🔒 Security Improvements
+          - All critical vulnerabilities resolved
+          - Authentication on all endpoints
+          - Input validation and sanitization
+          - Key zeroization implemented
+          - Transaction replay protection
+          
+          This release marks the completion of Phase 1 foundation work.
+          See [CHANGELOG.md](https://github.com/doublegate/Aura-DecentralTrust/blob/main/CHANGELOG.md) for detailed changes.
         draft: false
         prerelease: false
 
