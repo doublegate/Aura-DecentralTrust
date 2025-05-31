@@ -25,17 +25,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Code formatting inconsistencies across platforms
 - CI/CD configuration to use bundled RocksDB
 - Security audit warnings for transitive dependencies
+- Cargo audit configuration syntax errors (invalid field names)
+- Clippy uninlined_format_args warnings in all modules
+- Dependabot.yml syntax error (empty ignore array)
+- getrandom feature flag (js → wasm_js for v0.3.x)
+- Dependency version conflicts (rand 0.9.1 → 0.8.5)
+- ed25519-dalek key generation API compatibility
 
 ### Changed
 - CI/CD uses bundled RocksDB to avoid version conflicts
 - Security audit runs directly instead of through actions-rs
 - Updated SECURITY_AUDIT_PHASE1.md to reflect all issues resolved
+- Downgraded rand to 0.8.5 for ed25519-dalek compatibility
+- Updated all format! macros to use inline variable syntax
 
 ### Tested
 - Successfully built all components in release mode
 - Verified node binary functionality (startup, API endpoints)
 - Confirmed JWT authentication working correctly
 - Validated TLS/HTTPS support with self-signed certificates
+- All local builds passing after dependency fixes
+- cargo fmt and cargo clippy passing locally
 
 ## [0.1.0] - 2025-05-31
 

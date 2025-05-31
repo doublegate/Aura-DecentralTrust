@@ -146,11 +146,16 @@ curl -X POST http://localhost:8080/auth/login \
   -d '{"node_id": "validator-node-1", "password": "validator-password-1"}'
 ```
 
-### CI/CD Status (2025-06-01)
+### CI/CD Status (2025-06-01 Evening)
 - **GitHub Actions**: CI pipeline configured for Ubuntu and macOS
 - **Automated Testing**: Runs on all PRs and pushes to main
 - **Release Automation**: Binary builds for Linux and macOS (Intel/ARM)
 - **Dependency Updates**: Dependabot configured for weekly updates
+- **Recent Fixes**:
+  - rand downgraded to 0.8.5 for ed25519-dalek compatibility
+  - getrandom feature flag updated (js → wasm_js)
+  - All clippy format string warnings resolved
+  - cargo audit and dependabot configurations fixed
 
 ### Phase 1 Status (95% Complete)
 - ✅ All core infrastructure implemented

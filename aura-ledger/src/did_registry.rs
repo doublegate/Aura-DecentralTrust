@@ -23,8 +23,7 @@ impl DidRegistry {
         // Check if DID already exists
         if self.get_did_record(did_id)?.is_some() {
             return Err(AuraError::AlreadyExists(format!(
-                "DID {} already exists",
-                did_id
+                "DID {did_id} already exists"
             )));
         }
 

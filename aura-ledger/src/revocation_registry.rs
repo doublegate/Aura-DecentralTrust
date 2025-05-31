@@ -31,8 +31,7 @@ impl RevocationRegistry {
         // Check if list already exists
         if self.get_revocation_list(list_id)?.is_some() {
             return Err(AuraError::AlreadyExists(format!(
-                "Revocation list {} already exists",
-                list_id
+                "Revocation list {list_id} already exists"
             )));
         }
 

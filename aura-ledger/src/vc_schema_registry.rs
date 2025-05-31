@@ -23,8 +23,7 @@ impl VcSchemaRegistry {
         // Check if schema already exists
         if self.get_schema(schema_id)?.is_some() {
             return Err(AuraError::AlreadyExists(format!(
-                "Schema {} already exists",
-                schema_id
+                "Schema {schema_id} already exists"
             )));
         }
 
