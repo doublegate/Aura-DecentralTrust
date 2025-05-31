@@ -8,8 +8,9 @@ ignore = [
     "RUSTSEC-2024-0436",
 ]
 
-# Only fail on actual vulnerabilities, not warnings
-vulnerability = "deny"
-unmaintained = "warn"
-unsound = "warn"
-yanked = "warn"
+# Warn on informational advisories but don't fail the build
+informational_warnings = ["unmaintained", "unsound", "yanked"]
+
+# Only fail on vulnerabilities with severity threshold
+# Options: "none", "low", "medium", "high", "critical"
+severity_threshold = "low"
