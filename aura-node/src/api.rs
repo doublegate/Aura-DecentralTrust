@@ -231,7 +231,7 @@ async fn resolve_did(
 ) -> Result<Json<ApiResponse<DidResolutionResponse>>, StatusCode> {
     // Validate DID format
     if let Err(e) = validation::validate_did(&did) {
-        return Ok(Json(ApiResponse::error(format!("Invalid DID: {}", e))));
+        return Ok(Json(ApiResponse::error(format!("Invalid DID: {e}"))));
     }
 
     // TODO: In a real implementation, this would query the DID registry
@@ -241,13 +241,13 @@ async fn resolve_did(
             "@context": ["https://www.w3.org/ns/did/v1"],
             "id": did,
             "verificationMethod": [{
-                "id": format!("{}#key-1", did),
+                "id": format!("{did}#key-1"),
                 "type": "Ed25519VerificationKey2020",
                 "controller": did,
                 "publicKeyMultibase": "z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"
             }],
-            "authentication": [format!("{}#key-1", did)],
-            "assertionMethod": [format!("{}#key-1", did)]
+            "authentication": [format!("{did}#key-1")],
+            "assertionMethod": [format!("{did}#key-1")]
         }),
         metadata: DidMetadata {
             created: chrono::Utc::now().to_rfc3339(),
@@ -278,7 +278,7 @@ async fn get_schema(
             "https://www.w3.org/2018/credentials/v1",
             "https://w3id.org/vc-json-schemas/v1"
         ],
-        "id": format!("did:aura:schema:{}", schema_id),
+        "id": format!("did:aura:schema:{schema_id}"),
         "type": "JsonSchema",
         "version": "1.0",
         "name": "Example Credential Schema",
@@ -315,7 +315,7 @@ async fn submit_transaction(
     // Validate transaction data size
     if let Ok(serialized) = serde_json::to_vec(&request) {
         if let Err(e) = validation::validate_transaction_size(&serialized) {
-            return Json(ApiResponse::error(format!("Invalid transaction: {}", e)));
+            return Json(ApiResponse::error(format!("Invalid transaction: {e}")));
         }
     }
 
@@ -326,7 +326,7 @@ async fn submit_transaction(
         }
         TransactionTypeRequest::IssueCredential { claims, .. } => {
             if let Err(e) = validation::validate_credential_claims(claims) {
-                return Json(ApiResponse::error(format!("Invalid claims: {}", e)));
+                return Json(ApiResponse::error(format!("Invalid claims: {e}")));
             }
         }
         _ => {}

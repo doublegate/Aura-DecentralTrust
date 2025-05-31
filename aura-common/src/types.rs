@@ -7,7 +7,7 @@ pub struct AuraDid(pub String);
 
 impl AuraDid {
     pub fn new(identifier: &str) -> Self {
-        Self(format!("did:aura:{}", identifier))
+        Self(format!("did:aura:{identifier}"))
     }
 
     pub fn from_string(did: String) -> crate::Result<Self> {

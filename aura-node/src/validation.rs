@@ -107,7 +107,7 @@ pub fn validate_did_document(doc: &aura_common::DidDocument) -> Result<()> {
 
     // Check size when serialized
     let serialized = serde_json::to_vec(doc)
-        .map_err(|e| AuraError::Validation(format!("Invalid DID document: {}", e)))?;
+        .map_err(|e| AuraError::Validation(format!("Invalid DID document: {e}")))?;
 
     if serialized.len() > MAX_DID_DOCUMENT_SIZE {
         return Err(AuraError::Validation(format!(
@@ -149,7 +149,7 @@ pub fn validate_credential_claims(claims: &serde_json::Value) -> Result<()> {
 
     // Check size
     let serialized = serde_json::to_vec(claims)
-        .map_err(|e| AuraError::Validation(format!("Invalid claims: {}", e)))?;
+        .map_err(|e| AuraError::Validation(format!("Invalid claims: {e}")))?;
 
     if serialized.len() > MAX_CREDENTIAL_SIZE {
         return Err(AuraError::Validation(format!(

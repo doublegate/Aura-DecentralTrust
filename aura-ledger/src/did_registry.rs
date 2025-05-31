@@ -58,7 +58,7 @@ impl DidRegistry {
         // Get existing record
         let mut did_record = self
             .get_did_record(did_id)?
-            .ok_or_else(|| AuraError::NotFound(format!("DID {} not found", did_id)))?;
+            .ok_or_else(|| AuraError::NotFound(format!("DID {did_id} not found")))?;
 
         // Verify ownership
         let stored_key = PublicKey::from_bytes(&did_record.owner_public_key)
@@ -96,7 +96,7 @@ impl DidRegistry {
         // Get existing record
         let mut did_record = self
             .get_did_record(did_id)?
-            .ok_or_else(|| AuraError::NotFound(format!("DID {} not found", did_id)))?;
+            .ok_or_else(|| AuraError::NotFound(format!("DID {did_id} not found")))?;
 
         // Verify ownership
         let stored_key = PublicKey::from_bytes(&did_record.owner_public_key)

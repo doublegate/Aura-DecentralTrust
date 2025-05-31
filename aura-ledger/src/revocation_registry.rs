@@ -57,7 +57,7 @@ impl RevocationRegistry {
         // Get existing list
         let mut revocation_list = self
             .get_revocation_list(list_id)?
-            .ok_or_else(|| AuraError::NotFound(format!("Revocation list {} not found", list_id)))?;
+            .ok_or_else(|| AuraError::NotFound(format!("Revocation list {list_id} not found")))?;
 
         // Verify ownership
         if &revocation_list.issuer_did != issuer_did {

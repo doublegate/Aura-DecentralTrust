@@ -130,7 +130,7 @@ mod tests {
         
         let response = client
             .get(&format!("{}/node/info", base_url))
-            .header("Authorization", format!("Bearer {}", token))
+            .header("Authorization", format!("Bearer {token}"))
             .send()
             .await
             .unwrap();
@@ -158,8 +158,8 @@ mod tests {
         
         let did = "did:aura:test123";
         let response = client
-            .get(&format!("{}/did/{}", base_url, did))
-            .header("Authorization", format!("Bearer {}", token))
+            .get(&format!("{base_url}/did/{did}"))
+            .header("Authorization", format!("Bearer {token}"))
             .send()
             .await
             .unwrap();
@@ -187,8 +187,8 @@ mod tests {
         
         let invalid_did = "not-a-valid-did";
         let response = client
-            .get(&format!("{}/did/{}", base_url, invalid_did))
-            .header("Authorization", format!("Bearer {}", token))
+            .get(&format!("{base_url}/did/{invalid_did}"))
+            .header("Authorization", format!("Bearer {token}"))
             .send()
             .await
             .unwrap();
@@ -215,8 +215,8 @@ mod tests {
         
         let schema_id = "test-schema-123";
         let response = client
-            .get(&format!("{}/schema/{}", base_url, schema_id))
-            .header("Authorization", format!("Bearer {}", token))
+            .get(&format!("{base_url}/schema/{schema_id}"))
+            .header("Authorization", format!("Bearer {token}"))
             .send()
             .await
             .unwrap();
@@ -259,7 +259,7 @@ mod tests {
         
         let response = client
             .post(&format!("{}/transaction", base_url))
-            .header("Authorization", format!("Bearer {}", token))
+            .header("Authorization", format!("Bearer {token}"))
             .json(&transaction)
             .send()
             .await
@@ -289,8 +289,8 @@ mod tests {
         let list_id = "revocation-list-123";
         let index = 42;
         let response = client
-            .get(&format!("{}/revocation/{}/{}", base_url, list_id, index))
-            .header("Authorization", format!("Bearer {}", token))
+            .get(&format!("{base_url}/revocation/{list_id}/{index}"))
+            .header("Authorization", format!("Bearer {token}"))
             .send()
             .await
             .unwrap();
@@ -400,7 +400,7 @@ mod load_tests {
                 
                 let response = client
                     .get(&format!("{}/node/info", base_url))
-                    .header("Authorization", format!("Bearer {}", token))
+                    .header("Authorization", format!("Bearer {token}"))
                     .timeout(Duration::from_secs(5))
                     .send()
                     .await;
