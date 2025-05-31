@@ -1,0 +1,98 @@
+# Codecov configuration for Aura DecentralTrust
+codecov:
+  require_ci_to_pass: yes
+  notify:
+    after_n_builds: 1
+    wait_for_ci: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "90...100"  # Green coverage for 90-100%
+  
+  status:
+    project:
+      default:
+        target: 100%      # We aim for 100% coverage
+        threshold: 1%     # Allow 1% deviation
+        base: auto
+        if_ci_failed: error
+        informational: false
+        only_pulls: false
+    
+    patch:
+      default:
+        target: 100%      # New code must have 100% coverage
+        threshold: 0%     # No deviation allowed for patches
+        base: auto
+        if_ci_failed: error
+        informational: false
+        only_pulls: false
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: yes
+      macro: no
+
+# Comment configuration
+comment:
+  layout: "reach,diff,flags,tree,betaprofiling"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+# GitHub integration
+github_checks:
+  annotations: true  # Show inline coverage annotations
+
+# Ignore test files and generated code
+ignore:
+  - "**/tests/**"
+  - "**/target/**"
+  - "**/examples/**"
+  - "**/*.pb.rs"     # Protocol buffer generated files
+  - "**/build.rs"
+
+# Component tracking for different crates
+component_management:
+  individual_components:
+    - component_id: aura-common
+      name: "Common Types & Utilities"
+      paths:
+        - "aura-common/src/**"
+    
+    - component_id: aura-crypto
+      name: "Cryptographic Primitives"
+      paths:
+        - "aura-crypto/src/**"
+    
+    - component_id: aura-ledger
+      name: "Blockchain & Storage"
+      paths:
+        - "aura-ledger/src/**"
+    
+    - component_id: aura-wallet-core
+      name: "Identity Wallet"
+      paths:
+        - "aura-wallet-core/src/**"
+    
+    - component_id: aura-node
+      name: "Network Node"
+      paths:
+        - "aura-node/src/**"
+
+# Flags for different test types
+flags:
+  unit:
+    paths:
+      - "**/src/**"
+    carryforward: true
+  
+  integration:
+    paths:
+      - "tests/**"
+    carryforward: true

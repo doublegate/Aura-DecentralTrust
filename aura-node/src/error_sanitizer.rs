@@ -66,7 +66,7 @@ mod tests {
         assert_eq!(sanitize_error_message("Invalid auth token"), "Authentication failed");
         assert_eq!(sanitize_error_message("Permission denied"), "Access denied");
         assert_eq!(sanitize_error_message("Connection timeout"), "Request timeout");
-        assert_eq!(sanitize_error_message("RocksDB error: corrupted"), "Storage error");
+        assert_eq!(sanitize_error_message("rocksdb error: corrupted"), "Storage error");
         assert_eq!(sanitize_error_message("Network peer disconnected"), "Network error");
         assert_eq!(sanitize_error_message("Invalid signature"), "Cryptographic verification failed");
         assert_eq!(sanitize_error_message("Payload too large"), "Request size limit exceeded");

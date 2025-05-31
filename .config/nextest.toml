@@ -1,0 +1,13 @@
+# Nextest configuration for CI profile
+[profile.ci]
+# Print test output for failing tests
+failure-output = "immediate-final"
+# Don't cancel other tests on first failure
+fail-fast = false
+# Run tests with 2 retries
+retries = 2
+# Test timeout
+slow-timeout = { period = "30s", terminate-after = 2 }
+# Status output
+status-level = "all"
+final-status-level = "all"

@@ -4,10 +4,11 @@
 
 ![Aura Logo](images/aura_logo.png)
 
-[![CI](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml/badge.svg)](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 [![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg)](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0)
+[![CI](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml/badge.svg)](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/github/doublegate/Aura-DecentralTrust/graph/badge.svg?token=ALCFBYJSOX)](https://codecov.io/github/doublegate/Aura-DecentralTrust)
+[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 🎉 v0.1.0 Released with Security Hardening!
 
