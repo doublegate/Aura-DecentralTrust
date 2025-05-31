@@ -31,15 +31,48 @@ impl TlsConfig {
 
     /// Convert to rustls ServerConfig for axum-server
     pub fn into_server_config(self) -> anyhow::Result<rustls::ServerConfig> {
+        self.into_server_config_with_client_auth(false)
+    }
+    
+    /// Convert to rustls ServerConfig with optional client auth
+    pub fn into_server_config_with_client_auth(self, require_client_auth: bool) -> anyhow::Result<rustls::ServerConfig> {
         // Install default crypto provider if not already installed
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
         let certs = load_certs(&self.cert_path)?;
         let key = load_key(&self.key_path)?;
 
-        let config = rustls::ServerConfig::builder()
-            .with_no_client_auth()
-            .with_single_cert(certs, key)?;
+        let config = if require_client_auth {
+            // For mutual TLS, require client certificates
+            let mut client_auth_roots = rustls::RootCertStore::empty();
+            
+            // In production, load trusted client CA certificates
+            // For now, accept self-signed certificates
+            if let Ok(client_ca_path) = std::env::var("AURA_CLIENT_CA_PATH") {
+                let client_ca_certs = load_certs(&client_ca_path)?;
+                for cert in client_ca_certs {
+                    client_auth_roots.add(cert)?;
+                }
+            }
+            
+            let client_auth = if client_auth_roots.is_empty() {
+                // If no CA certs, use a verifier that accepts any client cert
+                rustls::server::WebPkiClientVerifier::builder(Arc::new(rustls::RootCertStore::empty()))
+                    .allow_unauthenticated()
+                    .build()?
+            } else {
+                rustls::server::WebPkiClientVerifier::builder(Arc::new(client_auth_roots))
+                    .build()?
+            };
+            
+            rustls::ServerConfig::builder()
+                .with_client_cert_verifier(client_auth)
+                .with_single_cert(certs, key)?
+        } else {
+            rustls::ServerConfig::builder()
+                .with_no_client_auth()
+                .with_single_cert(certs, key)?
+        };
 
         Ok(config)
     }
@@ -67,13 +100,33 @@ impl TlsConfig {
         tokio::fs::write(cert_path, cert_data).await?;
         tokio::fs::write(key_path, key_data).await?;
 
-        // Set appropriate permissions (read-only for owner)
+        // Set appropriate permissions
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             let mut perms = tokio::fs::metadata(key_path).await?.permissions();
             perms.set_mode(0o400);
             tokio::fs::set_permissions(key_path, perms).await?;
+        }
+        
+        #[cfg(windows)]
+        {
+            // Windows permission handling
+            // Note: Full ACL control would require windows-acl crate
+            // For now, we mark the file as hidden to provide basic protection
+            use std::process::Command;
+            let _ = Command::new("attrib")
+                .arg("+H")
+                .arg(key_path)
+                .output();
+            
+            // Also try to restrict permissions using icacls (may fail on some systems)
+            let _ = Command::new("icacls")
+                .arg(key_path)
+                .arg("/inheritance:r")
+                .arg("/grant:r")
+                .arg(format!("{}:(R)", std::env::var("USERNAME").unwrap_or_else(|_| "SYSTEM".to_string())))
+                .output();
         }
 
         Ok(())

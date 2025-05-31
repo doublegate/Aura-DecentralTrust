@@ -80,20 +80,88 @@ pub fn validate_url(url: &str) -> Result<()> {
 
     // Prevent localhost/private IPs
     if let Some(host) = parsed.host_str() {
-        let blocked_hosts = ["localhost", "127.0.0.1", "0.0.0.0", "::1"];
-        if blocked_hosts.contains(&host) {
-            return Err(AuraError::Validation("Invalid URL host".to_string()));
+        // Block common localhost names
+        let blocked_hosts = [
+            "localhost", "127.0.0.1", "0.0.0.0", "::1", 
+            "localhost.localdomain", "local", "host.docker.internal"
+        ];
+        if blocked_hosts.iter().any(|&blocked| host.eq_ignore_ascii_case(blocked)) {
+            return Err(AuraError::Validation("Localhost addresses not allowed".to_string()));
         }
 
-        // Check for private IP ranges
-        if host.starts_with("10.") || host.starts_with("172.16.") || host.starts_with("192.168.") {
+        // Try to parse as IP address for more comprehensive checks
+        if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+            if !is_public_ip(&ip) {
+                return Err(AuraError::Validation(
+                    "Private or reserved IP addresses not allowed".to_string(),
+                ));
+            }
+        } else {
+            // Check domain patterns that could resolve to private IPs
+            if host.ends_with(".local") || host.ends_with(".internal") {
+                return Err(AuraError::Validation(
+                    "Internal domain names not allowed".to_string(),
+                ));
+            }
+        }
+
+        // Block metadata service endpoints
+        if host == "169.254.169.254" || host == "metadata.google.internal" {
             return Err(AuraError::Validation(
-                "Private IP addresses not allowed".to_string(),
+                "Cloud metadata endpoints not allowed".to_string(),
             ));
         }
     }
 
+    // Prevent file:// and other dangerous schemes through double-check
+    if parsed.scheme() != "http" && parsed.scheme() != "https" {
+        return Err(AuraError::Validation("Only HTTP(S) URLs allowed".to_string()));
+    }
+
     Ok(())
+}
+
+/// Check if an IP address is public (not private, loopback, or reserved)
+fn is_public_ip(ip: &std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(ipv4) => {
+            // Check RFC1918 private ranges
+            if ipv4.is_private() || ipv4.is_loopback() || ipv4.is_link_local() {
+                return false;
+            }
+            // Check additional reserved ranges
+            let octets = ipv4.octets();
+            match octets[0] {
+                0 => false,           // 0.0.0.0/8 - Current network
+                100 if octets[1] >= 64 && octets[1] <= 127 => false, // 100.64.0.0/10 - Shared address space
+                169 if octets[1] == 254 => false, // 169.254.0.0/16 - Link local
+                172 if octets[1] >= 16 && octets[1] <= 31 => false, // 172.16.0.0/12 - Private
+                192 if octets[1] == 0 && octets[2] == 0 => false, // 192.0.0.0/24 - IETF Protocol
+                192 if octets[1] == 0 && octets[2] == 2 => false, // 192.0.2.0/24 - TEST-NET-1
+                192 if octets[1] == 88 && octets[2] == 99 => false, // 192.88.99.0/24 - 6to4 relay
+                198 if octets[1] >= 18 && octets[1] <= 19 => false, // 198.18.0.0/15 - Benchmark
+                198 if octets[1] == 51 && octets[2] == 100 => false, // 198.51.100.0/24 - TEST-NET-2
+                203 if octets[1] == 0 && octets[2] == 113 => false, // 203.0.113.0/24 - TEST-NET-3
+                224..=255 => false,   // 224.0.0.0/4 - Multicast and reserved
+                _ => true,
+            }
+        }
+        std::net::IpAddr::V6(ipv6) => {
+            // Check for loopback, private, and link-local
+            !ipv6.is_loopback() && !ipv6.is_unspecified() && 
+            !is_ipv6_link_local(ipv6) && !is_ipv6_unique_local(ipv6)
+        }
+    }
+}
+
+/// Check if IPv6 is link-local (fe80::/10)
+fn is_ipv6_link_local(ipv6: &std::net::Ipv6Addr) -> bool {
+    ipv6.segments()[0] & 0xffc0 == 0xfe80
+}
+
+/// Check if IPv6 is unique local (fc00::/7)
+fn is_ipv6_unique_local(ipv6: &std::net::Ipv6Addr) -> bool {
+    ipv6.segments()[0] & 0xfe00 == 0xfc00
 }
 
 /// Validate transaction size

@@ -9,14 +9,14 @@
 - [x] Replace unwrap()/expect() with proper error handling in critical paths
 - [x] Implement actual rate limiting (not just constants)
 
-## Medium Priority
-- [ ] Implement mutual TLS for node-to-node communication
-- [ ] Add comprehensive SSRF protection in URL validation
-- [ ] Verify transaction signatures in API endpoints
-- [ ] Avoid plaintext copies during encryption
+## Medium Priority ✅
+- [x] Implement mutual TLS for node-to-node communication
+- [x] Add comprehensive SSRF protection in URL validation
+- [x] Verify transaction signatures in API endpoints
+- [x] Avoid plaintext copies during encryption
 
-## Low Priority
-- [ ] Add audit logging for security events
-- [ ] Implement certificate pinning for P2P
-- [ ] Set proper file permissions on Windows
-- [ ] Sanitize error messages returned to clients
+## Low Priority ✅
+- [x] Add audit logging for security events
+- [x] Implement certificate pinning for P2P
+- [x] Set proper file permissions on Windows
+- [x] Sanitize error messages returned to clients

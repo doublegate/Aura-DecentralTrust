@@ -1,6 +1,9 @@
 mod api;
+mod audit;
 mod auth;
+mod cert_pinning;
 mod config;
+mod error_sanitizer;
 mod network;
 mod node;
 mod rate_limit;
@@ -68,6 +71,20 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize authentication system
     initialize_auth(&mut config)?;
+    
+    // Initialize audit logging
+    audit::init_audit_logger(10000); // Keep last 10k events in memory
+    
+    // Log system startup
+    if let Some(logger) = audit::audit_logger() {
+        logger.log_event(
+            audit::SecurityEvent::SystemLifecycle {
+                action: "startup".to_string(),
+                version: env!("CARGO_PKG_VERSION").to_string(),
+            },
+            None,
+        ).await;
+    }
 
     // Create and start the node
     let node =

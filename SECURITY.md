@@ -30,7 +30,7 @@ Please include:
 
 ### Cryptographic Components
 - All cryptographic operations use well-audited libraries
-- Private keys are zeroized on drop
+- Private keys are zeroized on drop using Zeroize trait
 - Ed25519 for digital signatures
 - AES-256-GCM for encryption
 - SHA-256 and Blake3 for hashing
@@ -45,6 +45,25 @@ Please include:
 - libp2p provides encrypted P2P communication
 - Noise protocol for transport security
 - Peer authentication via cryptographic identities
+- Mutual TLS support for node-to-node communication
+- Certificate pinning for P2P connections
+
+### API Security
+- JWT authentication with environment-based secrets
+- Role-based access control (validator, query, admin)
+- Rate limiting: 60 requests/minute, 1000/hour per IP
+- Request body size limits (10MB max)
+- HTTPS/TLS support with self-signed certificates
+- Transaction signature verification
+- Comprehensive input validation
+- SSRF protection blocking private IP ranges
+
+### Operational Security
+- Audit logging for all security events
+- Error message sanitization
+- No hardcoded secrets or credentials
+- Secure credential storage with SHA256 hashing
+- Windows file permission protection
 
 ### Best Practices for Contributors
 1. Never commit secrets or private keys

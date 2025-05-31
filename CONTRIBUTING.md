@@ -102,8 +102,12 @@ ROCKSDB_LIB_DIR=/usr/lib64 LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo test test_name
 ## Security
 
 - **DO NOT** commit secrets, keys, or sensitive data
+- Use environment variables for JWT secrets and sensitive configuration
 - Review the security documentation in docs/SECURITY_AUDIT_PHASE1.md
 - Follow security guidelines in docs/SECURITY_IMPLEMENTATION_GUIDE.md
+- Always use the provided security modules (auth, validation, rate_limit, etc.)
+- Ensure all new endpoints have proper authentication and validation
+- Test rate limiting and input validation for new features
 - Report security vulnerabilities to security@aura-network.org (do not use public issues)
 
 ## License

@@ -41,3 +41,4 @@ axum-server = { version = "0.7", features = ["tls-rustls"] }
 sha2 = "0.10"
 base64 = "0.22"
 rand = { workspace = true }
+hex = { workspace = true }

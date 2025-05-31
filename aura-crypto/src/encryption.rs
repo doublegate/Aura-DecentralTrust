@@ -5,7 +5,7 @@ use aes_gcm::{
 };
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
-use zeroize::{Zeroize, Zeroizing};
+use zeroize::Zeroizing;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
 pub struct EncryptedData {
@@ -23,12 +23,10 @@ pub fn encrypt(key: &[u8; 32], plaintext: &[u8]) -> Result<EncryptedData> {
     let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
 
-    // Clear plaintext from memory after encryption
-    let mut plaintext_copy = plaintext.to_vec();
+    // Encrypt directly without creating a copy
     let ciphertext = cipher
-        .encrypt(&nonce, plaintext_copy.as_slice())
+        .encrypt(&nonce, plaintext)
         .map_err(|e| CryptoError::EncryptionError(e.to_string()))?;
-    plaintext_copy.zeroize();
 
     Ok(EncryptedData {
         ciphertext,
@@ -49,7 +47,10 @@ pub fn decrypt(key: &[u8; 32], encrypted: &EncryptedData) -> Result<Zeroizing<Ve
 }
 
 pub fn encrypt_json<T: Serialize>(key: &[u8; 32], data: &T) -> Result<EncryptedData> {
-    let json = serde_json::to_vec(data).map_err(|e| CryptoError::EncryptionError(e.to_string()))?;
+    // Use Zeroizing to ensure JSON is cleared from memory
+    let json = Zeroizing::new(
+        serde_json::to_vec(data).map_err(|e| CryptoError::EncryptionError(e.to_string()))?
+    );
     encrypt(key, &json)
 }
 

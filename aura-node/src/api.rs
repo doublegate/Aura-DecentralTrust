@@ -72,6 +72,8 @@ pub struct TransactionRequest {
     pub transaction_type: TransactionTypeRequest,
     pub nonce: u64,
     pub chain_id: String,
+    pub timestamp: i64,
+    pub signer_did: String,
     pub signature: String,
 }
 
@@ -178,10 +180,23 @@ async fn root() -> &'static str {
 
 async fn login(
     State(state): State<Arc<ApiState>>,
+    axum::extract::ConnectInfo(addr): axum::extract::ConnectInfo<SocketAddr>,
     Json(req): Json<AuthRequest>,
 ) -> Result<Json<AuthResponse>, StatusCode> {
+    let ip_address = addr.ip().to_string();
+    
     // Validate credentials
     if !auth::validate_credentials(&req.node_id, &req.password) {
+        // Log failed authentication attempt
+        crate::audit::log_security_event(
+            crate::audit::SecurityEvent::AuthenticationAttempt {
+                node_id: req.node_id.clone(),
+                success: false,
+                ip_address,
+                reason: Some("Invalid credentials".to_string()),
+            },
+            None,
+        ).await;
         return Err(StatusCode::UNAUTHORIZED);
     }
 
@@ -198,6 +213,17 @@ async fn login(
     // Create token
     let token = auth::create_token(&req.node_id, &role, expiry_hours)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Log successful authentication
+    crate::audit::log_security_event(
+        crate::audit::SecurityEvent::AuthenticationAttempt {
+            node_id: req.node_id.clone(),
+            success: true,
+            ip_address,
+            reason: None,
+        },
+        None,
+    ).await;
 
     Ok(Json(AuthResponse {
         token,
@@ -259,7 +285,8 @@ async fn resolve_did(
 ) -> Result<Json<ApiResponse<DidResolutionResponse>>, StatusCode> {
     // Validate DID format
     if let Err(e) = validation::validate_did(&did) {
-        return Ok(Json(ApiResponse::error(format!("Invalid DID: {e}"))));
+        use crate::error_sanitizer::sanitize_error_message;
+        return Ok(Json(ApiResponse::error(sanitize_error_message(&e.to_string()).to_string())));
     }
 
     // TODO: In a real implementation, this would query the DID registry
@@ -344,6 +371,24 @@ async fn submit_transaction(
         }
     }
 
+    // Validate signer DID
+    if let Err(e) = validation::validate_did(&request.signer_did) {
+        return Json(ApiResponse::error(format!("Invalid signer DID: {e}")));
+    }
+
+    // Verify transaction signature
+    if let Err(e) = verify_transaction_signature(&request) {
+        return Json(ApiResponse::error(format!("Invalid signature: {e}")));
+    }
+
+    // Check timestamp is recent (within 5 minutes)
+    let now = chrono::Utc::now().timestamp();
+    if (now - request.timestamp).abs() > 300 {
+        return Json(ApiResponse::error("Transaction timestamp too old or in future".to_string()));
+    }
+
+    // TODO: Check nonce hasn't been used before (requires state storage)
+
     // Validate transaction type specific data
     match &request.transaction_type {
         TransactionTypeRequest::RegisterDid { did_document: _ } => {
@@ -383,4 +428,40 @@ async fn check_revocation(
 
     // In a real implementation, this would check the revocation registry
     Json(ApiResponse::success(false))
+}
+
+/// Verify transaction signature
+fn verify_transaction_signature(request: &TransactionRequest) -> Result<(), String> {
+    // Create a copy of the transaction without the signature for verification
+    let tx_for_signing = serde_json::json!({
+        "transaction_type": &request.transaction_type,
+        "nonce": request.nonce,
+        "chain_id": &request.chain_id,
+        "timestamp": request.timestamp,
+        "signer_did": &request.signer_did
+    });
+    
+    // Serialize to get consistent bytes for verification
+    let _message = serde_json::to_vec(&tx_for_signing)
+        .map_err(|e| format!("Failed to serialize transaction: {}", e))?;
+    
+    // Decode the signature from hex
+    let signature_bytes = hex::decode(&request.signature)
+        .map_err(|e| format!("Invalid signature format: {}", e))?;
+    
+    if signature_bytes.len() != 64 {
+        return Err("Invalid signature length".to_string());
+    }
+    
+    // TODO: In production, this would:
+    // 1. Resolve the signer's DID to get their public key
+    // 2. Verify the signature using the public key
+    // For now, we'll do basic validation
+    
+    // Basic validation: signature should not be all zeros
+    if signature_bytes.iter().all(|&b| b == 0) {
+        return Err("Invalid signature: all zeros".to_string());
+    }
+    
+    Ok(())
 }

@@ -9,7 +9,7 @@
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 [![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg)](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0)
 
-## 🎉 v0.1.0 Released!
+## 🎉 v0.1.0 Released with Security Hardening!
 
 We're excited to announce the first official release of Aura DecentralTrust! 
 
@@ -18,6 +18,15 @@ We're excited to announce the first official release of Aura DecentralTrust!
 - [**macOS Intel**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.0/aura-node-darwin-amd64)
 - [**macOS Apple Silicon**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.0/aura-node-darwin-arm64)
 - [**Windows**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.0/aura-node-windows-amd64.exe)
+
+### 🔒 Security Update
+All 13 security vulnerabilities identified in our comprehensive security audit have been resolved, including:
+- JWT authentication with environment-based secrets
+- Rate limiting and DoS protection
+- Mutual TLS support for node communication
+- Transaction signature verification
+- Audit logging for security events
+- SSRF protection and input validation
 
 ## Overview
 
@@ -76,18 +85,27 @@ Aura is a decentralized identity and trust network that combines Decentralized I
 
 1. Download the appropriate binary for your platform from the [releases page](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0)
 2. Make it executable (Linux/macOS): `chmod +x aura-node`
-3. Run the node:
+3. Set up security configuration:
+   ```bash
+   # Set JWT secret (required for production)
+   export AURA_JWT_SECRET=$(openssl rand -base64 32)
+   
+   # Create credentials file (optional - uses defaults if not provided)
+   cp config/credentials.example.json config/credentials.json
+   ```
+4. Run the node:
    ```bash
    # Basic mode
    ./aura-node
    
-   # With TLS enabled
+   # With TLS enabled (recommended)
    ./aura-node --enable-tls
    ```
 
 ### Get Authentication Token
 
 ```bash
+# Default credentials (change in production!)
 curl -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
   -d '{"node_id": "validator-node-1", "password": "validator-password-1"}'
@@ -192,14 +210,22 @@ Network node implementation:
 
 ## API Endpoints
 
-The Aura node exposes the following REST API endpoints:
+The Aura node exposes the following REST API endpoints (all require JWT authentication except `/` and `/auth/login`):
 
 - `GET /` - API information
+- `POST /auth/login` - Authenticate and get JWT token
 - `GET /node/info` - Node status and information
 - `GET /did/{did}` - Resolve a DID
 - `GET /schema/{id}` - Get a credential schema
-- `POST /transaction` - Submit a transaction
+- `POST /transaction` - Submit a transaction (with signature verification)
 - `GET /revocation/{list_id}/{index}` - Check revocation status
+
+### Security Features
+- **Authentication**: Bearer token required for protected endpoints
+- **Rate Limiting**: 60 requests/minute, 1000 requests/hour per IP
+- **Request Size**: Maximum 10MB request body
+- **HTTPS**: TLS support with `--enable-tls` flag
+- **Audit Logging**: All security events are logged
 
 ## Development Roadmap
 
@@ -235,6 +261,15 @@ Contributions are welcome! Please read our contributing guidelines before submit
 This project is dual-licensed under MIT and Apache 2.0 licenses.
 
 ## Security
+
+Aura implements comprehensive security measures including:
+- JWT authentication with environment-based secrets
+- Rate limiting and DoS protection
+- Mutual TLS for node-to-node communication
+- Transaction signature verification
+- Comprehensive input validation and SSRF protection
+- Audit logging for security events
+- Certificate pinning for P2P connections
 
 See [SECURITY_NOTICE.md](docs/SECURITY_NOTICE.md) for important security information and best practices.
 

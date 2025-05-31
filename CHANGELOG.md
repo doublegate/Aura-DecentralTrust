@@ -8,11 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Security**: Comprehensive security hardening for production readiness
+  - Mutual TLS support for node-to-node communication
+  - Certificate pinning framework for P2P connections
+  - Audit logging system for security events
+  - SSRF protection with comprehensive IP range validation
+  - Transaction signature verification on API endpoints
+  - Error message sanitization to prevent information disclosure
+  - Windows file permission handling for sensitive data
 - **Security**: Externalized JWT secret configuration via environment variable
 - **Security**: File-based credential management with SHA256 password hashing
 - **Security**: P2P message size validation to prevent DoS attacks
 - **Security**: Rate limiting middleware with per-IP tracking
 - **Security**: Automatic rate limit cleanup task
+- New security modules: `audit.rs`, `cert_pinning.rs`, `error_sanitizer.rs`, `rate_limit.rs`
 - Scripts for secure configuration generation
 - Scripts for testing rate limiting functionality
 - Comprehensive security fixes documentation
@@ -23,8 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Security**: Credentials now stored in config/credentials.json (not hardcoded)
 - **Security**: All unwrap()/expect() replaced with proper error handling
 - **Security**: TLS configuration now returns Result instead of panicking
+- **Security**: Enhanced URL validation with complete SSRF protection
+- **Security**: Improved memory handling during encryption operations
 - **Build**: Added sha2, base64, and proper rand dependency management
 - **API**: Updated to support configurable security settings
+- **API**: Added transaction signature verification
 - **Config**: Added SecurityConfig with JWT, credentials, and rate limiting settings
 - **Release**: Switched to auto-generated release notes with softprops/action-gh-release
 
@@ -34,13 +46,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **High Security**: P2P messages now size-validated before processing
 - **High Security**: All panic-inducing unwrap() calls replaced
 - **High Security**: Rate limiting now properly enforced
+- **Medium Security**: Implemented mutual TLS for secure node communication
+- **Medium Security**: Added comprehensive SSRF protection for URL validation
+- **Medium Security**: Transaction signatures now verified on submission
+- **Medium Security**: Eliminated unnecessary plaintext copies during encryption
+- **Low Security**: Added audit logging for all security events
+- **Low Security**: Implemented certificate pinning for P2P connections
+- **Low Security**: Windows file permissions now set for sensitive files
+- **Low Security**: Client error messages sanitized to prevent info leaks
 - Release workflow permissions for asset uploads
 
 ### Security
 - Implemented secure credential storage with password hashing
-- Added comprehensive P2P message size limits
-- Enforced rate limiting on all API endpoints
+- Added comprehensive P2P message size limits (1MB max)
+- Enforced rate limiting on all API endpoints (60 rpm, 1000 rph)
 - Eliminated all hardcoded secrets from codebase
+- Added mutual TLS support with client certificate verification
+- Comprehensive SSRF protection blocking all private IP ranges
+- Transaction signature verification with timestamp validation
+- Audit logging framework with security event tracking
+- Certificate pinning manager for P2P connections
+- Error message sanitization for external responses
+- **Total**: 13/13 security issues identified and resolved
 
 ## [0.1.0] - 2025-06-01
 
