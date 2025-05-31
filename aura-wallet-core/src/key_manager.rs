@@ -75,9 +75,7 @@ impl KeyManager {
                 &encrypted_private_key,
                 bincode::config::standard(),
             )
-            .map_err(|e| {
-                AuraError::Internal(format!("Failed to serialize encrypted key: {e}"))
-            })?,
+            .map_err(|e| AuraError::Internal(format!("Failed to serialize encrypted key: {e}")))?,
             created_at: chrono::Utc::now(),
         };
 

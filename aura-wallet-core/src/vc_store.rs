@@ -146,9 +146,7 @@ impl VcStore {
         let (encrypted, _): (encryption::EncryptedData, _) =
             bincode::decode_from_slice(encrypted_data, bincode::config::standard()).map_err(
                 |e| {
-                    AuraError::Internal(format!(
-                        "Failed to deserialize encrypted credentials: {e}"
-                    ))
+                    AuraError::Internal(format!("Failed to deserialize encrypted credentials: {e}"))
                 },
             )?;
 

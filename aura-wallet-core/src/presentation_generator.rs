@@ -58,9 +58,7 @@ impl PresentationGenerator {
         let stored_cred = self
             .vc_store
             .get_credential(&credential_id)?
-            .ok_or_else(|| {
-                AuraError::NotFound(format!("Credential {credential_id} not found"))
-            })?;
+            .ok_or_else(|| AuraError::NotFound(format!("Credential {credential_id} not found")))?;
 
         // Create a copy with only disclosed claims
         let mut selective_credential = stored_cred.credential.clone();
