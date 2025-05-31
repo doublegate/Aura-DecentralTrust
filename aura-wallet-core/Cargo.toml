@@ -15,7 +15,7 @@ thiserror = { workspace = true }
 chrono = { workspace = true }
 wasm-bindgen = { version = "0.2", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
-getrandom = { version = "0.3", features = ["js"] }
+getrandom = { version = "0.3.3", features = ["js"] }
 console_error_panic_hook = { version = "0.1", optional = true }
 uuid = { workspace = true }
 multibase = { workspace = true }
