@@ -1,12 +1,12 @@
-pub mod signing;
 pub mod encryption;
 pub mod hashing;
 pub mod keys;
+pub mod signing;
 
-pub use signing::*;
 pub use encryption::*;
 pub use hashing::*;
 pub use keys::*;
+pub use signing::*;
 
 use thiserror::Error;
 
@@ -14,19 +14,19 @@ use thiserror::Error;
 pub enum CryptoError {
     #[error("Invalid key: {0}")]
     InvalidKey(String),
-    
+
     #[error("Signing error: {0}")]
     SigningError(String),
-    
+
     #[error("Verification error: {0}")]
     VerificationError(String),
-    
+
     #[error("Encryption error: {0}")]
     EncryptionError(String),
-    
+
     #[error("Decryption error: {0}")]
     DecryptionError(String),
-    
+
     #[error("Key generation error: {0}")]
     KeyGenerationError(String),
 }

@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use aura_common::{Timestamp, BlockNumber};
-use aura_crypto::{hashing, PublicKey};
 use crate::transaction::Transaction;
+use aura_common::{BlockNumber, Timestamp};
+use aura_crypto::{hashing, PublicKey};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {
@@ -27,7 +27,7 @@ impl Block {
         validator: PublicKey,
     ) -> Self {
         let merkle_root = Self::calculate_merkle_root(&transactions);
-        
+
         Self {
             header: BlockHeader {
                 block_number,
@@ -40,24 +40,24 @@ impl Block {
             transactions,
         }
     }
-    
+
     pub fn hash(&self) -> [u8; 32] {
         hashing::blake3_json(&self.header).unwrap_or([0u8; 32])
     }
-    
+
     pub fn calculate_merkle_root(transactions: &[Transaction]) -> [u8; 32] {
         if transactions.is_empty() {
             return [0u8; 32];
         }
-        
+
         let mut hashes: Vec<[u8; 32]> = transactions
             .iter()
             .map(|tx| hashing::blake3_json(tx).unwrap())
             .collect();
-        
+
         while hashes.len() > 1 {
             let mut next_level = Vec::new();
-            
+
             for chunk in hashes.chunks(2) {
                 let hash = if chunk.len() == 2 {
                     let mut combined = Vec::new();
@@ -69,10 +69,10 @@ impl Block {
                 };
                 next_level.push(hash);
             }
-            
+
             hashes = next_level;
         }
-        
+
         hashes[0]
     }
 }

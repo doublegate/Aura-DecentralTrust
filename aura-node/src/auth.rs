@@ -40,16 +40,20 @@ pub struct AuthResponse {
 pub fn create_token(node_id: &str, role: &str) -> Result<String, AuthError> {
     let now = chrono::Utc::now();
     let exp = now + chrono::Duration::hours(24); // 24 hour expiry
-    
+
     let claims = Claims {
         sub: node_id.to_string(),
         exp: exp.timestamp() as usize,
         iat: now.timestamp() as usize,
         role: role.to_string(),
     };
-    
-    encode(&Header::default(), &claims, &EncodingKey::from_secret(JWT_SECRET))
-        .map_err(|_| AuthError::TokenCreation)
+
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(JWT_SECRET),
+    )
+    .map_err(|_| AuthError::TokenCreation)
 }
 
 /// Verify and decode a JWT token
@@ -76,15 +80,17 @@ impl IntoResponse for AuthError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
             AuthError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
-            AuthError::TokenCreation => (StatusCode::INTERNAL_SERVER_ERROR, "Token creation failed"),
+            AuthError::TokenCreation => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Token creation failed")
+            }
             AuthError::MissingToken => (StatusCode::UNAUTHORIZED, "Missing authorization header"),
             AuthError::Unauthorized => (StatusCode::FORBIDDEN, "Unauthorized"),
         };
-        
+
         let body = Json(serde_json::json!({
             "error": error_message
         }));
-        
+
         (status, body).into_response()
     }
 }
@@ -100,7 +106,7 @@ impl IntoResponse for AuthError {
 //     S: Send + Sync,
 // {
 //     type Rejection = AuthError;
-    
+
 //     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
 //         // Extract the token from the authorization header
 //         let auth_header = parts
@@ -108,17 +114,17 @@ impl IntoResponse for AuthError {
 //             .get(header::AUTHORIZATION)
 //             .and_then(|value| value.to_str().ok())
 //             .ok_or(AuthError::MissingToken)?;
-        
+
 //         // Check if it's a Bearer token
 //         if !auth_header.starts_with("Bearer ") {
 //             return Err(AuthError::InvalidToken);
 //         }
-        
+
 //         let token = &auth_header[7..]; // Skip "Bearer "
-        
+
 //         // Verify the token
 //         let token_data = verify_token(token)?;
-        
+
 //         Ok(JwtAuth {
 //             claims: token_data.claims,
 //         })

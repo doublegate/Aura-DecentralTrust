@@ -1,9 +1,8 @@
-use serde::{Deserialize, Serialize};
 use aura_common::{
-    AuraError, Result, Timestamp, TransactionId, AuraDid,
-    DidDocument, CredentialSchema,
+    AuraDid, AuraError, CredentialSchema, DidDocument, Result, Timestamp, TransactionId,
 };
 use aura_crypto::{PublicKey, Signature};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
@@ -12,9 +11,9 @@ pub struct Transaction {
     pub timestamp: Timestamp,
     pub sender: PublicKey,
     pub signature: Signature,
-    pub nonce: u64,  // Prevents replay attacks
-    pub chain_id: String,  // Prevents cross-chain replay
-    pub expires_at: Option<Timestamp>,  // Optional expiration
+    pub nonce: u64,                    // Prevents replay attacks
+    pub chain_id: String,              // Prevents cross-chain replay
+    pub expires_at: Option<Timestamp>, // Optional expiration
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,12 +30,12 @@ pub enum TransactionType {
     DeactivateDid {
         did: AuraDid,
     },
-    
+
     // VC Schema Operations
     RegisterSchema {
         schema: CredentialSchema,
     },
-    
+
     // Revocation Operations
     UpdateRevocationList {
         list_id: String,
@@ -63,7 +62,7 @@ impl Transaction {
             expires_at: Some(Timestamp::from_unix(Timestamp::now().as_unix() + 3600)), // 1 hour expiry by default
         }
     }
-    
+
     pub fn verify(&self) -> Result<bool> {
         // Check if transaction has expired
         if let Some(expires_at) = &self.expires_at {
@@ -71,7 +70,7 @@ impl Transaction {
                 return Ok(false);
             }
         }
-        
+
         // Verify the signature matches the transaction content
         let tx_without_sig = TransactionForSigning {
             id: self.id.clone(),
@@ -82,7 +81,7 @@ impl Transaction {
             chain_id: self.chain_id.clone(),
             expires_at: self.expires_at.clone(),
         };
-        
+
         aura_crypto::verify_json(&self.sender, &tx_without_sig, &self.signature)
             .map_err(|e| AuraError::Crypto(e.to_string()))
     }

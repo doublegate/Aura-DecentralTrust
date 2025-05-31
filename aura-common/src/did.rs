@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
-use bincode::{Encode, Decode};
 use crate::{AuraDid, ServiceEndpoint, Timestamp};
+use bincode::{Decode, Encode};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -40,12 +40,12 @@ impl DidDocument {
             updated: Timestamp::now(),
         }
     }
-    
+
     pub fn add_verification_method(&mut self, method: VerificationMethod) {
         self.verification_method.push(method);
         self.updated = Timestamp::now();
     }
-    
+
     pub fn add_service(&mut self, service: ServiceEndpoint) {
         self.service.push(service);
         self.updated = Timestamp::now();

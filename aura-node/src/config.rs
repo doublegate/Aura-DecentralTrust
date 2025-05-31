@@ -67,7 +67,7 @@ impl Default for NodeConfig {
 impl NodeConfig {
     pub fn load_or_create<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let path = path.as_ref();
-        
+
         if path.exists() {
             let content = std::fs::read_to_string(path)?;
             let config: Self = toml::from_str(&content)?;
@@ -75,17 +75,17 @@ impl NodeConfig {
         } else {
             let config = Self::default();
             let content = toml::to_string_pretty(&config)?;
-            
+
             // Create parent directory if it doesn't exist
             if let Some(parent) = path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
-            
+
             std::fs::write(path, content)?;
             Ok(config)
         }
     }
-    
+
     #[allow(dead_code)]
     pub fn save<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
         let content = toml::to_string_pretty(self)?;

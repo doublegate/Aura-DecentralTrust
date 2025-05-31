@@ -1,7 +1,7 @@
+use crate::{AuraDid, Timestamp};
+use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use bincode::{Encode, Decode};
-use crate::{AuraDid, Timestamp};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,7 +29,7 @@ impl VerifiableCredential {
     ) -> Self {
         let mut types = vec!["VerifiableCredential".to_string()];
         types.extend(credential_type);
-        
+
         Self {
             context: vec![
                 "https://www.w3.org/2018/credentials/v1".to_string(),
@@ -54,10 +54,7 @@ impl VerifiableCredential {
 #[serde(untagged)]
 pub enum CredentialIssuer {
     Did(AuraDid),
-    Object {
-        id: AuraDid,
-        name: Option<String>,
-    },
+    Object { id: AuraDid, name: Option<String> },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

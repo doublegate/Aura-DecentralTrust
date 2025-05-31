@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
+use bincode::{Decode, Encode};
 use chrono::{DateTime, Utc};
-use bincode::{Encode, Decode};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Encode, Decode)]
 pub struct AuraDid(pub String);
@@ -9,14 +9,14 @@ impl AuraDid {
     pub fn new(identifier: &str) -> Self {
         Self(format!("did:aura:{}", identifier))
     }
-    
+
     pub fn from_string(did: String) -> crate::Result<Self> {
         if !did.starts_with("did:aura:") {
             return Err(crate::AuraError::Did("Invalid DID format".to_string()));
         }
         Ok(Self(did))
     }
-    
+
     pub fn identifier(&self) -> &str {
         self.0.strip_prefix("did:aura:").unwrap_or(&self.0)
     }
@@ -32,25 +32,32 @@ impl std::fmt::Display for AuraDid {
 pub struct Timestamp(pub DateTime<Utc>);
 
 impl bincode::Encode for Timestamp {
-    fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), bincode::error::EncodeError> {
+    fn encode<E: bincode::enc::Encoder>(
+        &self,
+        encoder: &mut E,
+    ) -> Result<(), bincode::error::EncodeError> {
         self.0.timestamp().encode(encoder)
     }
 }
 
 impl bincode::Decode<()> for Timestamp {
-    fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, bincode::error::DecodeError> {
+    fn decode<D: bincode::de::Decoder>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
         let timestamp = i64::decode(decoder)?;
         let dt = DateTime::from_timestamp(timestamp, 0)
-            .ok_or_else(|| bincode::error::DecodeError::Other("Invalid timestamp"))?;
+            .ok_or(bincode::error::DecodeError::Other("Invalid timestamp"))?;
         Ok(Self(dt))
     }
 }
 
 impl<'de> bincode::BorrowDecode<'de, ()> for Timestamp {
-    fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(decoder: &mut D) -> Result<Self, bincode::error::DecodeError> {
+    fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
         let timestamp = i64::borrow_decode(decoder)?;
         let dt = DateTime::from_timestamp(timestamp, 0)
-            .ok_or_else(|| bincode::error::DecodeError::Other("Invalid timestamp"))?;
+            .ok_or(bincode::error::DecodeError::Other("Invalid timestamp"))?;
         Ok(Self(dt))
     }
 }
@@ -65,13 +72,12 @@ impl Timestamp {
     pub fn now() -> Self {
         Self::default()
     }
-    
+
     pub fn from_unix(timestamp: i64) -> Self {
-        let dt = DateTime::from_timestamp(timestamp, 0)
-            .unwrap_or_else(|| Utc::now());
+        let dt = DateTime::from_timestamp(timestamp, 0).unwrap_or_else(Utc::now);
         Self(dt)
     }
-    
+
     pub fn as_unix(&self) -> i64 {
         self.0.timestamp()
     }

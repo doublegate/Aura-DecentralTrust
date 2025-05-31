@@ -1,8 +1,8 @@
-use std::path::Path;
-use rocksdb::{DB, Options};
-use aura_common::{AuraError, Result, AuraDid, DidDocument, DidRecord, SchemaRecord};
 use crate::Block;
 use aura_common::BlockNumber;
+use aura_common::{AuraDid, AuraError, DidDocument, DidRecord, Result, SchemaRecord};
+use rocksdb::{Options, DB};
+use std::path::Path;
 
 const CF_BLOCKS: &str = "blocks";
 const CF_DID_RECORDS: &str = "did_records";
@@ -22,7 +22,7 @@ impl Storage {
         let mut opts = Options::default();
         opts.create_if_missing(true);
         opts.create_missing_column_families(true);
-        
+
         let cf_names = vec![
             CF_BLOCKS,
             CF_DID_RECORDS,
@@ -33,34 +33,39 @@ impl Storage {
             CF_NONCES,
             CF_EXECUTED_TXS,
         ];
-        
-        let db = DB::open_cf(&opts, path, cf_names)
-            .map_err(|e| AuraError::Storage(e.to_string()))?;
-        
+
+        let db =
+            DB::open_cf(&opts, path, cf_names).map_err(|e| AuraError::Storage(e.to_string()))?;
+
         Ok(Self { db })
     }
-    
+
     // Block operations
     pub fn put_block(&self, block: &Block) -> Result<()> {
-        let cf = self.db.cf_handle(CF_BLOCKS)
+        let cf = self
+            .db
+            .cf_handle(CF_BLOCKS)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = block.header.block_number.0.to_be_bytes();
-        let value = serde_json::to_vec(block)
-            .map_err(|e| AuraError::Serialization(e.to_string()))?;
-        
-        self.db.put_cf(cf, key, value)
+        let value =
+            serde_json::to_vec(block).map_err(|e| AuraError::Serialization(e.to_string()))?;
+
+        self.db
+            .put_cf(cf, key, value)
             .map_err(|e| AuraError::Storage(e.to_string()))?;
-        
+
         Ok(())
     }
-    
+
     pub fn get_block(&self, block_number: &BlockNumber) -> Result<Option<Block>> {
-        let cf = self.db.cf_handle(CF_BLOCKS)
+        let cf = self
+            .db
+            .cf_handle(CF_BLOCKS)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = block_number.0.to_be_bytes();
-        
+
         match self.db.get_cf(cf, key) {
             Ok(Some(data)) => {
                 let block = serde_json::from_slice(&data)
@@ -71,14 +76,17 @@ impl Storage {
             Err(e) => Err(AuraError::Storage(e.to_string())),
         }
     }
-    
+
     pub fn get_latest_block_number(&self) -> Result<Option<BlockNumber>> {
-        let cf = self.db.cf_handle(CF_METADATA)
+        let cf = self
+            .db
+            .cf_handle(CF_METADATA)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         match self.db.get_cf(cf, b"latest_block") {
             Ok(Some(data)) => {
-                let bytes: [u8; 8] = data.try_into()
+                let bytes: [u8; 8] = data
+                    .try_into()
                     .map_err(|_| AuraError::Storage("Invalid block number format".to_string()))?;
                 Ok(Some(BlockNumber(u64::from_be_bytes(bytes))))
             }
@@ -86,38 +94,46 @@ impl Storage {
             Err(e) => Err(AuraError::Storage(e.to_string())),
         }
     }
-    
+
     pub fn set_latest_block_number(&self, block_number: &BlockNumber) -> Result<()> {
-        let cf = self.db.cf_handle(CF_METADATA)
+        let cf = self
+            .db
+            .cf_handle(CF_METADATA)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
-        self.db.put_cf(cf, b"latest_block", block_number.0.to_be_bytes())
+
+        self.db
+            .put_cf(cf, b"latest_block", block_number.0.to_be_bytes())
             .map_err(|e| AuraError::Storage(e.to_string()))?;
-        
+
         Ok(())
     }
-    
+
     // DID operations
     pub fn put_did_record(&self, did: &AuraDid, record: &DidRecord) -> Result<()> {
-        let cf = self.db.cf_handle(CF_DID_RECORDS)
+        let cf = self
+            .db
+            .cf_handle(CF_DID_RECORDS)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = did.0.as_bytes();
         let value = bincode::encode_to_vec(record, bincode::config::standard())
             .map_err(|e| AuraError::Serialization(e.to_string()))?;
-        
-        self.db.put_cf(cf, key, value)
+
+        self.db
+            .put_cf(cf, key, value)
             .map_err(|e| AuraError::Storage(e.to_string()))?;
-        
+
         Ok(())
     }
-    
+
     pub fn get_did_record(&self, did: &AuraDid) -> Result<Option<DidRecord>> {
-        let cf = self.db.cf_handle(CF_DID_RECORDS)
+        let cf = self
+            .db
+            .cf_handle(CF_DID_RECORDS)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = did.0.as_bytes();
-        
+
         match self.db.get_cf(cf, key) {
             Ok(Some(data)) => {
                 let record = bincode::decode_from_slice(&data, bincode::config::standard())
@@ -129,27 +145,32 @@ impl Storage {
             Err(e) => Err(AuraError::Storage(e.to_string())),
         }
     }
-    
+
     pub fn put_did_document(&self, did: &AuraDid, document: &DidDocument) -> Result<()> {
-        let cf = self.db.cf_handle(CF_DID_DOCUMENTS)
+        let cf = self
+            .db
+            .cf_handle(CF_DID_DOCUMENTS)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = did.0.as_bytes();
-        let value = serde_json::to_vec(document)
-            .map_err(|e| AuraError::Serialization(e.to_string()))?;
-        
-        self.db.put_cf(cf, key, value)
+        let value =
+            serde_json::to_vec(document).map_err(|e| AuraError::Serialization(e.to_string()))?;
+
+        self.db
+            .put_cf(cf, key, value)
             .map_err(|e| AuraError::Storage(e.to_string()))?;
-        
+
         Ok(())
     }
-    
+
     pub fn get_did_document(&self, did: &AuraDid) -> Result<Option<DidDocument>> {
-        let cf = self.db.cf_handle(CF_DID_DOCUMENTS)
+        let cf = self
+            .db
+            .cf_handle(CF_DID_DOCUMENTS)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = did.0.as_bytes();
-        
+
         match self.db.get_cf(cf, key) {
             Ok(Some(data)) => {
                 let document = serde_json::from_slice(&data)
@@ -160,28 +181,33 @@ impl Storage {
             Err(e) => Err(AuraError::Storage(e.to_string())),
         }
     }
-    
+
     // Schema operations
     pub fn put_schema(&self, schema_id: &str, schema: &SchemaRecord) -> Result<()> {
-        let cf = self.db.cf_handle(CF_SCHEMAS)
+        let cf = self
+            .db
+            .cf_handle(CF_SCHEMAS)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = schema_id.as_bytes();
         let value = bincode::encode_to_vec(schema, bincode::config::standard())
             .map_err(|e| AuraError::Serialization(e.to_string()))?;
-        
-        self.db.put_cf(cf, key, value)
+
+        self.db
+            .put_cf(cf, key, value)
             .map_err(|e| AuraError::Storage(e.to_string()))?;
-        
+
         Ok(())
     }
-    
+
     pub fn get_schema(&self, schema_id: &str) -> Result<Option<SchemaRecord>> {
-        let cf = self.db.cf_handle(CF_SCHEMAS)
+        let cf = self
+            .db
+            .cf_handle(CF_SCHEMAS)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = schema_id.as_bytes();
-        
+
         match self.db.get_cf(cf, key) {
             Ok(Some(data)) => {
                 let schema = bincode::decode_from_slice(&data, bincode::config::standard())
@@ -193,63 +219,80 @@ impl Storage {
             Err(e) => Err(AuraError::Storage(e.to_string())),
         }
     }
-    
+
     // Nonce tracking for replay protection
     pub fn get_nonce(&self, account: &aura_crypto::PublicKey) -> Result<u64> {
-        let cf = self.db.cf_handle(CF_NONCES)
+        let cf = self
+            .db
+            .cf_handle(CF_NONCES)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = account.to_bytes();
-        
+
         match self.db.get_cf(cf, key) {
             Ok(Some(data)) => {
-                let nonce = u64::from_be_bytes(data.as_slice().try_into()
-                    .map_err(|_| AuraError::Storage("Invalid nonce data".to_string()))?);
+                let nonce = u64::from_be_bytes(
+                    data.as_slice()
+                        .try_into()
+                        .map_err(|_| AuraError::Storage("Invalid nonce data".to_string()))?,
+                );
                 Ok(nonce)
             }
             Ok(None) => Ok(0), // First transaction for this account
             Err(e) => Err(AuraError::Storage(e.to_string())),
         }
     }
-    
+
     pub fn increment_nonce(&self, account: &aura_crypto::PublicKey) -> Result<u64> {
-        let cf = self.db.cf_handle(CF_NONCES)
+        let cf = self
+            .db
+            .cf_handle(CF_NONCES)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = account.to_bytes();
         let current_nonce = self.get_nonce(account)?;
         let new_nonce = current_nonce + 1;
-        
-        self.db.put_cf(cf, key, new_nonce.to_be_bytes())
+
+        self.db
+            .put_cf(cf, key, new_nonce.to_be_bytes())
             .map_err(|e| AuraError::Storage(e.to_string()))?;
-            
+
         Ok(new_nonce)
     }
-    
+
     // Track executed transactions to prevent replay
     pub fn is_transaction_executed(&self, tx_id: &aura_common::TransactionId) -> Result<bool> {
-        let cf = self.db.cf_handle(CF_EXECUTED_TXS)
+        let cf = self
+            .db
+            .cf_handle(CF_EXECUTED_TXS)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = tx_id.0.as_bytes();
-        
+
         match self.db.get_cf(cf, key) {
             Ok(Some(_)) => Ok(true),
             Ok(None) => Ok(false),
             Err(e) => Err(AuraError::Storage(e.to_string())),
         }
     }
-    
-    pub fn mark_transaction_executed(&self, tx_id: &aura_common::TransactionId, block_number: BlockNumber) -> Result<()> {
-        let cf = self.db.cf_handle(CF_EXECUTED_TXS)
+
+    pub fn mark_transaction_executed(
+        &self,
+        tx_id: &aura_common::TransactionId,
+        block_number: BlockNumber,
+    ) -> Result<()> {
+        let cf = self
+            .db
+            .cf_handle(CF_EXECUTED_TXS)
             .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
-        
+
         let key = tx_id.0.as_bytes();
         let value = block_number.0.to_be_bytes();
-        
-        self.db.put_cf(cf, key, value)
+
+        self.db
+            .put_cf(cf, key, value)
             .map_err(|e| AuraError::Storage(e.to_string()))?;
-            
+
         Ok(())
     }
 }
