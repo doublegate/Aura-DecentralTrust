@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a Question
+    url: https://github.com/doublegate/Aura-DecentralTrust/discussions
+    about: Please ask and answer questions in the Discussions area
+  - name: Security Issues
+    url: mailto:security@aura-network.org
+    about: Please report critical security vulnerabilities via email
+  - name: Documentation
+    url: https://github.com/doublegate/Aura-DecentralTrust/tree/main/docs
+    about: Check our documentation for answers

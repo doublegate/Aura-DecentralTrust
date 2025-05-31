@@ -4,6 +4,10 @@
 
 ![Aura Logo](images/aura_logo.png)
 
+[![CI](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml/badge.svg)](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
+
 ## Overview
 
 Aura is a decentralized identity and trust network that combines Decentralized Identifiers (DIDs), Verifiable Credentials (VCs), and Zero-Knowledge Proofs (ZKPs) to enable self-sovereign identity and user-controlled data management.
@@ -194,7 +198,7 @@ This project is dual-licensed under MIT and Apache 2.0 licenses.
 
 ## Security
 
-See [SECURITY_NOTICE.md](SECURITY_NOTICE.md) for important security information and best practices.
+See [SECURITY_NOTICE.md](docs/SECURITY_NOTICE.md) for important security information and best practices.
 
 For security concerns, please email security@aura-network.org
 
