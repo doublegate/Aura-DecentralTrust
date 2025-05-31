@@ -83,10 +83,10 @@ impl Timestamp {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Encode, Decode)]
 pub struct BlockNumber(pub u64);
 
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Encode, Decode)]
 pub struct TransactionId(pub String);
 
 #[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]

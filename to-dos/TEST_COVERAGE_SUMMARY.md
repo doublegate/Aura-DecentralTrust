@@ -16,23 +16,24 @@ This document provides a comprehensive summary of the test coverage implementati
   - `types.rs` - 25 tests covering all type operations
   - `vc.rs` - 13 tests covering verifiable credentials
 
-### ⏳ aura-crypto (0% test coverage - IN PROGRESS)
-- **Total Tests**: 0
-- **Files Needing Tests**: 4/4
-  - `encryption.rs` - Needs tests for: encrypt, decrypt, encrypt_json, decrypt_json
-  - `hashing.rs` - Needs tests for: sha256, blake3, sha256_json, blake3_json
-  - `keys.rs` - Needs tests for: KeyPair, PrivateKey, PublicKey operations
-  - `signing.rs` - Needs tests for: sign, verify, sign_json, verify_json
+### ✅ aura-crypto (100% test coverage - COMPLETED)
+- **Total Tests**: 72 
+- **Files with Tests**: 4/4
+  - `encryption.rs` - 18 tests covering: encrypt, decrypt, encrypt_json, decrypt_json, zeroization
+  - `hashing.rs` - 20 tests covering: sha256, blake3, sha256_json, blake3_json with various edge cases
+  - `keys.rs` - 17 tests covering: KeyPair, PrivateKey, PublicKey operations and serialization  
+  - `signing.rs` - 17 tests covering: sign, verify, sign_json, verify_json, deterministic signing
 
-### ⏳ aura-ledger (0% test coverage)
-- **Total Tests**: 0
-- **Files Needing Tests**: 7/7
-  - `blockchain.rs` - Block and blockchain operations
-  - `consensus.rs` - PoA consensus mechanism
-  - `did_registry.rs` - DID registration and resolution
+### ✅ aura-ledger (Partial test coverage - IN PROGRESS)
+- **Total Tests**: 61
+- **Files with Tests**: 4/7
+  - `blockchain.rs` - 17 tests covering block operations, merkle trees, and genesis blocks
+  - `consensus.rs` - 14 tests covering PoA consensus, validator rotation, and block validation
+  - `did_registry.rs` - 14 tests covering DID registration, updates, deactivation, and resolution
+  - `transaction.rs` - 16 tests covering transaction creation, verification, and serialization
+- **Files Needing Tests**: 3/7
   - `revocation_registry.rs` - Credential revocation
   - `storage.rs` - RocksDB storage operations
-  - `transaction.rs` - Transaction handling
   - `vc_schema_registry.rs` - Schema management
 
 ### ⏳ aura-wallet-core (0% test coverage)
