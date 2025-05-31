@@ -55,26 +55,17 @@ jobs:
       with:
         targets: ${{ matrix.target }}
     
-    - name: Install system dependencies (Ubuntu)
+    # Note: Using bundled RocksDB to avoid version conflicts
+    - name: Install build dependencies (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y librocksdb-dev libzstd-dev clang
+        sudo apt-get install -y clang
     
-    - name: Install system dependencies (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        brew install rocksdb zstd
+    # macOS has clang by default, no need to install
     
     - name: Build
-      run: |
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          export ROCKSDB_LIB_DIR=/usr/lib
-        else
-          export ROCKSDB_LIB_DIR=/opt/homebrew/lib
-        fi
-        export LIBROCKSDB_SYS_DISABLE_BUNDLED=1
-        cargo build --release --target ${{ matrix.target }} --bin aura-node
+      run: cargo build --release --target ${{ matrix.target }} --bin aura-node
     
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1

@@ -27,16 +27,14 @@ jobs:
         toolchain: ${{ matrix.rust }}
         components: rustfmt, clippy
     
-    - name: Install system dependencies (Ubuntu)
+    # Note: Using bundled RocksDB to avoid version conflicts
+    - name: Install build dependencies (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y librocksdb-dev libzstd-dev clang
+        sudo apt-get install -y clang
     
-    - name: Install system dependencies (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        brew install rocksdb zstd
+    # macOS has clang by default, no need to install
     
     - name: Cache cargo registry
       uses: actions/cache@v4
@@ -63,34 +61,13 @@ jobs:
       run: cargo clippy --all-targets --all-features -- -D warnings
     
     - name: Build
-      run: |
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          export ROCKSDB_LIB_DIR=/usr/lib
-        else
-          export ROCKSDB_LIB_DIR=/opt/homebrew/lib
-        fi
-        export LIBROCKSDB_SYS_DISABLE_BUNDLED=1
-        cargo build --verbose
+      run: cargo build --verbose
     
     - name: Run tests
-      run: |
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          export ROCKSDB_LIB_DIR=/usr/lib
-        else
-          export ROCKSDB_LIB_DIR=/opt/homebrew/lib
-        fi
-        export LIBROCKSDB_SYS_DISABLE_BUNDLED=1
-        cargo test --verbose
+      run: cargo test --verbose
     
     - name: Run doc tests
-      run: |
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          export ROCKSDB_LIB_DIR=/usr/lib
-        else
-          export ROCKSDB_LIB_DIR=/opt/homebrew/lib
-        fi
-        export LIBROCKSDB_SYS_DISABLE_BUNDLED=1
-        cargo test --doc
+      run: cargo test --doc
 
   security:
     name: Security Audit
@@ -115,19 +92,16 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
     
-    - name: Install system dependencies
+    - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y librocksdb-dev libzstd-dev clang
+        sudo apt-get install -y clang
     
     - name: Install tarpaulin
       run: cargo install cargo-tarpaulin
     
     - name: Generate code coverage
-      run: |
-        export ROCKSDB_LIB_DIR=/usr/lib
-        export LIBROCKSDB_SYS_DISABLE_BUNDLED=1
-        cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
+      run: cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
