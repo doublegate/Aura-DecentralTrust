@@ -108,7 +108,7 @@ cargo fmt
 cargo clippy
 ```
 
-## Recent Updates (2025-05-31)
+## Recent Updates (2025-06-01)
 
 ### Dependency Updates
 The project has been updated to work with latest dependencies:
@@ -145,5 +145,19 @@ curl -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
   -d '{"node_id": "validator-node-1", "password": "validator-password-1"}'
 ```
+
+### CI/CD Status (2025-06-01)
+- **GitHub Actions**: CI pipeline configured for Ubuntu and macOS
+- **Automated Testing**: Runs on all PRs and pushes to main
+- **Release Automation**: Binary builds for Linux and macOS (Intel/ARM)
+- **Dependency Updates**: Dependabot configured for weekly updates
+
+### Phase 1 Status (95% Complete)
+- ✅ All core infrastructure implemented
+- ✅ All critical security issues resolved
+- ✅ Full API functionality with mock data
+- ⏳ Remaining: Connect API to blockchain (1-2 days)
+- ⏳ Remaining: P2P message handlers (2-3 days)
+- ⏳ Remaining: Desktop wallet MVP (2-4 weeks)
 
 See `CHANGELOG.md` for complete list of changes.
