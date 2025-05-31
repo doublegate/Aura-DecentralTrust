@@ -7,6 +7,17 @@
 [![CI](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml/badge.svg)](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
+[![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg)](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0)
+
+## 🎉 v0.1.0 Released!
+
+We're excited to announce the first official release of Aura DecentralTrust! 
+
+### Download Pre-built Binaries
+- [**Linux (x86_64)**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.0/aura-node-linux-amd64)
+- [**macOS Intel**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.0/aura-node-darwin-amd64)
+- [**macOS Apple Silicon**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.0/aura-node-darwin-arm64)
+- [**Windows**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.0/aura-node-windows-amd64.exe)
 
 ## Overview
 
@@ -14,13 +25,13 @@ Aura is a decentralized identity and trust network that combines Decentralized I
 
 ## Project Status
 
-**Phase 1 Complete!** 🎉 All core infrastructure has been implemented and tested.
+**Phase 1 Foundation Release (v0.1.0)** - June 1, 2025
 
-### Latest Updates (2025-06-01)
-- ✅ Successfully building on modern Linux systems (GCC 15+)
-- ✅ All security features implemented (JWT auth, TLS, input validation)
-- ✅ Release builds tested and working
-- ✅ API endpoints fully functional with authentication
+### What's New in v0.1.0
+- ✅ **Multi-platform Support**: Binaries for Linux, macOS (Intel/ARM), and Windows
+- ✅ **Full CI/CD Pipeline**: Automated testing and releases
+- ✅ **Security Hardened**: All critical vulnerabilities resolved
+- ✅ **Production Ready Infrastructure**: 95% of Phase 1 complete
 
 ### Implemented Components
 - ✅ **Aura Ledger** - Blockchain with Proof-of-Authority consensus
@@ -59,7 +70,30 @@ Aura is a decentralized identity and trust network that combines Decentralized I
 +------------------------------------------------------------------------+
 ```
 
-## Getting Started
+## Quick Start
+
+### Using Pre-built Binaries (Recommended)
+
+1. Download the appropriate binary for your platform from the [releases page](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0)
+2. Make it executable (Linux/macOS): `chmod +x aura-node`
+3. Run the node:
+   ```bash
+   # Basic mode
+   ./aura-node
+   
+   # With TLS enabled
+   ./aura-node --enable-tls
+   ```
+
+### Get Authentication Token
+
+```bash
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"node_id": "validator-node-1", "password": "validator-password-1"}'
+```
+
+## Building from Source
 
 ### Prerequisites
 
@@ -92,10 +126,10 @@ cargo build --release
   [env]
   CXXFLAGS = "-std=c++17 -include cstdint"
   ```
-- **Fedora/RHEL/Bazzite**: Install clang packages (`sudo dnf install -y clang clang-libs clang-devel`)
-- **Ubuntu/Debian**: Install `clang` package (`sudo apt-get install -y clang`)
-- **macOS**: Install Xcode Command Line Tools
-- **Windows**: Use WSL2 or MSYS2 with mingw-w64
+- **Fedora/RHEL/Atomic-UnivBlue**:  Install clang packages (`sudo dnf install -y clang clang-libs clang-devel`)
+- **Ubuntu/Debian**:                Install `clang` package (`sudo apt-get install -y clang`)
+- **macOS**:                        Install Xcode Command Line Tools
+- **Windows**:                      Use WSL2 or MSYS2 with mingw-w64
 
 ### Running a Node
 
@@ -169,24 +203,28 @@ The Aura node exposes the following REST API endpoints:
 
 ## Development Roadmap
 
-### Phase 1: Foundation & Core Infrastructure ✅ (Complete)
-- Core ledger with PoA consensus
-- Basic DID and VC functionality
-- Identity wallet core
-- Network infrastructure
+### Phase 1: Foundation & Core Infrastructure (95% Complete)
+- ✅ Core ledger with PoA consensus
+- ✅ W3C-compliant DID and VC functionality
+- ✅ Identity wallet core (Rust/WASM ready)
+- ✅ P2P network infrastructure
+- ✅ REST API with JWT authentication
+- ✅ Security hardening complete
+- ⏳ API-blockchain integration (v0.2.0)
+- ⏳ Desktop wallet MVP (v1.0.0)
 
-### Phase 2: Ecosystem Growth & Advanced Features (Next)
+### Phase 2: Ecosystem Growth & Advanced Features
 - Transition to Proof-of-Stake consensus
 - Zero-Knowledge Proof integration
-- SDKs for multiple languages
-- Wallet UI applications
-- Decentralized storage integration
+- SDKs for JavaScript, Python, Go
+- Mobile wallet applications
+- IPFS integration for credential storage
 
 ### Phase 3: Mainstream Adoption & Governance
-- Decentralized governance
-- Interoperability bridges
-- Enhanced user experience
-- Enterprise integrations
+- Decentralized governance model
+- Cross-chain interoperability
+- Enterprise-grade features
+- Regulatory compliance tools
 
 ## Contributing
 
@@ -212,6 +250,13 @@ For security concerns, please email security@aura-network.org
 - [Documentation](https://docs.aura-network.org) - Coming soon
 - [Community Forum](https://forum.aura-network.org) - Coming soon
 
-## Metrics
+## Project Metrics
+
+- **Current Version**: v0.1.0
+- **Language**: Rust (with WASM support)
+- **Platforms**: Linux, macOS (Intel/ARM), Windows
+- **Dependencies**: 100+ (managed via Cargo)
+- **Code Quality**: Zero clippy warnings, security audit passing
+- **CI/CD**: Fully automated with GitHub Actions
 
 ![Alt](https://repobeats.axiom.co/api/embed/b91bd1b950b741e8d35baf666dc9933c5289d418.svg "Repobeats Analytics")

@@ -68,15 +68,21 @@ ROCKSDB_LIB_DIR=/usr/lib LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo build --release
 - Initial consensus will use Proof-of-Authority, later transitioning to Proof-of-Stake
 - ZKP integration is planned for Phase 2 using libraries like arkworks-rs or bellman
 
-## Current Status
+## Current Status - v0.1.0 Released! 🚀
 
-Phase 1 (Foundation & Core Infrastructure) is complete. The project includes:
+**Latest Release**: v0.1.0 (June 1, 2025)
+- Download binaries: https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0
+- Available for: Linux, macOS (Intel/ARM), Windows
 
-- Functional blockchain with PoA consensus
-- W3C-compliant DID and VC implementations  
-- Identity wallet with key management
-- P2P network node with REST API
-- Basic examples and integration tests
+Phase 1 (Foundation & Core Infrastructure) is 95% complete:
+
+- ✅ Functional blockchain with PoA consensus
+- ✅ W3C-compliant DID and VC implementations  
+- ✅ Identity wallet with key management
+- ✅ P2P network node with REST API
+- ✅ JWT authentication and TLS support
+- ✅ Comprehensive security hardening
+- ⏳ API-blockchain integration (remaining 5%)
 
 See `docs/PHASE1_SUMMARY.md` for detailed implementation status.
 
@@ -157,12 +163,16 @@ curl -X POST http://localhost:8080/auth/login \
   - ✅ Code Coverage: OPERATIONAL
   - ✅ All format/clippy issues: RESOLVED
 
-### Phase 1 Status (95% Complete)
-- ✅ All core infrastructure implemented
-- ✅ All critical security issues resolved
-- ✅ Full API functionality with mock data
-- ⏳ Remaining: Connect API to blockchain (1-2 days)
-- ⏳ Remaining: P2P message handlers (2-3 days)
-- ⏳ Remaining: Desktop wallet MVP (2-4 weeks)
+### Release History
+- **v0.1.0** (2025-06-01): Phase 1 Foundation Release
+  - Core blockchain infrastructure
+  - Security hardening complete
+  - Multi-platform CI/CD pipeline
+  - Binary releases for all major platforms
+
+### Next Milestones
+- **v0.2.0**: API-blockchain integration complete
+- **v0.3.0**: P2P message handlers implemented
+- **v1.0.0**: Desktop wallet MVP included
 
 See `CHANGELOG.md` for complete list of changes.
