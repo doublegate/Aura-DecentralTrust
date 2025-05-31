@@ -1,6 +1,6 @@
 use crate::{CryptoError, Result};
 use ed25519_dalek::{SigningKey, VerifyingKey};
-use rand::rngs::OsRng;
+use rand::{rngs::OsRng, Rng};
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
@@ -24,7 +24,7 @@ impl std::fmt::Debug for PrivateKey {
 impl PrivateKey {
     pub fn generate() -> Result<Self> {
         let mut csprng = OsRng;
-        let key_bytes = rand::Rng::gen::<[u8; 32]>(&mut csprng);
+        let key_bytes: [u8; 32] = csprng.gen();
         let key = SigningKey::from_bytes(&key_bytes);
         Ok(Self { key, key_bytes })
     }
