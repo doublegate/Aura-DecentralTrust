@@ -10,14 +10,22 @@ Aura is a decentralized identity and trust network that combines Decentralized I
 
 ## Project Status
 
-This is the Phase 1 implementation (Foundation & Core Infrastructure) of the Aura project. The following components have been implemented:
+**Phase 1 Complete!** 🎉 All core infrastructure has been implemented and tested.
 
+### Latest Updates (2025-06-01)
+- ✅ Successfully building on modern Linux systems (GCC 15+)
+- ✅ All security features implemented (JWT auth, TLS, input validation)
+- ✅ Release builds tested and working
+- ✅ API endpoints fully functional with authentication
+
+### Implemented Components
 - ✅ **Aura Ledger** - Blockchain with Proof-of-Authority consensus
 - ✅ **DID Registry** - W3C-compliant DID management
 - ✅ **VC Schema Registry** - Credential schema management
 - ✅ **Revocation Registry** - Credential revocation tracking
 - ✅ **Aura Wallet Core** - Identity and credential management (Rust/WASM ready)
-- ✅ **Aura Node** - Network participation software
+- ✅ **Aura Node** - Network participation software with REST API
+- ✅ **Security Features** - JWT auth, TLS support, replay protection
 - ✅ **Basic Examples** - Credential issuance and verification use cases
 
 ## Architecture
@@ -52,11 +60,8 @@ This is the Phase 1 implementation (Foundation & Core Infrastructure) of the Aur
 ### Prerequisites
 
 - Rust 1.70+ (install from https://rustup.rs)
-- C/C++ development tools (gcc, g++)
-- System libraries:
-  - rocksdb-devel (RocksDB database)
-  - libzstd-devel (zstd compression)
-  - clang/llvm (for bindgen)
+- C/C++ development tools (gcc, g++, clang)
+- For GCC 15+ users: CXXFLAGS configuration may be needed (see build notes)
 
 ### Building
 
@@ -66,21 +71,25 @@ git clone https://github.com/doublegate/Aura-DecentralTrust
 cd Aura-DecentralTrust
 
 # Install system dependencies (Fedora/RHEL/Bazzite)
-sudo dnf install -y rocksdb-devel libzstd-devel clang-devel
+sudo dnf install -y clang clang-libs clang-devel
 
 # Build all components
-cargo build --release
-
-# If you encounter bindgen/clang issues:
-BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-redhat-linux/15/include" \
-ZSTD_SYS_USE_PKG_CONFIG=1 \
 cargo build --release
 ```
 
 ### Special Build Notes
 
-- **Fedora/RHEL/Bazzite**: Install rocksdb-devel and use environment variables if needed
-- **Ubuntu/Debian**: Install `librocksdb-dev` and `clang` packages
+- **GCC 15+ Users**: If you encounter C++ compilation errors, add this to your shell config:
+  ```bash
+  export CXXFLAGS="-std=c++17 -include cstdint"
+  ```
+  Or create `~/.cargo/config.toml` with:
+  ```toml
+  [env]
+  CXXFLAGS = "-std=c++17 -include cstdint"
+  ```
+- **Fedora/RHEL/Bazzite**: Install clang packages (`sudo dnf install -y clang clang-libs clang-devel`)
+- **Ubuntu/Debian**: Install `clang` package (`sudo apt-get install -y clang`)
 - **macOS**: Install Xcode Command Line Tools
 - **Windows**: Use WSL2 or MSYS2 with mingw-w64
 
@@ -126,7 +135,7 @@ Blockchain implementation with:
 - DID registry
 - VC schema registry
 - Revocation registry
-- RocksDB storage (high-performance embedded database)
+- RocksDB storage (bundled with the build, no system install needed)
 
 ### aura-wallet-core
 Identity wallet functionality:
