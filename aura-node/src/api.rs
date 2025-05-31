@@ -265,10 +265,7 @@ async fn get_schema(
 ) -> Result<Json<ApiResponse<serde_json::Value>>, StatusCode> {
     // Validate schema ID
     if let Err(e) = validation::validate_schema_id(&schema_id) {
-        return Ok(Json(ApiResponse::error(format!(
-            "Invalid schema ID: {}",
-            e
-        ))));
+        return Ok(Json(ApiResponse::error(format!("Invalid schema ID: {e}"))));
     }
 
     // TODO: In a real implementation, this would query the schema registry
