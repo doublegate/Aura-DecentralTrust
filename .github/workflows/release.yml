@@ -14,55 +14,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
     - uses: actions/checkout@v4
     
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        body: |
-          ## Phase 1 Foundation Release
-          
-          ### ✨ Key Features
-          - Functional blockchain with PoA consensus
-          - W3C-compliant DID and VC implementations
-          - Identity wallet with key management
-          - P2P network node with REST API
-          - JWT authentication and TLS support
-          - Comprehensive security hardening
-          - Full CI/CD pipeline with multi-platform support
-          
-          ### 📦 Platform Support
-          - Linux (x86_64)
-          - macOS (x86_64, ARM64)
-          - Windows (x86_64)
-          
-          ### 🚀 What's Included
-          - Core blockchain infrastructure (95% complete)
-          - DID registry and resolution
-          - Verifiable Credential schemas
-          - Revocation registry
-          - REST API with mock data (ready for blockchain integration)
-          - Integration tests and examples
-          
-          ### 🔒 Security Improvements
-          - All critical vulnerabilities resolved
-          - Authentication on all endpoints
-          - Input validation and sanitization
-          - Key zeroization implemented
-          - Transaction replay protection
-          
-          This release marks the completion of Phase 1 foundation work.
-          See [CHANGELOG.md](https://github.com/doublegate/Aura-DecentralTrust/blob/main/CHANGELOG.md) for detailed changes.
+        generate_release_notes: true
         draft: false
         prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-release:
     name: Build Release
@@ -110,12 +73,13 @@ jobs:
     - name: Build
       run: cargo build --release --target ${{ matrix.target }} --bin aura-node
     
+    - name: Rename binary
+      run: |
+        cp ./target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ./${{ matrix.asset_name }}
+    
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ matrix.asset_name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-        asset_name: ${{ matrix.asset_name }}
-        asset_content_type: application/octet-stream
