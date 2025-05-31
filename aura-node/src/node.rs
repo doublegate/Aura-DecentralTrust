@@ -211,7 +211,7 @@ impl AuraNode {
                             block_number: next_block_num,
                             max_transactions: max_tx_per_block,
                         };
-                        
+
                         if let Err(e) = Self::produce_block_static(params).await {
                             error!("Failed to produce block: {}", e);
                         }
@@ -234,7 +234,8 @@ impl AuraNode {
 
         // Get previous block hash
         let previous_hash = if params.block_number.0 > 1 {
-            let prev_block = params.storage
+            let prev_block = params
+                .storage
                 .get_block(&BlockNumber(params.block_number.0 - 1))?
                 .ok_or_else(|| anyhow::anyhow!("Previous block not found"))?;
             prev_block.hash()
@@ -265,7 +266,9 @@ impl AuraNode {
 
         // Store the block
         params.storage.put_block(&block)?;
-        params.storage.set_latest_block_number(&params.block_number)?;
+        params
+            .storage
+            .set_latest_block_number(&params.block_number)?;
 
         info!(
             "Block {} produced with {} transactions",

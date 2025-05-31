@@ -1,0 +1,15 @@
+[advisories]
+# Ignore unmaintained warnings for transitive dependencies we can't control
+ignore = [
+    # failure is unmaintained but may be used by transitive deps
+    "RUSTSEC-2020-0036",
+    "RUSTSEC-2019-0036",
+    # paste is unmaintained but may be used by transitive deps
+    "RUSTSEC-2024-0436",
+]
+
+# Only fail on actual vulnerabilities, not warnings
+vulnerability = "deny"
+unmaintained = "warn"
+unsound = "warn"
+yanked = "warn"
