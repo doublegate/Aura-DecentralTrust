@@ -1,8 +1,9 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use aura_common::{AuraError, Result, BlockNumber};
 use aura_crypto::{PublicKey, PrivateKey, Signature, signing};
-use crate::Block;
+use crate::{Block, storage::Storage};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProofOfAuthority {
@@ -87,6 +88,38 @@ impl ProofOfAuthority {
         // Verify all transactions
         for tx in &block.transactions {
             tx.verify()?;
+        }
+        
+        Ok(())
+    }
+    
+    pub fn validate_transactions(&self, transactions: &[crate::Transaction], storage: &Arc<Storage>, chain_id: &str) -> Result<()> {
+        for tx in transactions {
+            // Check transaction hasn't been executed
+            if storage.is_transaction_executed(&tx.id)? {
+                return Err(AuraError::Validation(format!("Transaction {} already executed", tx.id.0)));
+            }
+            
+            // Verify chain ID
+            if tx.chain_id != chain_id {
+                return Err(AuraError::Validation(format!("Invalid chain ID: expected {}, got {}", chain_id, tx.chain_id)));
+            }
+            
+            // Check nonce
+            let expected_nonce = storage.get_nonce(&tx.sender)?;
+            if tx.nonce != expected_nonce + 1 {
+                return Err(AuraError::Validation(format!(
+                    "Invalid nonce for {}: expected {}, got {}", 
+                    hex::encode(tx.sender.to_bytes()), 
+                    expected_nonce + 1, 
+                    tx.nonce
+                )));
+            }
+            
+            // Verify signature and expiration
+            if !tx.verify()? {
+                return Err(AuraError::InvalidSignature);
+            }
         }
         
         Ok(())

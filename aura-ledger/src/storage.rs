@@ -10,6 +10,8 @@ const CF_DID_DOCUMENTS: &str = "did_documents";
 const CF_SCHEMAS: &str = "schemas";
 const CF_REVOCATION: &str = "revocation";
 const CF_METADATA: &str = "metadata";
+const CF_NONCES: &str = "nonces";
+const CF_EXECUTED_TXS: &str = "executed_txs";
 
 pub struct Storage {
     pub(crate) db: DB,
@@ -28,6 +30,8 @@ impl Storage {
             CF_SCHEMAS,
             CF_REVOCATION,
             CF_METADATA,
+            CF_NONCES,
+            CF_EXECUTED_TXS,
         ];
         
         let db = DB::open_cf(&opts, path, cf_names)
@@ -188,5 +192,64 @@ impl Storage {
             Ok(None) => Ok(None),
             Err(e) => Err(AuraError::Storage(e.to_string())),
         }
+    }
+    
+    // Nonce tracking for replay protection
+    pub fn get_nonce(&self, account: &aura_crypto::PublicKey) -> Result<u64> {
+        let cf = self.db.cf_handle(CF_NONCES)
+            .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
+        
+        let key = account.to_bytes();
+        
+        match self.db.get_cf(cf, key) {
+            Ok(Some(data)) => {
+                let nonce = u64::from_be_bytes(data.as_slice().try_into()
+                    .map_err(|_| AuraError::Storage("Invalid nonce data".to_string()))?);
+                Ok(nonce)
+            }
+            Ok(None) => Ok(0), // First transaction for this account
+            Err(e) => Err(AuraError::Storage(e.to_string())),
+        }
+    }
+    
+    pub fn increment_nonce(&self, account: &aura_crypto::PublicKey) -> Result<u64> {
+        let cf = self.db.cf_handle(CF_NONCES)
+            .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
+        
+        let key = account.to_bytes();
+        let current_nonce = self.get_nonce(account)?;
+        let new_nonce = current_nonce + 1;
+        
+        self.db.put_cf(cf, key, new_nonce.to_be_bytes())
+            .map_err(|e| AuraError::Storage(e.to_string()))?;
+            
+        Ok(new_nonce)
+    }
+    
+    // Track executed transactions to prevent replay
+    pub fn is_transaction_executed(&self, tx_id: &aura_common::TransactionId) -> Result<bool> {
+        let cf = self.db.cf_handle(CF_EXECUTED_TXS)
+            .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
+        
+        let key = tx_id.0.as_bytes();
+        
+        match self.db.get_cf(cf, key) {
+            Ok(Some(_)) => Ok(true),
+            Ok(None) => Ok(false),
+            Err(e) => Err(AuraError::Storage(e.to_string())),
+        }
+    }
+    
+    pub fn mark_transaction_executed(&self, tx_id: &aura_common::TransactionId, block_number: BlockNumber) -> Result<()> {
+        let cf = self.db.cf_handle(CF_EXECUTED_TXS)
+            .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
+        
+        let key = tx_id.0.as_bytes();
+        let value = block_number.0.to_be_bytes();
+        
+        self.db.put_cf(cf, key, value)
+            .map_err(|e| AuraError::Storage(e.to_string()))?;
+            
+        Ok(())
     }
 }

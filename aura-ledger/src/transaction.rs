@@ -12,6 +12,9 @@ pub struct Transaction {
     pub timestamp: Timestamp,
     pub sender: PublicKey,
     pub signature: Signature,
+    pub nonce: u64,  // Prevents replay attacks
+    pub chain_id: String,  // Prevents cross-chain replay
+    pub expires_at: Option<Timestamp>,  // Optional expiration
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,6 +49,8 @@ impl Transaction {
         transaction_type: TransactionType,
         sender: PublicKey,
         signature: Signature,
+        nonce: u64,
+        chain_id: String,
     ) -> Self {
         Self {
             id: TransactionId(uuid::Uuid::new_v4().to_string()),
@@ -53,16 +58,29 @@ impl Transaction {
             timestamp: Timestamp::now(),
             sender,
             signature,
+            nonce,
+            chain_id,
+            expires_at: Some(Timestamp::from_unix(Timestamp::now().as_unix() + 3600)), // 1 hour expiry by default
         }
     }
     
     pub fn verify(&self) -> Result<bool> {
+        // Check if transaction has expired
+        if let Some(expires_at) = self.expires_at {
+            if Timestamp::now().as_unix() > expires_at.as_unix() {
+                return Ok(false);
+            }
+        }
+        
         // Verify the signature matches the transaction content
         let tx_without_sig = TransactionForSigning {
             id: self.id.clone(),
             transaction_type: self.transaction_type.clone(),
             timestamp: self.timestamp.clone(),
             sender: self.sender.clone(),
+            nonce: self.nonce,
+            chain_id: self.chain_id.clone(),
+            expires_at: self.expires_at.clone(),
         };
         
         aura_crypto::verify_json(&self.sender, &tx_without_sig, &self.signature)
@@ -76,6 +94,9 @@ struct TransactionForSigning {
     pub transaction_type: TransactionType,
     pub timestamp: Timestamp,
     pub sender: PublicKey,
+    pub nonce: u64,
+    pub chain_id: String,
+    pub expires_at: Option<Timestamp>,
 }
 
 // Add uuid to workspace dependencies

@@ -31,7 +31,19 @@ sudo dnf install -y gcc gcc-c++ clang clang-devel rocksdb-devel libzstd-devel
 sudo apt-get install -y build-essential clang libclang-dev librocksdb-dev libzstd-dev
 ```
 
-See README.md for complete build instructions.
+### Building the Project
+
+Due to RocksDB requirements, you need to use environment variables:
+
+```bash
+# Build with system RocksDB libraries
+ROCKSDB_LIB_DIR=/usr/lib64 LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo build --release
+
+# For Ubuntu/Debian, use /usr/lib instead
+ROCKSDB_LIB_DIR=/usr/lib LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo build --release
+```
+
+See README.md and CLAUDE.md for complete build instructions.
 
 ## Pull Request Process
 
@@ -68,14 +80,14 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
 ## Testing
 
 ```bash
-# Run all tests
-cargo test
+# Run all tests (with RocksDB environment variables)
+ROCKSDB_LIB_DIR=/usr/lib64 LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo test
 
 # Run tests with output
-cargo test -- --nocapture
+ROCKSDB_LIB_DIR=/usr/lib64 LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo test -- --nocapture
 
 # Run specific test
-cargo test test_name
+ROCKSDB_LIB_DIR=/usr/lib64 LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo test test_name
 ```
 
 ## Documentation
@@ -84,6 +96,15 @@ cargo test test_name
 - Update relevant .md files in the to-dos/ directory for planning changes
 - Use inline documentation (///) for public APIs
 - Update CHANGELOG.md following [Keep a Changelog](https://keepachangelog.com/) format
+- Security issues should be documented in docs/ directory
+- Major features should have corresponding documentation in docs/
+
+## Security
+
+- **DO NOT** commit secrets, keys, or sensitive data
+- Review the security documentation in docs/SECURITY_AUDIT_PHASE1.md
+- Follow security guidelines in docs/SECURITY_IMPLEMENTATION_GUIDE.md
+- Report security vulnerabilities to security@aura-network.org (do not use public issues)
 
 ## License
 

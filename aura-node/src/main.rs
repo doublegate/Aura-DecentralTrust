@@ -1,7 +1,10 @@
 mod api;
+mod auth;
 mod network;
 mod node;
 mod config;
+mod validation;
+mod tls;
 
 use clap::Parser;
 use tracing::{info, error};
@@ -35,6 +38,10 @@ struct Args {
     /// Bootstrap nodes
     #[clap(short, long)]
     bootstrap: Vec<String>,
+    
+    /// Enable TLS for API server
+    #[clap(long)]
+    enable_tls: bool,
 }
 
 #[tokio::main]
@@ -73,8 +80,11 @@ async fn main() -> anyhow::Result<()> {
     });
     
     // Start API server
+    let api_addr = args.api_addr.clone();
+    let enable_tls = args.enable_tls;
+    let api_data_dir = args.data_dir.clone();
     let api_handle = tokio::spawn(async move {
-        if let Err(e) = api::start_api_server(&args.api_addr).await {
+        if let Err(e) = api::start_api_server(&api_addr, enable_tls, api_data_dir).await {
             error!("API server error: {}", e);
         }
     });
