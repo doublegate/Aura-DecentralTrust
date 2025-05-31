@@ -1,3 +1,5 @@
+#![allow(clippy::explicit_auto_deref)]
+
 use aura_common::{AuraDid, AuraError, Result};
 use aura_crypto::{encryption, KeyPair, PrivateKey, PublicKey};
 use serde::{Deserialize, Serialize};
@@ -12,6 +14,7 @@ pub struct StoredKey {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
+#[derive(Default)]
 pub struct KeyManager {
     pub(crate) keys: HashMap<AuraDid, StoredKey>,
     pub(crate) master_key: Option<Zeroizing<[u8; 32]>>,
@@ -27,10 +30,7 @@ impl Drop for KeyManager {
 
 impl KeyManager {
     pub fn new() -> Self {
-        Self {
-            keys: HashMap::new(),
-            master_key: None,
-        }
+        Self::default()
     }
 
     pub fn initialize(&mut self, password: &str) -> Result<()> {

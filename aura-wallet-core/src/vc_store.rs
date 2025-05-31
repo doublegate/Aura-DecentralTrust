@@ -11,6 +11,7 @@ pub struct StoredCredential {
     pub tags: Vec<String>,
 }
 
+#[derive(Default)]
 pub struct VcStore {
     pub(crate) credentials: HashMap<String, StoredCredential>,
     pub(crate) encryption_key: Option<[u8; 32]>,
@@ -18,10 +19,7 @@ pub struct VcStore {
 
 impl VcStore {
     pub fn new() -> Self {
-        Self {
-            credentials: HashMap::new(),
-            encryption_key: None,
-        }
+        Self::default()
     }
 
     pub fn initialize(&mut self, encryption_key: [u8; 32]) {
@@ -135,11 +133,9 @@ impl VcStore {
         let encrypted = encryption::encrypt(self.encryption_key.as_ref().unwrap(), &data)
             .map_err(|e| AuraError::Crypto(e.to_string()))?;
 
-        Ok(
-            bincode::encode_to_vec(&encrypted, bincode::config::standard()).map_err(|e| {
-                AuraError::Internal(format!("Failed to serialize encrypted credentials: {}", e))
-            })?,
-        )
+        bincode::encode_to_vec(&encrypted, bincode::config::standard()).map_err(|e| {
+            AuraError::Internal(format!("Failed to serialize encrypted credentials: {}", e))
+        })
     }
 
     pub fn import_credentials(&mut self, encrypted_data: &[u8]) -> Result<()> {

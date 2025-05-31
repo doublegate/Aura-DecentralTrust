@@ -11,6 +11,18 @@ use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 use tracing::{error, info, warn};
 
+// Struct to hold block production parameters
+struct BlockProductionParams {
+    storage: Arc<Storage>,
+    transaction_pool: Arc<RwLock<Vec<Transaction>>>,
+    _did_registry: Arc<RwLock<DidRegistry>>,
+    network: Arc<Mutex<NetworkManager>>,
+    consensus: Arc<RwLock<ProofOfAuthority>>,
+    validator_key: KeyPair,
+    block_number: BlockNumber,
+    max_transactions: usize,
+}
+
 pub struct AuraNode {
     config: NodeConfig,
     is_validator: bool,
@@ -189,18 +201,18 @@ impl AuraNode {
                         drop(consensus_guard); // Release the read lock
 
                         // It's our turn to produce a block
-                        if let Err(e) = Self::produce_block_static(
-                            storage.clone(),
-                            transaction_pool.clone(),
-                            did_registry.clone(),
-                            network.clone(),
-                            consensus.clone(),
-                            validator_key_ref.clone(),
-                            next_block_num,
-                            max_tx_per_block,
-                        )
-                        .await
-                        {
+                        let params = BlockProductionParams {
+                            storage: storage.clone(),
+                            transaction_pool: transaction_pool.clone(),
+                            _did_registry: did_registry.clone(),
+                            network: network.clone(),
+                            consensus: consensus.clone(),
+                            validator_key: validator_key_ref.clone(),
+                            block_number: next_block_num,
+                            max_transactions: max_tx_per_block,
+                        };
+                        
+                        if let Err(e) = Self::produce_block_static(params).await {
                             error!("Failed to produce block: {}", e);
                         }
                     }
@@ -211,28 +223,19 @@ impl AuraNode {
         Ok(handle)
     }
 
-    async fn produce_block_static(
-        storage: Arc<Storage>,
-        transaction_pool: Arc<RwLock<Vec<Transaction>>>,
-        _did_registry: Arc<RwLock<DidRegistry>>,
-        network: Arc<Mutex<NetworkManager>>,
-        consensus: Arc<RwLock<ProofOfAuthority>>,
-        validator_key: KeyPair,
-        block_number: BlockNumber,
-        max_transactions: usize,
-    ) -> anyhow::Result<()> {
-        info!("Producing block {}", block_number.0);
+    async fn produce_block_static(params: BlockProductionParams) -> anyhow::Result<()> {
+        info!("Producing block {}", params.block_number.0);
 
         // Get transactions from the pool
-        let mut tx_pool = transaction_pool.write().await;
-        let drain_count = max_transactions.min(tx_pool.len());
+        let mut tx_pool = params.transaction_pool.write().await;
+        let drain_count = params.max_transactions.min(tx_pool.len());
         let transactions: Vec<Transaction> = tx_pool.drain(..drain_count).collect();
         drop(tx_pool);
 
         // Get previous block hash
-        let previous_hash = if block_number.0 > 1 {
-            let prev_block = storage
-                .get_block(&BlockNumber(block_number.0 - 1))?
+        let previous_hash = if params.block_number.0 > 1 {
+            let prev_block = params.storage
+                .get_block(&BlockNumber(params.block_number.0 - 1))?
                 .ok_or_else(|| anyhow::anyhow!("Previous block not found"))?;
             prev_block.hash()
         } else {
@@ -241,16 +244,16 @@ impl AuraNode {
 
         // Create new block
         let mut block = Block::new(
-            block_number,
+            params.block_number,
             previous_hash,
             transactions,
-            validator_key.public_key().clone(),
+            params.validator_key.public_key().clone(),
         );
 
         // Sign the block
-        let consensus_guard = consensus.write().await;
+        let consensus_guard = params.consensus.write().await;
         consensus_guard
-            .sign_block(&mut block, validator_key.private_key())
+            .sign_block(&mut block, params.validator_key.private_key())
             .map_err(|e| anyhow::anyhow!("Failed to sign block: {}", e))?;
         drop(consensus_guard);
 
@@ -261,19 +264,19 @@ impl AuraNode {
         }
 
         // Store the block
-        storage.put_block(&block)?;
-        storage.set_latest_block_number(&block_number)?;
+        params.storage.put_block(&block)?;
+        params.storage.set_latest_block_number(&params.block_number)?;
 
         info!(
             "Block {} produced with {} transactions",
-            block_number.0,
+            params.block_number.0,
             block.transactions.len()
         );
 
         // Broadcast block to network
         let block_data = serde_json::to_vec(&block)
             .map_err(|e| anyhow::anyhow!("Failed to serialize block: {}", e))?;
-        let mut network_guard = network.lock().await;
+        let mut network_guard = params.network.lock().await;
         network_guard.broadcast_block(block_data).await?;
 
         Ok(())

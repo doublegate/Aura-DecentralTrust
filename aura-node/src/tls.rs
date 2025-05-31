@@ -14,6 +14,7 @@ pub struct TlsConfig {
 
 impl TlsConfig {
     /// Create TLS acceptor from certificate and key files
+    #[allow(dead_code)]
     pub async fn build_acceptor(&self) -> anyhow::Result<TlsAcceptor> {
         // Install default crypto provider if not already installed
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();

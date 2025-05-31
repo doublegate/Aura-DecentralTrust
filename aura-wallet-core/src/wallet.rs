@@ -11,8 +11,8 @@ pub struct AuraWallet {
     presentation_generator: PresentationGenerator,
 }
 
-impl AuraWallet {
-    pub fn new() -> Self {
+impl Default for AuraWallet {
+    fn default() -> Self {
         let key_manager = KeyManager::new();
         let _did_manager = DidManager::new(key_manager);
         let _vc_store = VcStore::new();
@@ -29,6 +29,12 @@ impl AuraWallet {
             vc_store: VcStore::new(),
             presentation_generator,
         }
+    }
+}
+
+impl AuraWallet {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn initialize(&mut self, password: &str) -> Result<()> {
