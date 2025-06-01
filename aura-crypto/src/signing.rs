@@ -353,7 +353,7 @@ mod tests {
     fn test_multiple_signatures_same_key() {
         let keypair = KeyPair::generate().unwrap();
 
-        let messages = vec![
+        let messages = [
             b"Message 1".to_vec(),
             b"Message 2".to_vec(),
             b"Message 3".to_vec(),

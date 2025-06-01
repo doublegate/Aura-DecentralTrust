@@ -555,10 +555,10 @@ mod tests {
         assert_eq!(MAX_TRANSACTION_SIZE, 64 * 1024);
         assert_eq!(MAX_DID_UPDATE_SIZE, 16 * 1024);
 
-        // Ensure block size is less than message size
-        assert!(MAX_BLOCK_SIZE < MAX_MESSAGE_SIZE);
-        assert!(MAX_TRANSACTION_SIZE < MAX_MESSAGE_SIZE);
-        assert!(MAX_DID_UPDATE_SIZE < MAX_MESSAGE_SIZE);
+        // Compile-time constants validation
+        const _: () = assert!(MAX_BLOCK_SIZE < MAX_MESSAGE_SIZE);
+        const _: () = assert!(MAX_TRANSACTION_SIZE < MAX_MESSAGE_SIZE);
+        const _: () = assert!(MAX_DID_UPDATE_SIZE < MAX_MESSAGE_SIZE);
     }
 
     #[tokio::test]

@@ -251,6 +251,7 @@ mod tests {
     use tempfile::TempDir;
 
     // Helper to reset global state between tests
+    #[allow(dead_code)]
     fn reset_globals() {
         // This is a workaround since OnceCell doesn't have a reset method
         // In production code, you'd want to avoid global state or use a different pattern

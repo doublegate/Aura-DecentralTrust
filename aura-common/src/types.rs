@@ -231,7 +231,7 @@ mod tests {
     #[test]
     fn test_timestamp_bincode() {
         let timestamp = Timestamp::from_unix(1704067200);
-        let encoded = encode_to_vec(&timestamp, bincode::config::standard()).unwrap();
+        let encoded = encode_to_vec(timestamp, bincode::config::standard()).unwrap();
         let (decoded, _): (Timestamp, _) =
             decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(timestamp.as_unix(), decoded.as_unix());
@@ -248,7 +248,7 @@ mod tests {
         ];
 
         for timestamp in timestamps {
-            let encoded = encode_to_vec(&timestamp, bincode::config::standard()).unwrap();
+            let encoded = encode_to_vec(timestamp, bincode::config::standard()).unwrap();
             let (decoded, _): (Timestamp, _) =
                 decode_from_slice(&encoded, bincode::config::standard()).unwrap();
             assert_eq!(timestamp.as_unix(), decoded.as_unix());
@@ -266,7 +266,7 @@ mod tests {
         assert_eq!(block.0, deserialized.0);
 
         // Test bincode
-        let encoded = encode_to_vec(&block, bincode::config::standard()).unwrap();
+        let encoded = encode_to_vec(block, bincode::config::standard()).unwrap();
         let (decoded, _): (BlockNumber, _) =
             decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(block.0, decoded.0);
@@ -277,7 +277,7 @@ mod tests {
         let blocks = vec![BlockNumber(0), BlockNumber(1), BlockNumber(u64::MAX)];
 
         for block in blocks {
-            let encoded = encode_to_vec(&block, bincode::config::standard()).unwrap();
+            let encoded = encode_to_vec(block, bincode::config::standard()).unwrap();
             let (decoded, _): (BlockNumber, _) =
                 decode_from_slice(&encoded, bincode::config::standard()).unwrap();
             assert_eq!(block.0, decoded.0);
@@ -447,11 +447,11 @@ mod tests {
         assert_eq!(did, did_clone);
 
         let timestamp = Timestamp::now();
-        let timestamp_clone = timestamp.clone();
+        let timestamp_clone = timestamp;
         assert_eq!(timestamp.as_unix(), timestamp_clone.as_unix());
 
         let block = BlockNumber(42);
-        let block_clone = block.clone();
+        let block_clone = block;
         assert_eq!(block.0, block_clone.0);
 
         let tx_id = TransactionId("tx_clone".to_string());

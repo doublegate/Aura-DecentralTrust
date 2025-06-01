@@ -199,7 +199,6 @@ pub async fn setup_tls(data_dir: &Path) -> anyhow::Result<TlsConfig> {
 mod tests {
     use super::*;
     use tempfile::TempDir;
-    use tokio;
 
     #[test]
     fn test_tls_config_creation() {

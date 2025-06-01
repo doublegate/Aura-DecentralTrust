@@ -485,7 +485,7 @@ mod tests {
         let did = AuraDid::new("test");
         let mut doc = DidDocument::new(did.clone());
         doc.authentication = vec![VerificationRelationship::Embedded(VerificationMethod {
-            id: format!("{}#key-1", did.to_string()),
+            id: format!("{}#key-1", did),
             verification_type: "Ed25519VerificationKey2020".to_string(),
             controller: did.clone(),
             public_key_multibase: "zEd25519...".to_string(),
@@ -683,7 +683,7 @@ mod tests {
     #[tokio::test]
     async fn test_produce_block_static() {
         let temp_dir = TempDir::new().unwrap();
-        let storage = Arc::new(Storage::new(temp_dir.path().to_path_buf()).unwrap());
+        let storage = Arc::new(Storage::new(temp_dir.path()).unwrap());
         let consensus = Arc::new(RwLock::new(ProofOfAuthority::new(vec![])));
         let transaction_pool = Arc::new(RwLock::new(Vec::new()));
         let did_registry = Arc::new(RwLock::new(DidRegistry::new(storage.clone())));
@@ -745,7 +745,7 @@ mod tests {
     #[tokio::test]
     async fn test_produce_block_empty_pool() {
         let temp_dir = TempDir::new().unwrap();
-        let storage = Arc::new(Storage::new(temp_dir.path().to_path_buf()).unwrap());
+        let storage = Arc::new(Storage::new(temp_dir.path()).unwrap());
         let consensus = Arc::new(RwLock::new(ProofOfAuthority::new(vec![])));
         let transaction_pool = Arc::new(RwLock::new(Vec::new()));
         let did_registry = Arc::new(RwLock::new(DidRegistry::new(storage.clone())));
@@ -787,7 +787,7 @@ mod tests {
     #[tokio::test]
     async fn test_produce_block_with_previous() {
         let temp_dir = TempDir::new().unwrap();
-        let storage = Arc::new(Storage::new(temp_dir.path().to_path_buf()).unwrap());
+        let storage = Arc::new(Storage::new(temp_dir.path()).unwrap());
         let consensus = Arc::new(RwLock::new(ProofOfAuthority::new(vec![])));
         let transaction_pool = Arc::new(RwLock::new(Vec::new()));
         let did_registry = Arc::new(RwLock::new(DidRegistry::new(storage.clone())));
@@ -847,7 +847,7 @@ mod tests {
     #[tokio::test]
     async fn test_produce_block_wrong_validator() {
         let temp_dir = TempDir::new().unwrap();
-        let storage = Arc::new(Storage::new(temp_dir.path().to_path_buf()).unwrap());
+        let storage = Arc::new(Storage::new(temp_dir.path()).unwrap());
 
         // Create consensus with a specific validator
         let authorized_validator = KeyPair::generate().unwrap();

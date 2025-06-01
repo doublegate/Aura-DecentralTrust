@@ -46,6 +46,7 @@ pub fn sanitize_error_message(error: &str) -> &'static str {
 }
 
 /// Trait for sanitizing errors in Results
+#[allow(dead_code)]
 pub trait SanitizeError<T> {
     fn sanitize_error(self) -> Result<T, &'static str>;
 }

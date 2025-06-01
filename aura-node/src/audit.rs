@@ -130,6 +130,7 @@ impl AuditLogger {
     }
 
     /// Get recent audit entries (for monitoring/debugging)
+    #[allow(dead_code)]
     pub async fn get_recent_entries(&self, limit: usize) -> Vec<AuditLogEntry> {
         let buffer = self.buffer.lock().await;
         let start = if buffer.len() > limit {
@@ -141,6 +142,7 @@ impl AuditLogger {
     }
 
     /// Search audit entries by event type
+    #[allow(dead_code)]
     pub async fn search_by_event_type(&self, event_type: &str) -> Vec<AuditLogEntry> {
         let buffer = self.buffer.lock().await;
         buffer
@@ -163,6 +165,7 @@ impl AuditLogger {
     }
 
     /// Export audit logs to JSON
+    #[allow(dead_code)]
     pub async fn export_to_json(&self) -> String {
         let buffer = self.buffer.lock().await;
         serde_json::to_string_pretty(&*buffer).unwrap_or_else(|_| "[]".to_string())
@@ -225,7 +228,7 @@ mod tests {
                 node_id, success, ..
             } => {
                 assert_eq!(node_id, "node-123");
-                assert_eq!(*success, true);
+                assert!(*success);
             }
             _ => panic!("Wrong event type"),
         }

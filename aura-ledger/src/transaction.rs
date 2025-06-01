@@ -168,7 +168,7 @@ mod tests {
 
         // Check default expiry is about 1 hour
         let expiry_diff = tx.expires_at.unwrap().as_unix() - tx.timestamp.as_unix();
-        assert!(expiry_diff >= 3599 && expiry_diff <= 3601);
+        assert!((3599..=3601).contains(&expiry_diff));
     }
 
     #[test]

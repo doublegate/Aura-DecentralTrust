@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -5,6 +7,7 @@ use tokio::sync::RwLock;
 
 /// Certificate pinning manager for P2P connections
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct CertPinningManager {
     /// Set of trusted certificate fingerprints (SHA256 of DER-encoded cert)
     trusted_fingerprints: Arc<RwLock<HashSet<String>>>,
@@ -13,6 +16,7 @@ pub struct CertPinningManager {
 }
 
 impl CertPinningManager {
+    #[allow(dead_code)]
     pub fn new(allow_unpinned: bool) -> Self {
         Self {
             trusted_fingerprints: Arc::new(RwLock::new(HashSet::new())),

@@ -80,7 +80,7 @@ impl ProofOfAuthority {
             block_number: block.header.block_number,
             previous_hash: block.header.previous_hash,
             merkle_root: block.header.merkle_root,
-            timestamp: block.header.timestamp.clone(),
+            timestamp: block.header.timestamp,
             validator: block.header.validator.clone(),
         };
 
@@ -150,7 +150,7 @@ impl ProofOfAuthority {
             block_number: block.header.block_number,
             previous_hash: block.header.previous_hash,
             merkle_root: block.header.merkle_root,
-            timestamp: block.header.timestamp.clone(),
+            timestamp: block.header.timestamp,
             validator: block.header.validator.clone(),
         };
 
