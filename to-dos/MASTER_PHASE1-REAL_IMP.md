@@ -2,6 +2,8 @@
 
 This document tracks all placeholder implementations, TODOs, and temporary code that must be replaced with real implementations before Phase 1 can be considered complete.
 
+**Update (June 1, 2025)**: Added Priority 6 section to track fully implemented code that was marked with `#[allow(dead_code)]` during clippy fixes. This code is complete but not yet integrated into the system. Note: No functionality was removed, only unused imports were cleaned up.
+
 ## Priority 1: Security Critical Issues 🚨
 
 ### 1.1 Remove Hardcoded Credentials
@@ -116,6 +118,7 @@ This document tracks all placeholder implementations, TODOs, and temporary code 
   - Write to persistent database
   - Integration with SIEM systems
   - Log rotation and archival
+- **Note**: Methods `get_recent_entries`, `search_by_event_type`, and `export_to_json` are implemented but marked with `#[allow(dead_code)]` - need to expose via API
 
 ### 5.2 Make Hardcoded Values Configurable
 - **Various Files**: Multiple hardcoded values
@@ -125,6 +128,38 @@ This document tracks all placeholder implementations, TODOs, and temporary code 
   - Chain ID references
   - Message size limits (MAX_BLOCK_SIZE, etc.)
 - **Required**: Move to configuration file
+
+## Priority 6: Implemented but Not Integrated Code 🔌
+
+### 6.1 Certificate Pinning Manager
+- **File**: `aura-node/src/cert_pinning.rs` (entire module)
+- **Status**: Fully implemented but marked with `#[allow(dead_code)]`
+- **Features**:
+  - Certificate fingerprint validation
+  - Trusted fingerprint management
+  - Load/save from file
+  - Certificate verification
+- **Required**: Integrate into P2P network layer for connection security
+
+### 6.2 Error Sanitization
+- **File**: `aura-node/src/error_sanitizer.rs` (SanitizeError trait)
+- **Status**: Trait implemented but marked with `#[allow(dead_code)]`
+- **Purpose**: Sanitize error messages before sending to clients
+- **Required**: Apply to all API error responses
+
+### 6.3 Audit Log Querying
+- **File**: `aura-node/src/audit.rs`
+- **Status**: Query methods implemented but marked with `#[allow(dead_code)]`
+- **Methods**:
+  - `get_recent_entries` - Get recent audit log entries
+  - `search_by_event_type` - Search logs by event type
+  - `export_to_json` - Export logs as JSON
+- **Required**: Expose via admin API endpoints for monitoring/debugging
+
+### 6.4 Test Utilities
+- **File**: `aura-node/src/auth.rs` (line 254)
+- **Function**: `reset_globals` - Test helper marked with `#[allow(dead_code)]`
+- **Note**: This is test-only code, may need proper OnceCell reset mechanism for tests
 
 ## Implementation Plan
 
@@ -153,7 +188,13 @@ This document tracks all placeholder implementations, TODOs, and temporary code 
 2. Audit logging
 3. Documentation updates
 
-## Estimated Total: 9-15 days
+### Phase 1F: Integration of Existing Code (1-2 days)
+1. Certificate pinning in P2P layer
+2. Error sanitization in API responses
+3. Audit log query endpoints
+4. Wire up all implemented but unused functionality
+
+## Estimated Total: 10-17 days
 
 ## Success Criteria
 
@@ -175,5 +216,6 @@ Phase 1 is complete when:
 ---
 
 *Generated: June 1, 2025*
-*Estimated Effort: 9-15 developer days*
+*Updated: June 1, 2025 (added Priority 6 for implemented but unused code)*
+*Estimated Effort: 10-17 developer days*
 *Priority: Complete before v0.2.0 release*
