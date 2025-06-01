@@ -71,24 +71,30 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize authentication system
     initialize_auth(&mut config)?;
-    
+
     // Initialize audit logging
     audit::init_audit_logger(10000); // Keep last 10k events in memory
-    
+
     // Log system startup
     if let Some(logger) = audit::audit_logger() {
-        logger.log_event(
-            audit::SecurityEvent::SystemLifecycle {
-                action: "startup".to_string(),
-                version: env!("CARGO_PKG_VERSION").to_string(),
-            },
-            None,
-        ).await;
+        logger
+            .log_event(
+                audit::SecurityEvent::SystemLifecycle {
+                    action: "startup".to_string(),
+                    version: env!("CARGO_PKG_VERSION").to_string(),
+                },
+                None,
+            )
+            .await;
     }
 
     // Create and start the node
-    let node =
-        node::AuraNode::new(config.clone(), args.data_dir.clone(), args.node_type == "validator").await?;
+    let node = node::AuraNode::new(
+        config.clone(),
+        args.data_dir.clone(),
+        args.node_type == "validator",
+    )
+    .await?;
 
     // Start P2P network
     let network_handle = tokio::spawn(async move {
@@ -103,7 +109,8 @@ async fn main() -> anyhow::Result<()> {
     let api_data_dir = args.data_dir.clone();
     let api_config = Some(config.clone());
     let api_handle = tokio::spawn(async move {
-        if let Err(e) = api::start_api_server(&api_addr, enable_tls, api_data_dir, api_config).await {
+        if let Err(e) = api::start_api_server(&api_addr, enable_tls, api_data_dir, api_config).await
+        {
             error!("API server error: {}", e);
         }
     });
@@ -136,25 +143,22 @@ fn initialize_auth(config: &mut config::NodeConfig) -> anyhow::Result<()> {
     } else {
         warn!("No JWT secret found in environment or config, generating a random one");
         warn!("Set AURA_JWT_SECRET environment variable for production!");
-        
+
         // Generate a secure random key
         use rand::Rng;
         let mut rng = rand::thread_rng();
         let secret: Vec<u8> = (0..32).map(|_| rng.gen()).collect();
-        
+
         // Save to config for consistency during this run
         use base64::Engine;
         let secret_str = base64::engine::general_purpose::STANDARD.encode(&secret);
         config.security.jwt_secret = Some(secret_str.clone());
-        
+
         secret
     };
 
     // Initialize auth system
-    auth::initialize_auth(
-        jwt_secret,
-        config.security.credentials_path.as_deref(),
-    )?;
+    auth::initialize_auth(jwt_secret, config.security.credentials_path.as_deref())?;
 
     info!("Authentication system initialized");
     Ok(())
@@ -164,12 +168,12 @@ fn initialize_auth(config: &mut config::NodeConfig) -> anyhow::Result<()> {
 mod tests {
     use super::*;
     use std::env;
-    
+
     #[test]
     fn test_initialize_auth_with_env_secret() {
         // Set environment variable
         env::set_var("AURA_JWT_SECRET", "test-env-secret");
-        
+
         let mut config = config::NodeConfig {
             node_id: "test-node".to_string(),
             network: config::NetworkConfig {
@@ -199,19 +203,19 @@ mod tests {
                 rate_limit_rph: 1000,
             },
         };
-        
+
         let result = initialize_auth(&mut config);
         assert!(result.is_ok());
-        
+
         // Clean up
         env::remove_var("AURA_JWT_SECRET");
     }
-    
+
     #[test]
     fn test_initialize_auth_with_config_secret() {
         // Make sure env var is not set
         env::remove_var("AURA_JWT_SECRET");
-        
+
         let mut config = config::NodeConfig {
             node_id: "test-node".to_string(),
             network: config::NetworkConfig {
@@ -241,16 +245,16 @@ mod tests {
                 rate_limit_rph: 1000,
             },
         };
-        
+
         let result = initialize_auth(&mut config);
         assert!(result.is_ok());
     }
-    
+
     #[test]
     fn test_initialize_auth_generates_secret() {
         // Make sure env var is not set
         env::remove_var("AURA_JWT_SECRET");
-        
+
         let mut config = config::NodeConfig {
             node_id: "test-node".to_string(),
             network: config::NetworkConfig {
@@ -280,28 +284,28 @@ mod tests {
                 rate_limit_rph: 1000,
             },
         };
-        
+
         let result = initialize_auth(&mut config);
         assert!(result.is_ok());
-        
+
         // Verify a secret was generated and saved to config
         assert!(config.security.jwt_secret.is_some());
         let generated_secret = config.security.jwt_secret.as_ref().unwrap();
-        
+
         // Verify it's a base64 encoded string
         use base64::Engine;
         let decoded = base64::engine::general_purpose::STANDARD.decode(generated_secret);
         assert!(decoded.is_ok());
-        
+
         // Verify it's 32 bytes (256 bits)
         assert_eq!(decoded.unwrap().len(), 32);
     }
-    
+
     #[test]
     fn test_initialize_auth_priority_env_over_config() {
         // Set both env var and config
         env::set_var("AURA_JWT_SECRET", "env-secret");
-        
+
         let mut config = config::NodeConfig {
             node_id: "test-node".to_string(),
             network: config::NetworkConfig {
@@ -331,13 +335,16 @@ mod tests {
                 rate_limit_rph: 1000,
             },
         };
-        
+
         let result = initialize_auth(&mut config);
         assert!(result.is_ok());
-        
+
         // Config should remain unchanged (env var takes precedence)
-        assert_eq!(config.security.jwt_secret, Some("config-secret".to_string()));
-        
+        assert_eq!(
+            config.security.jwt_secret,
+            Some("config-secret".to_string())
+        );
+
         // Clean up
         env::remove_var("AURA_JWT_SECRET");
     }

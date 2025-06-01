@@ -107,13 +107,14 @@ pub async fn start_api_server(
     config: Option<crate::config::NodeConfig>,
 ) -> anyhow::Result<()> {
     // Get rate limit config
-    let (max_rpm, max_rph) = config.as_ref()
+    let (max_rpm, max_rph) = config
+        .as_ref()
         .map(|c| (c.security.rate_limit_rpm, c.security.rate_limit_rph))
         .unwrap_or((60, 1000));
 
     // Create rate limiter
     let rate_limiter = crate::rate_limit::RateLimiter::new(max_rpm, max_rph);
-    
+
     // Spawn cleanup task
     crate::rate_limit::spawn_cleanup_task(rate_limiter.clone());
 
@@ -154,9 +155,8 @@ pub async fn start_api_server(
 
         // Use axum-server for TLS support
         let server_config = tls_config.into_server_config()?;
-        let rustls_config = axum_server::tls_rustls::RustlsConfig::from_config(Arc::new(
-            server_config,
-        ));
+        let rustls_config =
+            axum_server::tls_rustls::RustlsConfig::from_config(Arc::new(server_config));
         axum_server::bind_rustls(addr, rustls_config)
             .serve(app.into_make_service_with_connect_info::<SocketAddr>())
             .await?;
@@ -166,9 +166,10 @@ pub async fn start_api_server(
 
         let listener = tokio::net::TcpListener::bind(addr).await?;
         axum::serve(
-            listener, 
-            app.into_make_service_with_connect_info::<SocketAddr>()
-        ).await?;
+            listener,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await?;
     }
 
     Ok(())
@@ -184,7 +185,7 @@ async fn login(
     Json(req): Json<AuthRequest>,
 ) -> Result<Json<AuthResponse>, StatusCode> {
     let ip_address = addr.ip().to_string();
-    
+
     // Validate credentials
     if !auth::validate_credentials(&req.node_id, &req.password) {
         // Log failed authentication attempt
@@ -196,16 +197,17 @@ async fn login(
                 reason: Some("Invalid credentials".to_string()),
             },
             None,
-        ).await;
+        )
+        .await;
         return Err(StatusCode::UNAUTHORIZED);
     }
 
     // Get role
-    let role = auth::get_node_role(&req.node_id)
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+    let role = auth::get_node_role(&req.node_id).ok_or(StatusCode::UNAUTHORIZED)?;
 
     // Get token expiry from config (default to 24 hours)
-    let expiry_hours = state.config
+    let expiry_hours = state
+        .config
         .as_ref()
         .map(|c| c.security.token_expiry_hours)
         .unwrap_or(24);
@@ -223,7 +225,8 @@ async fn login(
             reason: None,
         },
         None,
-    ).await;
+    )
+    .await;
 
     Ok(Json(AuthResponse {
         token,
@@ -286,7 +289,9 @@ async fn resolve_did(
     // Validate DID format
     if let Err(e) = validation::validate_did(&did) {
         use crate::error_sanitizer::sanitize_error_message;
-        return Ok(Json(ApiResponse::error(sanitize_error_message(&e.to_string()).to_string())));
+        return Ok(Json(ApiResponse::error(
+            sanitize_error_message(&e.to_string()).to_string(),
+        )));
     }
 
     // TODO: In a real implementation, this would query the DID registry
@@ -384,7 +389,9 @@ async fn submit_transaction(
     // Check timestamp is recent (within 5 minutes)
     let now = chrono::Utc::now().timestamp();
     if (now - request.timestamp).abs() > 300 {
-        return Json(ApiResponse::error("Transaction timestamp too old or in future".to_string()));
+        return Json(ApiResponse::error(
+            "Transaction timestamp too old or in future".to_string(),
+        ));
     }
 
     // TODO: Check nonce hasn't been used before (requires state storage)
@@ -440,29 +447,29 @@ fn verify_transaction_signature(request: &TransactionRequest) -> Result<(), Stri
         "timestamp": request.timestamp,
         "signer_did": &request.signer_did
     });
-    
+
     // Serialize to get consistent bytes for verification
     let _message = serde_json::to_vec(&tx_for_signing)
         .map_err(|e| format!("Failed to serialize transaction: {}", e))?;
-    
+
     // Decode the signature from hex
-    let signature_bytes = hex::decode(&request.signature)
-        .map_err(|e| format!("Invalid signature format: {}", e))?;
-    
+    let signature_bytes =
+        hex::decode(&request.signature).map_err(|e| format!("Invalid signature format: {}", e))?;
+
     if signature_bytes.len() != 64 {
         return Err("Invalid signature length".to_string());
     }
-    
+
     // TODO: In production, this would:
     // 1. Resolve the signer's DID to get their public key
     // 2. Verify the signature using the public key
     // For now, we'll do basic validation
-    
+
     // Basic validation: signature should not be all zeros
     if signature_bytes.iter().all(|&b| b == 0) {
         return Err("Invalid signature: all zeros".to_string());
     }
-    
+
     Ok(())
 }
 
@@ -471,27 +478,27 @@ mod tests {
     use super::*;
     // use tower::ServiceExt;
     use serde_json::json;
-    
+
     #[test]
     fn test_api_response_success() {
         let data = "test data";
         let response = ApiResponse::success(data);
-        
+
         assert!(response.success);
         assert_eq!(response.data, Some(data));
         assert!(response.error.is_none());
     }
-    
+
     #[test]
     fn test_api_response_error() {
         let error_msg = "Something went wrong";
         let response: ApiResponse<String> = ApiResponse::error(error_msg.to_string());
-        
+
         assert!(!response.success);
         assert!(response.data.is_none());
         assert_eq!(response.error, Some(error_msg.to_string()));
     }
-    
+
     #[test]
     fn test_node_info_serialization() {
         let info = NodeInfo {
@@ -501,17 +508,17 @@ mod tests {
             block_height: 100,
             connected_peers: 5,
         };
-        
+
         let json = serde_json::to_string(&info).unwrap();
         let deserialized: NodeInfo = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(deserialized.version, info.version);
         assert_eq!(deserialized.node_type, info.node_type);
         assert_eq!(deserialized.peer_id, info.peer_id);
         assert_eq!(deserialized.block_height, info.block_height);
         assert_eq!(deserialized.connected_peers, info.connected_peers);
     }
-    
+
     #[test]
     fn test_did_resolution_response_serialization() {
         let response = DidResolutionResponse {
@@ -525,15 +532,18 @@ mod tests {
                 deactivated: false,
             },
         };
-        
+
         let json = serde_json::to_string(&response).unwrap();
         let deserialized: DidResolutionResponse = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(deserialized.did_document, response.did_document);
         assert_eq!(deserialized.metadata.created, response.metadata.created);
-        assert_eq!(deserialized.metadata.deactivated, response.metadata.deactivated);
+        assert_eq!(
+            deserialized.metadata.deactivated,
+            response.metadata.deactivated
+        );
     }
-    
+
     #[test]
     fn test_transaction_request_serialization() {
         let request = TransactionRequest {
@@ -548,15 +558,15 @@ mod tests {
             signer_did: "did:aura:signer123".to_string(),
             signature: "abcd1234".to_string(),
         };
-        
+
         let json = serde_json::to_string(&request).unwrap();
         assert!(json.contains("\"type\":\"RegisterDid\""));
-        
+
         let deserialized: TransactionRequest = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.nonce, request.nonce);
         assert_eq!(deserialized.chain_id, request.chain_id);
     }
-    
+
     #[test]
     fn test_transaction_type_variants() {
         // Test RegisterDid
@@ -565,7 +575,7 @@ mod tests {
         };
         let json = serde_json::to_string(&register_did).unwrap();
         assert!(json.contains("RegisterDid"));
-        
+
         // Test IssueCredential
         let issue_cred = TransactionTypeRequest::IssueCredential {
             issuer: "did:aura:issuer".to_string(),
@@ -574,7 +584,7 @@ mod tests {
         };
         let json = serde_json::to_string(&issue_cred).unwrap();
         assert!(json.contains("IssueCredential"));
-        
+
         // Test UpdateRevocation
         let update_rev = TransactionTypeRequest::UpdateRevocation {
             list_id: "list123".to_string(),
@@ -583,7 +593,7 @@ mod tests {
         let json = serde_json::to_string(&update_rev).unwrap();
         assert!(json.contains("UpdateRevocation"));
     }
-    
+
     #[test]
     fn test_verify_transaction_signature_valid() {
         // Create a valid signature (64 bytes hex)
@@ -598,11 +608,11 @@ mod tests {
             signer_did: "did:aura:test".to_string(),
             signature: valid_sig,
         };
-        
+
         let result = verify_transaction_signature(&request);
         assert!(result.is_ok());
     }
-    
+
     #[test]
     fn test_verify_transaction_signature_invalid_hex() {
         let request = TransactionRequest {
@@ -615,12 +625,12 @@ mod tests {
             signer_did: "did:aura:test".to_string(),
             signature: "invalid_hex!@#".to_string(),
         };
-        
+
         let result = verify_transaction_signature(&request);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Invalid signature format"));
     }
-    
+
     #[test]
     fn test_verify_transaction_signature_wrong_length() {
         let request = TransactionRequest {
@@ -633,12 +643,12 @@ mod tests {
             signer_did: "did:aura:test".to_string(),
             signature: "abcd".to_string(), // Too short
         };
-        
+
         let result = verify_transaction_signature(&request);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Invalid signature length"));
     }
-    
+
     #[test]
     fn test_verify_transaction_signature_all_zeros() {
         let request = TransactionRequest {
@@ -651,76 +661,78 @@ mod tests {
             signer_did: "did:aura:test".to_string(),
             signature: "0".repeat(128), // All zeros
         };
-        
+
         let result = verify_transaction_signature(&request);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Invalid signature: all zeros"));
     }
-    
+
     #[tokio::test]
     async fn test_root_endpoint() {
         let response = root().await;
         assert_eq!(response, "Aura Node API v1.0.0");
     }
-    
+
     #[tokio::test]
     async fn test_get_node_info() {
         let state = Arc::new(ApiState { config: None });
         let response = get_node_info(State(state)).await;
-        
+
         assert!(response.0.success);
         let info = response.0.data.unwrap();
         assert_eq!(info.version, "1.0.0");
         assert_eq!(info.node_type, "query");
     }
-    
+
     #[tokio::test]
     async fn test_resolve_did_valid() {
         let state = Arc::new(ApiState { config: None });
         let did = "did:aura:test123".to_string();
-        
+
         let response = resolve_did(Path(did.clone()), State(state)).await.unwrap();
-        
+
         assert!(response.0.success);
         let data = response.0.data.unwrap();
         assert!(data.did_document["id"].as_str().unwrap().contains(&did));
         assert!(!data.metadata.deactivated);
     }
-    
+
     #[tokio::test]
     async fn test_resolve_did_invalid() {
         let state = Arc::new(ApiState { config: None });
         let invalid_did = "not-a-did".to_string();
-        
+
         let response = resolve_did(Path(invalid_did), State(state)).await.unwrap();
-        
+
         assert!(!response.0.success);
         assert!(response.0.error.is_some());
     }
-    
+
     #[tokio::test]
     async fn test_get_schema_valid() {
         let state = Arc::new(ApiState { config: None });
         let schema_id = "schema123".to_string();
-        
-        let response = get_schema(Path(schema_id.clone()), State(state)).await.unwrap();
-        
+
+        let response = get_schema(Path(schema_id.clone()), State(state))
+            .await
+            .unwrap();
+
         assert!(response.0.success);
         let schema = response.0.data.unwrap();
         assert!(schema["id"].as_str().unwrap().contains(&schema_id));
     }
-    
+
     #[tokio::test]
     async fn test_get_schema_invalid() {
         let state = Arc::new(ApiState { config: None });
         let invalid_id = "schema!@#$%".to_string();
-        
+
         let response = get_schema(Path(invalid_id), State(state)).await.unwrap();
-        
+
         assert!(!response.0.success);
         assert!(response.0.error.unwrap().contains("Invalid schema ID"));
     }
-    
+
     #[tokio::test]
     async fn test_submit_transaction_valid() {
         let state = Arc::new(ApiState { config: None });
@@ -734,15 +746,15 @@ mod tests {
             signer_did: "did:aura:signer123".to_string(),
             signature: "a".repeat(128), // Valid hex signature
         };
-        
+
         let response = submit_transaction(State(state), Json(request)).await;
-        
+
         assert!(response.0.success);
         let data = response.0.data.unwrap();
         assert!(!data.transaction_id.is_empty());
         assert_eq!(data.status, "pending");
     }
-    
+
     #[tokio::test]
     async fn test_submit_transaction_invalid_did() {
         let state = Arc::new(ApiState { config: None });
@@ -756,18 +768,18 @@ mod tests {
             signer_did: "invalid-did".to_string(),
             signature: "a".repeat(128),
         };
-        
+
         let response = submit_transaction(State(state), Json(request)).await;
-        
+
         assert!(!response.0.success);
         assert!(response.0.error.unwrap().contains("Invalid signer DID"));
     }
-    
+
     #[tokio::test]
     async fn test_submit_transaction_old_timestamp() {
         let state = Arc::new(ApiState { config: None });
         let old_timestamp = chrono::Utc::now().timestamp() - 400; // 400 seconds ago
-        
+
         let request = TransactionRequest {
             transaction_type: TransactionTypeRequest::RegisterDid {
                 did_document: json!({}),
@@ -778,13 +790,13 @@ mod tests {
             signer_did: "did:aura:test".to_string(),
             signature: "a".repeat(128),
         };
-        
+
         let response = submit_transaction(State(state), Json(request)).await;
-        
+
         assert!(!response.0.success);
         assert!(response.0.error.unwrap().contains("timestamp too old"));
     }
-    
+
     #[tokio::test]
     async fn test_submit_transaction_invalid_claims() {
         let state = Arc::new(ApiState { config: None });
@@ -800,53 +812,56 @@ mod tests {
             signer_did: "did:aura:test".to_string(),
             signature: "a".repeat(128),
         };
-        
+
         let response = submit_transaction(State(state), Json(request)).await;
-        
+
         assert!(!response.0.success);
         assert!(response.0.error.unwrap().contains("Invalid claims"));
     }
-    
+
     #[tokio::test]
     async fn test_check_revocation_valid() {
         let state = Arc::new(ApiState { config: None });
-        
-        let response = check_revocation(
-            Path(("list123".to_string(), 42)),
-            State(state),
-        ).await;
-        
+
+        let response = check_revocation(Path(("list123".to_string(), 42)), State(state)).await;
+
         assert!(response.0.success);
         assert_eq!(response.0.data, Some(false)); // Not revoked
     }
-    
+
     #[tokio::test]
     async fn test_check_revocation_invalid_list_id() {
         let state = Arc::new(ApiState { config: None });
         let long_id = "a".repeat(100); // Too long
-        
-        let response = check_revocation(
-            Path((long_id, 42)),
-            State(state),
-        ).await;
-        
+
+        let response = check_revocation(Path((long_id, 42)), State(state)).await;
+
         assert!(!response.0.success);
-        assert!(response.0.error.unwrap().contains("Invalid revocation list ID"));
+        assert!(response
+            .0
+            .error
+            .unwrap()
+            .contains("Invalid revocation list ID"));
     }
-    
+
     #[tokio::test]
     async fn test_check_revocation_invalid_index() {
         let state = Arc::new(ApiState { config: None });
-        
+
         let response = check_revocation(
             Path(("list123".to_string(), 2_000_000)), // Too large
             State(state),
-        ).await;
-        
+        )
+        .await;
+
         assert!(!response.0.success);
-        assert!(response.0.error.unwrap().contains("Invalid revocation index"));
+        assert!(response
+            .0
+            .error
+            .unwrap()
+            .contains("Invalid revocation index"));
     }
-    
+
     // TODO: Update middleware tests for Axum 0.8.4 API
     // The Next type no longer has generic parameters or a new() method
 }

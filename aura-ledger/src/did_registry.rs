@@ -163,19 +163,15 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let keypair = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
-        let result = registry.register_did(
-            &did_doc,
-            keypair.public_key().clone(),
-            BlockNumber(1),
-        );
-        
+
+        let result = registry.register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1));
+
         assert!(result.is_ok());
-        
+
         // Verify the DID was registered
         let record = registry.get_did_record(&did_doc.id).unwrap();
         assert!(record.is_some());
-        
+
         let record = record.unwrap();
         assert_eq!(record.did_id, did_doc.id);
         assert!(record.active);
@@ -187,24 +183,18 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let keypair = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
+
         // Register once
-        registry.register_did(
-            &did_doc,
-            keypair.public_key().clone(),
-            BlockNumber(1),
-        ).unwrap();
-        
+        registry
+            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .unwrap();
+
         // Try to register again
-        let result = registry.register_did(
-            &did_doc,
-            keypair.public_key().clone(),
-            BlockNumber(2),
-        );
-        
+        let result = registry.register_did(&did_doc, keypair.public_key().clone(), BlockNumber(2));
+
         assert!(result.is_err());
         match result {
-            Err(AuraError::AlreadyExists(_)) => {},
+            Err(AuraError::AlreadyExists(_)) => {}
             _ => panic!("Expected AlreadyExists error"),
         }
     }
@@ -214,18 +204,16 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let keypair = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
+
         // Register first
-        registry.register_did(
-            &did_doc,
-            keypair.public_key().clone(),
-            BlockNumber(1),
-        ).unwrap();
-        
+        registry
+            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .unwrap();
+
         // Create updated document
         let mut updated_doc = did_doc.clone();
         updated_doc.updated = aura_common::Timestamp::now();
-        
+
         // Update
         let result = registry.update_did(
             &did_doc.id,
@@ -233,9 +221,9 @@ mod tests {
             keypair.public_key(),
             BlockNumber(2),
         );
-        
+
         assert!(result.is_ok());
-        
+
         // Verify update
         let record = registry.get_did_record(&did_doc.id).unwrap().unwrap();
         assert_eq!(record.last_updated_block, 2);
@@ -247,25 +235,19 @@ mod tests {
         let keypair1 = KeyPair::generate().unwrap();
         let keypair2 = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
+
         // Register with keypair1
-        registry.register_did(
-            &did_doc,
-            keypair1.public_key().clone(),
-            BlockNumber(1),
-        ).unwrap();
-        
+        registry
+            .register_did(&did_doc, keypair1.public_key().clone(), BlockNumber(1))
+            .unwrap();
+
         // Try to update with keypair2
-        let result = registry.update_did(
-            &did_doc.id,
-            &did_doc,
-            keypair2.public_key(),
-            BlockNumber(2),
-        );
-        
+        let result =
+            registry.update_did(&did_doc.id, &did_doc, keypair2.public_key(), BlockNumber(2));
+
         assert!(result.is_err());
         match result {
-            Err(AuraError::Unauthorized) => {},
+            Err(AuraError::Unauthorized) => {}
             _ => panic!("Expected Unauthorized error"),
         }
     }
@@ -275,17 +257,13 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let keypair = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
-        let result = registry.update_did(
-            &did_doc.id,
-            &did_doc,
-            keypair.public_key(),
-            BlockNumber(1),
-        );
-        
+
+        let result =
+            registry.update_did(&did_doc.id, &did_doc, keypair.public_key(), BlockNumber(1));
+
         assert!(result.is_err());
         match result {
-            Err(AuraError::NotFound(_)) => {},
+            Err(AuraError::NotFound(_)) => {}
             _ => panic!("Expected NotFound error"),
         }
     }
@@ -295,23 +273,17 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let keypair = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
+
         // Register first
-        registry.register_did(
-            &did_doc,
-            keypair.public_key().clone(),
-            BlockNumber(1),
-        ).unwrap();
-        
+        registry
+            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .unwrap();
+
         // Deactivate
-        let result = registry.deactivate_did(
-            &did_doc.id,
-            keypair.public_key(),
-            BlockNumber(2),
-        );
-        
+        let result = registry.deactivate_did(&did_doc.id, keypair.public_key(), BlockNumber(2));
+
         assert!(result.is_ok());
-        
+
         // Verify deactivation
         let is_active = registry.is_did_active(&did_doc.id).unwrap();
         assert!(!is_active);
@@ -323,24 +295,18 @@ mod tests {
         let keypair1 = KeyPair::generate().unwrap();
         let keypair2 = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
+
         // Register with keypair1
-        registry.register_did(
-            &did_doc,
-            keypair1.public_key().clone(),
-            BlockNumber(1),
-        ).unwrap();
-        
+        registry
+            .register_did(&did_doc, keypair1.public_key().clone(), BlockNumber(1))
+            .unwrap();
+
         // Try to deactivate with keypair2
-        let result = registry.deactivate_did(
-            &did_doc.id,
-            keypair2.public_key(),
-            BlockNumber(2),
-        );
-        
+        let result = registry.deactivate_did(&did_doc.id, keypair2.public_key(), BlockNumber(2));
+
         assert!(result.is_err());
         match result {
-            Err(AuraError::Unauthorized) => {},
+            Err(AuraError::Unauthorized) => {}
             _ => panic!("Expected Unauthorized error"),
         }
     }
@@ -350,32 +316,24 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let keypair = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
+
         // Register and deactivate
-        registry.register_did(
-            &did_doc,
-            keypair.public_key().clone(),
-            BlockNumber(1),
-        ).unwrap();
-        
-        registry.deactivate_did(
-            &did_doc.id,
-            keypair.public_key(),
-            BlockNumber(2),
-        ).unwrap();
-        
+        registry
+            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .unwrap();
+
+        registry
+            .deactivate_did(&did_doc.id, keypair.public_key(), BlockNumber(2))
+            .unwrap();
+
         // Try to deactivate again
-        let result = registry.deactivate_did(
-            &did_doc.id,
-            keypair.public_key(),
-            BlockNumber(3),
-        );
-        
+        let result = registry.deactivate_did(&did_doc.id, keypair.public_key(), BlockNumber(3));
+
         assert!(result.is_err());
         match result {
             Err(AuraError::Validation(msg)) => {
                 assert!(msg.contains("already deactivated"));
-            },
+            }
             _ => panic!("Expected Validation error"),
         }
     }
@@ -385,33 +343,25 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let keypair = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
+
         // Register and deactivate
-        registry.register_did(
-            &did_doc,
-            keypair.public_key().clone(),
-            BlockNumber(1),
-        ).unwrap();
-        
-        registry.deactivate_did(
-            &did_doc.id,
-            keypair.public_key(),
-            BlockNumber(2),
-        ).unwrap();
-        
+        registry
+            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .unwrap();
+
+        registry
+            .deactivate_did(&did_doc.id, keypair.public_key(), BlockNumber(2))
+            .unwrap();
+
         // Try to update
-        let result = registry.update_did(
-            &did_doc.id,
-            &did_doc,
-            keypair.public_key(),
-            BlockNumber(3),
-        );
-        
+        let result =
+            registry.update_did(&did_doc.id, &did_doc, keypair.public_key(), BlockNumber(3));
+
         assert!(result.is_err());
         match result {
             Err(AuraError::Validation(msg)) => {
                 assert!(msg.contains("Cannot update deactivated DID"));
-            },
+            }
             _ => panic!("Expected Validation error"),
         }
     }
@@ -421,18 +371,16 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let keypair = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
+
         // Register
-        registry.register_did(
-            &did_doc,
-            keypair.public_key().clone(),
-            BlockNumber(1),
-        ).unwrap();
-        
+        registry
+            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .unwrap();
+
         // Resolve
         let result = registry.resolve_did(&did_doc.id).unwrap();
         assert!(result.is_some());
-        
+
         let (resolved_doc, resolved_record) = result.unwrap();
         assert_eq!(resolved_doc.id, did_doc.id);
         assert_eq!(resolved_record.did_id, did_doc.id);
@@ -443,7 +391,7 @@ mod tests {
     fn test_resolve_did_not_found() {
         let (registry, _temp_dir) = setup_registry();
         let did = AuraDid("did:aura:nonexistent".to_string());
-        
+
         let result = registry.resolve_did(&did).unwrap();
         assert!(result.is_none());
     }
@@ -453,24 +401,20 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let keypair = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
+
         // Before registration
         assert!(!registry.is_did_active(&did_doc.id).unwrap());
-        
+
         // After registration
-        registry.register_did(
-            &did_doc,
-            keypair.public_key().clone(),
-            BlockNumber(1),
-        ).unwrap();
+        registry
+            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .unwrap();
         assert!(registry.is_did_active(&did_doc.id).unwrap());
-        
+
         // After deactivation
-        registry.deactivate_did(
-            &did_doc.id,
-            keypair.public_key(),
-            BlockNumber(2),
-        ).unwrap();
+        registry
+            .deactivate_did(&did_doc.id, keypair.public_key(), BlockNumber(2))
+            .unwrap();
         assert!(!registry.is_did_active(&did_doc.id).unwrap());
     }
 
@@ -479,16 +423,14 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let keypair = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
-        
+
         // Register
-        registry.register_did(
-            &did_doc,
-            keypair.public_key().clone(),
-            BlockNumber(1),
-        ).unwrap();
-        
+        registry
+            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .unwrap();
+
         let record1 = registry.get_did_record(&did_doc.id).unwrap().unwrap();
-        
+
         // Update with modified document
         let mut updated_doc = did_doc.clone();
         updated_doc.service.push(aura_common::ServiceEndpoint {
@@ -496,16 +438,18 @@ mod tests {
             service_type: "test".to_string(),
             service_endpoint: "https://example.com".to_string(),
         });
-        
-        registry.update_did(
-            &did_doc.id,
-            &updated_doc,
-            keypair.public_key(),
-            BlockNumber(2),
-        ).unwrap();
-        
+
+        registry
+            .update_did(
+                &did_doc.id,
+                &updated_doc,
+                keypair.public_key(),
+                BlockNumber(2),
+            )
+            .unwrap();
+
         let record2 = registry.get_did_record(&did_doc.id).unwrap().unwrap();
-        
+
         // Hash should be different
         assert_ne!(record1.did_document_hash, record2.did_document_hash);
     }

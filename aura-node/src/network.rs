@@ -16,9 +16,9 @@ use tracing::{info, warn};
 
 // Security: Maximum message sizes to prevent DoS attacks
 const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1MB
-const MAX_BLOCK_SIZE: usize = 512 * 1024;    // 512KB
+const MAX_BLOCK_SIZE: usize = 512 * 1024; // 512KB
 const MAX_TRANSACTION_SIZE: usize = 64 * 1024; // 64KB
-const MAX_DID_UPDATE_SIZE: usize = 16 * 1024;  // 16KB
+const MAX_DID_UPDATE_SIZE: usize = 16 * 1024; // 16KB
 
 #[derive(libp2p::swarm::NetworkBehaviour)]
 pub struct AuraNetworkBehaviour {
@@ -351,7 +351,7 @@ mod tests {
     use crate::config::NetworkConfig;
     // use futures::StreamExt;
     // use std::time::Duration;
-    
+
     fn test_network_config() -> NetworkConfig {
         NetworkConfig {
             listen_addresses: vec!["/ip4/127.0.0.1/tcp/0".to_string()],
@@ -359,156 +359,166 @@ mod tests {
             max_peers: 10,
         }
     }
-    
+
     #[test]
     fn test_network_topics_new() {
         let topics = NetworkTopics::new();
-        
+
         assert_eq!(topics.blocks.to_string(), "aura/blocks/1.0.0");
         assert_eq!(topics.transactions.to_string(), "aura/transactions/1.0.0");
         assert_eq!(topics.did_updates.to_string(), "aura/did-updates/1.0.0");
     }
-    
+
     #[test]
     fn test_network_message_serialization() {
         let block_msg = NetworkMessage::NewBlock(vec![1, 2, 3, 4]);
         let encoded = bincode::encode_to_vec(&block_msg, bincode::config::standard()).unwrap();
-        let (decoded, _): (NetworkMessage, _) = bincode::decode_from_slice(&encoded, bincode::config::standard()).unwrap();
-        
+        let (decoded, _): (NetworkMessage, _) =
+            bincode::decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+
         match decoded {
             NetworkMessage::NewBlock(data) => assert_eq!(data, vec![1, 2, 3, 4]),
             _ => panic!("Wrong message type"),
         }
     }
-    
+
     #[test]
     fn test_network_message_variants() {
         let block_msg = NetworkMessage::NewBlock(vec![1, 2, 3]);
         let tx_msg = NetworkMessage::NewTransaction(vec![4, 5, 6]);
         let did_msg = NetworkMessage::DidUpdate(vec![7, 8, 9]);
-        
+
         // Test encoding/decoding for each variant
         for msg in [block_msg, tx_msg, did_msg] {
             let encoded = bincode::encode_to_vec(&msg, bincode::config::standard()).unwrap();
-            let (decoded, _): (NetworkMessage, _) = bincode::decode_from_slice(&encoded, bincode::config::standard()).unwrap();
-            
+            let (decoded, _): (NetworkMessage, _) =
+                bincode::decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+
             match (&msg, &decoded) {
                 (NetworkMessage::NewBlock(a), NetworkMessage::NewBlock(b)) => assert_eq!(a, b),
-                (NetworkMessage::NewTransaction(a), NetworkMessage::NewTransaction(b)) => assert_eq!(a, b),
+                (NetworkMessage::NewTransaction(a), NetworkMessage::NewTransaction(b)) => {
+                    assert_eq!(a, b)
+                }
                 (NetworkMessage::DidUpdate(a), NetworkMessage::DidUpdate(b)) => assert_eq!(a, b),
                 _ => panic!("Message type mismatch"),
             }
         }
     }
-    
+
     #[tokio::test]
     async fn test_network_manager_new() {
         let config = test_network_config();
         let manager = NetworkManager::new(config).await;
-        
+
         assert!(manager.is_ok());
         let manager = manager.unwrap();
-        
+
         // Verify topics are initialized
         assert_eq!(manager.topics.blocks.to_string(), "aura/blocks/1.0.0");
-        assert_eq!(manager.topics.transactions.to_string(), "aura/transactions/1.0.0");
-        assert_eq!(manager.topics.did_updates.to_string(), "aura/did-updates/1.0.0");
+        assert_eq!(
+            manager.topics.transactions.to_string(),
+            "aura/transactions/1.0.0"
+        );
+        assert_eq!(
+            manager.topics.did_updates.to_string(),
+            "aura/did-updates/1.0.0"
+        );
     }
-    
+
     #[tokio::test]
     async fn test_network_manager_with_invalid_address() {
         let mut config = test_network_config();
         config.listen_addresses = vec!["invalid-address".to_string()];
-        
+
         // Should still succeed but warn about invalid address
         let manager = NetworkManager::new(config).await;
         assert!(manager.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_broadcast_block_valid() {
         let config = test_network_config();
         let mut manager = NetworkManager::new(config).await.unwrap();
-        
+
         let block_data = vec![1, 2, 3, 4, 5];
         let result = manager.broadcast_block(block_data).await;
-        
+
         // Note: Gossipsub publish fails when there are no connected peers
         // In a real test environment, we would need to set up a proper network
         // For now, we'll check that the function doesn't panic and handles the error gracefully
         assert!(result.is_err() || result.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_broadcast_block_too_large() {
         let config = test_network_config();
         let mut manager = NetworkManager::new(config).await.unwrap();
-        
+
         // Create data larger than MAX_BLOCK_SIZE (512KB)
         let large_block = vec![0u8; 600 * 1024];
         let result = manager.broadcast_block(large_block).await;
-        
+
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.to_string().contains("exceeds maximum allowed size"));
     }
-    
+
     #[tokio::test]
     async fn test_broadcast_transaction_valid() {
         let config = test_network_config();
         let mut manager = NetworkManager::new(config).await.unwrap();
-        
+
         let tx_data = vec![1, 2, 3, 4, 5];
         let result = manager.broadcast_transaction(tx_data).await;
-        
+
         // Note: Gossipsub publish fails when there are no connected peers
         // In a real test environment, we would need to set up a proper network
         // For now, we'll check that the function doesn't panic and handles the error gracefully
         assert!(result.is_err() || result.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_broadcast_transaction_too_large() {
         let config = test_network_config();
         let mut manager = NetworkManager::new(config).await.unwrap();
-        
+
         // Create data larger than MAX_TRANSACTION_SIZE (64KB)
         let large_tx = vec![0u8; 70 * 1024];
         let result = manager.broadcast_transaction(large_tx).await;
-        
+
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.to_string().contains("exceeds maximum allowed size"));
     }
-    
+
     #[tokio::test]
     async fn test_broadcast_did_update_valid() {
         let config = test_network_config();
         let mut manager = NetworkManager::new(config).await.unwrap();
-        
+
         let did_data = vec![1, 2, 3, 4, 5];
         let result = manager.broadcast_did_update(did_data).await;
-        
+
         // Note: Gossipsub publish fails when there are no connected peers
         // In a real test environment, we would need to set up a proper network
         // For now, we'll check that the function doesn't panic and handles the error gracefully
         assert!(result.is_err() || result.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_broadcast_did_update_too_large() {
         let config = test_network_config();
         let mut manager = NetworkManager::new(config).await.unwrap();
-        
+
         // Create data larger than MAX_DID_UPDATE_SIZE (16KB)
         let large_did = vec![0u8; 20 * 1024];
         let result = manager.broadcast_did_update(large_did).await;
-        
+
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.to_string().contains("exceeds maximum allowed size"));
     }
-    
+
     #[test]
     fn test_validate_message_size() {
         let config = test_network_config();
@@ -516,41 +526,41 @@ mod tests {
             .unwrap()
             .block_on(NetworkManager::new(config))
             .unwrap();
-        
+
         // Test valid sizes
         let valid_block = NetworkMessage::NewBlock(vec![0u8; 100]);
         assert!(manager.validate_message_size(&valid_block));
-        
+
         let valid_tx = NetworkMessage::NewTransaction(vec![0u8; 100]);
         assert!(manager.validate_message_size(&valid_tx));
-        
+
         let valid_did = NetworkMessage::DidUpdate(vec![0u8; 100]);
         assert!(manager.validate_message_size(&valid_did));
-        
+
         // Test invalid sizes
         let invalid_block = NetworkMessage::NewBlock(vec![0u8; 600 * 1024]);
         assert!(!manager.validate_message_size(&invalid_block));
-        
+
         let invalid_tx = NetworkMessage::NewTransaction(vec![0u8; 70 * 1024]);
         assert!(!manager.validate_message_size(&invalid_tx));
-        
+
         let invalid_did = NetworkMessage::DidUpdate(vec![0u8; 20 * 1024]);
         assert!(!manager.validate_message_size(&invalid_did));
     }
-    
+
     #[test]
     fn test_message_size_constants() {
         assert_eq!(MAX_MESSAGE_SIZE, 1024 * 1024);
         assert_eq!(MAX_BLOCK_SIZE, 512 * 1024);
         assert_eq!(MAX_TRANSACTION_SIZE, 64 * 1024);
         assert_eq!(MAX_DID_UPDATE_SIZE, 16 * 1024);
-        
+
         // Ensure block size is less than message size
         assert!(MAX_BLOCK_SIZE < MAX_MESSAGE_SIZE);
         assert!(MAX_TRANSACTION_SIZE < MAX_MESSAGE_SIZE);
         assert!(MAX_DID_UPDATE_SIZE < MAX_MESSAGE_SIZE);
     }
-    
+
     #[tokio::test]
     async fn test_network_manager_with_bootstrap_nodes() {
         let mut config = test_network_config();
@@ -558,11 +568,11 @@ mod tests {
             "/ip4/127.0.0.1/tcp/9001".to_string(),
             "invalid-bootstrap-addr".to_string(), // Should be skipped
         ];
-        
+
         let manager = NetworkManager::new(config).await;
         assert!(manager.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_multiple_listen_addresses() {
         let mut config = test_network_config();
@@ -571,54 +581,54 @@ mod tests {
             "/ip4/127.0.0.1/tcp/9001".to_string(),
             "invalid-addr".to_string(), // Should be skipped with warning
         ];
-        
+
         let manager = NetworkManager::new(config).await;
         assert!(manager.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_handle_behaviour_event_coverage() {
         let config = test_network_config();
         let mut manager = NetworkManager::new(config).await.unwrap();
-        
+
         // Test handling new block
         let block_msg = NetworkMessage::NewBlock(vec![1, 2, 3]);
         manager.handle_new_block(block_msg).await;
-        
+
         // Test handling new transaction
         let tx_msg = NetworkMessage::NewTransaction(vec![4, 5, 6]);
         manager.handle_new_transaction(tx_msg).await;
-        
+
         // Test handling DID update
         let did_msg = NetworkMessage::DidUpdate(vec![7, 8, 9]);
         manager.handle_did_update(did_msg).await;
     }
-    
+
     #[test]
     fn test_network_message_clone_debug() {
         let msg = NetworkMessage::NewBlock(vec![1, 2, 3]);
         let cloned = msg.clone();
-        
+
         match (msg, cloned) {
             (NetworkMessage::NewBlock(a), NetworkMessage::NewBlock(b)) => assert_eq!(a, b),
             _ => panic!("Clone failed"),
         }
-        
+
         let msg = NetworkMessage::NewTransaction(vec![1, 2, 3]);
         let debug_str = format!("{:?}", msg);
         assert!(debug_str.contains("NewTransaction"));
     }
-    
+
     #[tokio::test]
     async fn test_gossipsub_config() {
         let config = test_network_config();
         let manager = NetworkManager::new(config).await.unwrap();
-        
+
         // The manager should be properly configured with gossipsub
         // This test verifies the manager was created without panic
         assert_eq!(manager.topics.blocks.to_string(), "aura/blocks/1.0.0");
     }
-    
+
     #[test]
     fn test_network_behaviour_trait_impl() {
         // This test verifies that AuraNetworkBehaviour implements NetworkBehaviour

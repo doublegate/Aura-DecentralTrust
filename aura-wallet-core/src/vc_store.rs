@@ -165,10 +165,17 @@ impl VcStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aura_common::{AuraDid, CredentialIssuer, CredentialSubject, Proof, Timestamp, VerifiableCredential};
+    use aura_common::{
+        AuraDid, CredentialIssuer, CredentialSubject, Proof, Timestamp, VerifiableCredential,
+    };
     use aura_crypto::KeyPair;
-    
-    fn create_test_credential(id: Option<String>, issuer: AuraDid, subject: AuraDid, cred_type: &str) -> VerifiableCredential {
+
+    fn create_test_credential(
+        id: Option<String>,
+        issuer: AuraDid,
+        subject: AuraDid,
+        cred_type: &str,
+    ) -> VerifiableCredential {
         VerifiableCredential {
             context: vec![
                 "https://www.w3.org/2018/credentials/v1".to_string(),
@@ -192,20 +199,20 @@ mod tests {
             proof: None,
         }
     }
-    
+
     fn setup_vc_store() -> VcStore {
         let mut store = VcStore::new();
         store.initialize([0u8; 32]);
         store
     }
-    
+
     #[test]
     fn test_new_vc_store() {
         let store = VcStore::new();
         assert!(store.credentials.is_empty());
         assert!(store.encryption_key.is_none());
     }
-    
+
     #[test]
     fn test_initialize() {
         let mut store = VcStore::new();
@@ -213,7 +220,7 @@ mod tests {
         store.initialize(key);
         assert_eq!(store.encryption_key, Some(key));
     }
-    
+
     #[test]
     fn test_store_credential_with_id() {
         let mut store = setup_vc_store();
@@ -223,33 +230,35 @@ mod tests {
             Some("cred123".to_string()),
             issuer,
             subject,
-            "TestCredential"
+            "TestCredential",
         );
-        
-        let id = store.store_credential(credential.clone(), vec!["test".to_string()]).unwrap();
-        
+
+        let id = store
+            .store_credential(credential.clone(), vec!["test".to_string()])
+            .unwrap();
+
         assert_eq!(id, "cred123");
         assert_eq!(store.credentials.len(), 1);
-        
+
         let stored = store.get_credential(&id).unwrap().unwrap();
         assert_eq!(stored.id, id);
         assert_eq!(stored.credential.id, Some("cred123".to_string()));
         assert_eq!(stored.tags, vec!["test"]);
     }
-    
+
     #[test]
     fn test_store_credential_without_id() {
         let mut store = setup_vc_store();
         let issuer = AuraDid("did:aura:issuer123".to_string());
         let subject = AuraDid("did:aura:subject123".to_string());
         let credential = create_test_credential(None, issuer, subject, "TestCredential");
-        
+
         let id = store.store_credential(credential, vec![]).unwrap();
-        
+
         assert!(id.starts_with("urn:uuid:"));
         assert_eq!(store.credentials.len(), 1);
     }
-    
+
     #[test]
     fn test_get_credential() {
         let mut store = setup_vc_store();
@@ -259,24 +268,24 @@ mod tests {
             Some("cred123".to_string()),
             issuer,
             subject,
-            "TestCredential"
+            "TestCredential",
         );
-        
+
         store.store_credential(credential, vec![]).unwrap();
-        
+
         let retrieved = store.get_credential("cred123").unwrap();
         assert!(retrieved.is_some());
         assert_eq!(retrieved.unwrap().id, "cred123");
-        
+
         let not_found = store.get_credential("nonexistent").unwrap();
         assert!(not_found.is_none());
     }
-    
+
     #[test]
     fn test_list_credentials() {
         let mut store = setup_vc_store();
         let issuer = AuraDid("did:aura:issuer123".to_string());
-        
+
         // Store multiple credentials
         for i in 0..3 {
             let subject = AuraDid(format!("did:aura:subject{}", i));
@@ -284,147 +293,221 @@ mod tests {
                 Some(format!("cred{}", i)),
                 issuer.clone(),
                 subject,
-                "TestCredential"
+                "TestCredential",
             );
             store.store_credential(credential, vec![]).unwrap();
         }
-        
+
         let list = store.list_credentials();
         assert_eq!(list.len(), 3);
     }
-    
+
     #[test]
     fn test_find_credentials_by_type() {
         let mut store = setup_vc_store();
         let issuer = AuraDid("did:aura:issuer123".to_string());
         let subject = AuraDid("did:aura:subject123".to_string());
-        
+
         // Store credentials of different types
-        let cred1 = create_test_credential(Some("1".to_string()), issuer.clone(), subject.clone(), "Diploma");
-        let cred2 = create_test_credential(Some("2".to_string()), issuer.clone(), subject.clone(), "License");
-        let cred3 = create_test_credential(Some("3".to_string()), issuer.clone(), subject.clone(), "Diploma");
-        
+        let cred1 = create_test_credential(
+            Some("1".to_string()),
+            issuer.clone(),
+            subject.clone(),
+            "Diploma",
+        );
+        let cred2 = create_test_credential(
+            Some("2".to_string()),
+            issuer.clone(),
+            subject.clone(),
+            "License",
+        );
+        let cred3 = create_test_credential(
+            Some("3".to_string()),
+            issuer.clone(),
+            subject.clone(),
+            "Diploma",
+        );
+
         store.store_credential(cred1, vec![]).unwrap();
         store.store_credential(cred2, vec![]).unwrap();
         store.store_credential(cred3, vec![]).unwrap();
-        
+
         let diplomas = store.find_credentials_by_type("Diploma");
         assert_eq!(diplomas.len(), 2);
-        
+
         let licenses = store.find_credentials_by_type("License");
         assert_eq!(licenses.len(), 1);
     }
-    
+
     #[test]
     fn test_find_credentials_by_issuer() {
         let mut store = setup_vc_store();
         let issuer1 = AuraDid("did:aura:issuer1".to_string());
         let issuer2 = AuraDid("did:aura:issuer2".to_string());
         let subject = AuraDid("did:aura:subject123".to_string());
-        
+
         // Store credentials from different issuers
-        store.store_credential(
-            create_test_credential(Some("1".to_string()), issuer1.clone(), subject.clone(), "Test"),
-            vec![]
-        ).unwrap();
-        store.store_credential(
-            create_test_credential(Some("2".to_string()), issuer2.clone(), subject.clone(), "Test"),
-            vec![]
-        ).unwrap();
-        store.store_credential(
-            create_test_credential(Some("3".to_string()), issuer1.clone(), subject.clone(), "Test"),
-            vec![]
-        ).unwrap();
-        
+        store
+            .store_credential(
+                create_test_credential(
+                    Some("1".to_string()),
+                    issuer1.clone(),
+                    subject.clone(),
+                    "Test",
+                ),
+                vec![],
+            )
+            .unwrap();
+        store
+            .store_credential(
+                create_test_credential(
+                    Some("2".to_string()),
+                    issuer2.clone(),
+                    subject.clone(),
+                    "Test",
+                ),
+                vec![],
+            )
+            .unwrap();
+        store
+            .store_credential(
+                create_test_credential(
+                    Some("3".to_string()),
+                    issuer1.clone(),
+                    subject.clone(),
+                    "Test",
+                ),
+                vec![],
+            )
+            .unwrap();
+
         let from_issuer1 = store.find_credentials_by_issuer(&issuer1);
         assert_eq!(from_issuer1.len(), 2);
-        
+
         let from_issuer2 = store.find_credentials_by_issuer(&issuer2);
         assert_eq!(from_issuer2.len(), 1);
     }
-    
+
     #[test]
     fn test_find_credentials_by_issuer_object() {
         let mut store = setup_vc_store();
         let issuer_did = AuraDid("did:aura:issuer1".to_string());
         let subject = AuraDid("did:aura:subject123".to_string());
-        
+
         // Create credential with issuer as object
-        let mut credential = create_test_credential(
-            Some("1".to_string()),
-            issuer_did.clone(),
-            subject,
-            "Test"
-        );
+        let mut credential =
+            create_test_credential(Some("1".to_string()), issuer_did.clone(), subject, "Test");
         credential.issuer = CredentialIssuer::Object {
             id: issuer_did.clone(),
             name: Some("Test Issuer".to_string()),
         };
-        
+
         store.store_credential(credential, vec![]).unwrap();
-        
+
         let found = store.find_credentials_by_issuer(&issuer_did);
         assert_eq!(found.len(), 1);
     }
-    
+
     #[test]
     fn test_find_credentials_by_subject() {
         let mut store = setup_vc_store();
         let issuer = AuraDid("did:aura:issuer123".to_string());
         let subject1 = AuraDid("did:aura:subject1".to_string());
         let subject2 = AuraDid("did:aura:subject2".to_string());
-        
+
         // Store credentials for different subjects
-        store.store_credential(
-            create_test_credential(Some("1".to_string()), issuer.clone(), subject1.clone(), "Test"),
-            vec![]
-        ).unwrap();
-        store.store_credential(
-            create_test_credential(Some("2".to_string()), issuer.clone(), subject2.clone(), "Test"),
-            vec![]
-        ).unwrap();
-        store.store_credential(
-            create_test_credential(Some("3".to_string()), issuer.clone(), subject1.clone(), "Test"),
-            vec![]
-        ).unwrap();
-        
+        store
+            .store_credential(
+                create_test_credential(
+                    Some("1".to_string()),
+                    issuer.clone(),
+                    subject1.clone(),
+                    "Test",
+                ),
+                vec![],
+            )
+            .unwrap();
+        store
+            .store_credential(
+                create_test_credential(
+                    Some("2".to_string()),
+                    issuer.clone(),
+                    subject2.clone(),
+                    "Test",
+                ),
+                vec![],
+            )
+            .unwrap();
+        store
+            .store_credential(
+                create_test_credential(
+                    Some("3".to_string()),
+                    issuer.clone(),
+                    subject1.clone(),
+                    "Test",
+                ),
+                vec![],
+            )
+            .unwrap();
+
         let for_subject1 = store.find_credentials_by_subject(&subject1);
         assert_eq!(for_subject1.len(), 2);
-        
+
         let for_subject2 = store.find_credentials_by_subject(&subject2);
         assert_eq!(for_subject2.len(), 1);
     }
-    
+
     #[test]
     fn test_find_credentials_by_tag() {
         let mut store = setup_vc_store();
         let issuer = AuraDid("did:aura:issuer123".to_string());
         let subject = AuraDid("did:aura:subject123".to_string());
-        
+
         // Store credentials with different tags
-        store.store_credential(
-            create_test_credential(Some("1".to_string()), issuer.clone(), subject.clone(), "Test"),
-            vec!["education".to_string(), "verified".to_string()]
-        ).unwrap();
-        store.store_credential(
-            create_test_credential(Some("2".to_string()), issuer.clone(), subject.clone(), "Test"),
-            vec!["work".to_string(), "verified".to_string()]
-        ).unwrap();
-        store.store_credential(
-            create_test_credential(Some("3".to_string()), issuer.clone(), subject.clone(), "Test"),
-            vec!["education".to_string()]
-        ).unwrap();
-        
+        store
+            .store_credential(
+                create_test_credential(
+                    Some("1".to_string()),
+                    issuer.clone(),
+                    subject.clone(),
+                    "Test",
+                ),
+                vec!["education".to_string(), "verified".to_string()],
+            )
+            .unwrap();
+        store
+            .store_credential(
+                create_test_credential(
+                    Some("2".to_string()),
+                    issuer.clone(),
+                    subject.clone(),
+                    "Test",
+                ),
+                vec!["work".to_string(), "verified".to_string()],
+            )
+            .unwrap();
+        store
+            .store_credential(
+                create_test_credential(
+                    Some("3".to_string()),
+                    issuer.clone(),
+                    subject.clone(),
+                    "Test",
+                ),
+                vec!["education".to_string()],
+            )
+            .unwrap();
+
         let education = store.find_credentials_by_tag("education");
         assert_eq!(education.len(), 2);
-        
+
         let verified = store.find_credentials_by_tag("verified");
         assert_eq!(verified.len(), 2);
-        
+
         let work = store.find_credentials_by_tag("work");
         assert_eq!(work.len(), 1);
     }
-    
+
     #[test]
     fn test_remove_credential() {
         let mut store = setup_vc_store();
@@ -434,44 +517,44 @@ mod tests {
             Some("cred123".to_string()),
             issuer,
             subject,
-            "TestCredential"
+            "TestCredential",
         );
-        
+
         store.store_credential(credential, vec![]).unwrap();
         assert_eq!(store.credentials.len(), 1);
-        
+
         store.remove_credential("cred123").unwrap();
         assert_eq!(store.credentials.len(), 0);
-        
+
         // Try to remove again
         let result = store.remove_credential("cred123");
         assert!(result.is_err());
         match result {
-            Err(AuraError::NotFound(_)) => {},
+            Err(AuraError::NotFound(_)) => {}
             _ => panic!("Expected NotFound error"),
         }
     }
-    
+
     #[test]
     fn test_verify_credential_signature() {
         let store = setup_vc_store();
         let issuer_did = AuraDid("did:aura:issuer123".to_string());
         let subject = AuraDid("did:aura:subject123".to_string());
-        
+
         // Create issuer key pair
         let issuer_keypair = KeyPair::generate().unwrap();
-        
+
         // Create credential
         let mut credential = create_test_credential(
             Some("cred123".to_string()),
             issuer_did.clone(),
             subject,
-            "TestCredential"
+            "TestCredential",
         );
-        
+
         // Sign the credential
         let signature = signing::sign_json(issuer_keypair.private_key(), &credential).unwrap();
-        
+
         // Add proof
         credential.proof = Some(Proof {
             proof_type: "Ed25519Signature2020".to_string(),
@@ -482,17 +565,21 @@ mod tests {
             challenge: None,
             domain: None,
         });
-        
+
         // Verify signature
-        let valid = store.verify_credential_signature(&credential, issuer_keypair.public_key()).unwrap();
+        let valid = store
+            .verify_credential_signature(&credential, issuer_keypair.public_key())
+            .unwrap();
         assert!(valid);
-        
+
         // Verify with wrong key
         let wrong_keypair = KeyPair::generate().unwrap();
-        let invalid = store.verify_credential_signature(&credential, wrong_keypair.public_key()).unwrap();
+        let invalid = store
+            .verify_credential_signature(&credential, wrong_keypair.public_key())
+            .unwrap();
         assert!(!invalid);
     }
-    
+
     #[test]
     fn test_verify_credential_no_proof() {
         let store = setup_vc_store();
@@ -502,26 +589,26 @@ mod tests {
             Some("cred123".to_string()),
             issuer,
             subject,
-            "TestCredential"
+            "TestCredential",
         );
-        
+
         let keypair = KeyPair::generate().unwrap();
         let result = store.verify_credential_signature(&credential, keypair.public_key());
-        
+
         assert!(result.is_err());
         match result {
             Err(AuraError::Validation(msg)) => {
                 assert!(msg.contains("Credential has no proof"));
-            },
+            }
             _ => panic!("Expected Validation error"),
         }
     }
-    
+
     #[test]
     fn test_export_import_credentials() {
         let mut store1 = setup_vc_store();
         let issuer = AuraDid("did:aura:issuer123".to_string());
-        
+
         // Store multiple credentials
         for i in 0..3 {
             let subject = AuraDid(format!("did:aura:subject{}", i));
@@ -529,18 +616,20 @@ mod tests {
                 Some(format!("cred{}", i)),
                 issuer.clone(),
                 subject,
-                "TestCredential"
+                "TestCredential",
             );
-            store1.store_credential(credential, vec![format!("tag{}", i)]).unwrap();
+            store1
+                .store_credential(credential, vec![format!("tag{}", i)])
+                .unwrap();
         }
-        
+
         // Export
         let exported = store1.export_credentials().unwrap();
-        
+
         // Import into new store
         let mut store2 = setup_vc_store();
         store2.import_credentials(&exported).unwrap();
-        
+
         // Verify all credentials are present
         assert_eq!(store2.credentials.len(), 3);
         for i in 0..3 {
@@ -549,38 +638,38 @@ mod tests {
             assert_eq!(cred.tags, vec![format!("tag{}", i)]);
         }
     }
-    
+
     #[test]
     fn test_export_not_initialized() {
         let store = VcStore::new();
         let result = store.export_credentials();
-        
+
         assert!(result.is_err());
         match result {
             Err(AuraError::Internal(msg)) => {
                 assert!(msg.contains("VC store not initialized"));
-            },
+            }
             _ => panic!("Expected Internal error"),
         }
     }
-    
+
     #[test]
     fn test_import_not_initialized() {
         let store1 = setup_vc_store();
         let exported = store1.export_credentials().unwrap();
-        
+
         let mut store2 = VcStore::new();
         let result = store2.import_credentials(&exported);
-        
+
         assert!(result.is_err());
         match result {
             Err(AuraError::Internal(msg)) => {
                 assert!(msg.contains("VC store not initialized"));
-            },
+            }
             _ => panic!("Expected Internal error"),
         }
     }
-    
+
     #[test]
     fn test_multiple_tags() {
         let mut store = setup_vc_store();
@@ -590,21 +679,21 @@ mod tests {
             Some("cred123".to_string()),
             issuer,
             subject,
-            "TestCredential"
+            "TestCredential",
         );
-        
+
         let tags = vec![
             "education".to_string(),
             "verified".to_string(),
             "2024".to_string(),
             "diploma".to_string(),
         ];
-        
+
         store.store_credential(credential, tags.clone()).unwrap();
-        
+
         let stored = store.get_credential("cred123").unwrap().unwrap();
         assert_eq!(stored.tags, tags);
-        
+
         // Find by each tag
         for tag in &tags {
             let found = store.find_credentials_by_tag(tag);

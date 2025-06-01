@@ -172,7 +172,8 @@ mod tests {
     fn test_aura_did_bincode() {
         let did = AuraDid::new("bincode_test");
         let encoded = encode_to_vec(&did, bincode::config::standard()).unwrap();
-        let (decoded, _): (AuraDid, _) = decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+        let (decoded, _): (AuraDid, _) =
+            decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(did, decoded);
     }
 
@@ -181,7 +182,7 @@ mod tests {
         let before = Utc::now();
         let timestamp = Timestamp::now();
         let after = Utc::now();
-        
+
         assert!(timestamp.0 >= before);
         assert!(timestamp.0 <= after);
     }
@@ -191,7 +192,7 @@ mod tests {
         let before = Utc::now();
         let timestamp = Timestamp::default();
         let after = Utc::now();
-        
+
         assert!(timestamp.0 >= before);
         assert!(timestamp.0 <= after);
     }
@@ -231,7 +232,8 @@ mod tests {
     fn test_timestamp_bincode() {
         let timestamp = Timestamp::from_unix(1704067200);
         let encoded = encode_to_vec(&timestamp, bincode::config::standard()).unwrap();
-        let (decoded, _): (Timestamp, _) = decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+        let (decoded, _): (Timestamp, _) =
+            decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(timestamp.as_unix(), decoded.as_unix());
     }
 
@@ -239,15 +241,16 @@ mod tests {
     fn test_timestamp_bincode_edge_cases() {
         // Test with edge case timestamps
         let timestamps = vec![
-            Timestamp::from_unix(0),            // Epoch
-            Timestamp::from_unix(-1),           // Before epoch
+            Timestamp::from_unix(0),               // Epoch
+            Timestamp::from_unix(-1),              // Before epoch
             Timestamp::from_unix(i32::MAX as i64), // Large positive
             Timestamp::from_unix(i32::MIN as i64), // Large negative
         ];
 
         for timestamp in timestamps {
             let encoded = encode_to_vec(&timestamp, bincode::config::standard()).unwrap();
-            let (decoded, _): (Timestamp, _) = decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+            let (decoded, _): (Timestamp, _) =
+                decode_from_slice(&encoded, bincode::config::standard()).unwrap();
             assert_eq!(timestamp.as_unix(), decoded.as_unix());
         }
     }
@@ -264,21 +267,19 @@ mod tests {
 
         // Test bincode
         let encoded = encode_to_vec(&block, bincode::config::standard()).unwrap();
-        let (decoded, _): (BlockNumber, _) = decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+        let (decoded, _): (BlockNumber, _) =
+            decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(block.0, decoded.0);
     }
 
     #[test]
     fn test_block_number_edge_cases() {
-        let blocks = vec![
-            BlockNumber(0),
-            BlockNumber(1),
-            BlockNumber(u64::MAX),
-        ];
+        let blocks = vec![BlockNumber(0), BlockNumber(1), BlockNumber(u64::MAX)];
 
         for block in blocks {
             let encoded = encode_to_vec(&block, bincode::config::standard()).unwrap();
-            let (decoded, _): (BlockNumber, _) = decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+            let (decoded, _): (BlockNumber, _) =
+                decode_from_slice(&encoded, bincode::config::standard()).unwrap();
             assert_eq!(block.0, decoded.0);
         }
     }
@@ -299,7 +300,8 @@ mod tests {
 
         // Test bincode
         let encoded = encode_to_vec(&tx_id, bincode::config::standard()).unwrap();
-        let (decoded, _): (TransactionId, _) = decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+        let (decoded, _): (TransactionId, _) =
+            decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(tx_id.0, decoded.0);
     }
 
@@ -307,9 +309,10 @@ mod tests {
     fn test_transaction_id_special_chars() {
         let special_chars = "tx-123_ABC.xyz~!@#$%^&*()";
         let tx_id = TransactionId(special_chars.to_string());
-        
+
         let encoded = encode_to_vec(&tx_id, bincode::config::standard()).unwrap();
-        let (decoded, _): (TransactionId, _) = decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+        let (decoded, _): (TransactionId, _) =
+            decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(tx_id.0, decoded.0);
     }
 
@@ -334,7 +337,8 @@ mod tests {
 
         // Test bincode
         let encoded = encode_to_vec(&key, bincode::config::standard()).unwrap();
-        let (decoded, _): (PublicKey, _) = decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+        let (decoded, _): (PublicKey, _) =
+            decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(key.id, decoded.id);
         assert_eq!(key.controller, decoded.controller);
         assert_eq!(key.public_key_multibase, decoded.public_key_multibase);
@@ -350,7 +354,8 @@ mod tests {
         };
 
         let encoded = encode_to_vec(&key, bincode::config::standard()).unwrap();
-        let (decoded, _): (PublicKey, _) = decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+        let (decoded, _): (PublicKey, _) =
+            decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(key.id, decoded.id);
         assert_eq!(key.public_key_multibase, decoded.public_key_multibase);
     }
@@ -376,7 +381,8 @@ mod tests {
 
         // Test bincode
         let encoded = encode_to_vec(&endpoint, bincode::config::standard()).unwrap();
-        let (decoded, _): (ServiceEndpoint, _) = decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+        let (decoded, _): (ServiceEndpoint, _) =
+            decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(endpoint.id, decoded.id);
         assert_eq!(endpoint.service_type, decoded.service_type);
         assert_eq!(endpoint.service_endpoint, decoded.service_endpoint);
@@ -400,7 +406,8 @@ mod tests {
             };
 
             let encoded = encode_to_vec(&endpoint, bincode::config::standard()).unwrap();
-            let (decoded, _): (ServiceEndpoint, _) = decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+            let (decoded, _): (ServiceEndpoint, _) =
+                decode_from_slice(&encoded, bincode::config::standard()).unwrap();
             assert_eq!(endpoint.service_endpoint, decoded.service_endpoint);
         }
     }
@@ -495,7 +502,7 @@ mod tests {
 
         let timestamps = timestamps.lock().unwrap();
         assert_eq!(timestamps.len(), 10);
-        
+
         // All timestamps should be very close in time
         let first = timestamps[0].as_unix();
         for ts in timestamps.iter() {

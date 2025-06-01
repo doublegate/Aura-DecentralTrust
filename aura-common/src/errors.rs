@@ -74,23 +74,45 @@ mod tests {
         for error in errors {
             let display = format!("{}", error);
             assert!(!display.is_empty());
-            
+
             // Verify error messages contain expected content
             match &error {
-                AuraError::Did(msg) => assert!(display.contains("DID error") && display.contains(msg)),
-                AuraError::Vc(msg) => assert!(display.contains("Verifiable Credential error") && display.contains(msg)),
-                AuraError::Crypto(msg) => assert!(display.contains("Cryptographic error") && display.contains(msg)),
-                AuraError::Ledger(msg) => assert!(display.contains("Ledger error") && display.contains(msg)),
-                AuraError::Network(msg) => assert!(display.contains("Network error") && display.contains(msg)),
-                AuraError::Storage(msg) => assert!(display.contains("Storage error") && display.contains(msg)),
-                AuraError::Validation(msg) => assert!(display.contains("Validation error") && display.contains(msg)),
-                AuraError::Serialization(msg) => assert!(display.contains("Serialization error") && display.contains(msg)),
+                AuraError::Did(msg) => {
+                    assert!(display.contains("DID error") && display.contains(msg))
+                }
+                AuraError::Vc(msg) => assert!(
+                    display.contains("Verifiable Credential error") && display.contains(msg)
+                ),
+                AuraError::Crypto(msg) => {
+                    assert!(display.contains("Cryptographic error") && display.contains(msg))
+                }
+                AuraError::Ledger(msg) => {
+                    assert!(display.contains("Ledger error") && display.contains(msg))
+                }
+                AuraError::Network(msg) => {
+                    assert!(display.contains("Network error") && display.contains(msg))
+                }
+                AuraError::Storage(msg) => {
+                    assert!(display.contains("Storage error") && display.contains(msg))
+                }
+                AuraError::Validation(msg) => {
+                    assert!(display.contains("Validation error") && display.contains(msg))
+                }
+                AuraError::Serialization(msg) => {
+                    assert!(display.contains("Serialization error") && display.contains(msg))
+                }
                 AuraError::InvalidSignature => assert_eq!(display, "Invalid signature"),
                 AuraError::InvalidProof => assert_eq!(display, "Invalid proof"),
-                AuraError::NotFound(msg) => assert!(display.contains("Not found") && display.contains(msg)),
-                AuraError::AlreadyExists(msg) => assert!(display.contains("Already exists") && display.contains(msg)),
+                AuraError::NotFound(msg) => {
+                    assert!(display.contains("Not found") && display.contains(msg))
+                }
+                AuraError::AlreadyExists(msg) => {
+                    assert!(display.contains("Already exists") && display.contains(msg))
+                }
                 AuraError::Unauthorized => assert_eq!(display, "Unauthorized"),
-                AuraError::Internal(msg) => assert!(display.contains("Internal error") && display.contains(msg)),
+                AuraError::Internal(msg) => {
+                    assert!(display.contains("Internal error") && display.contains(msg))
+                }
             }
         }
     }
@@ -117,7 +139,7 @@ mod tests {
 
         assert_eq!(returns_ok().unwrap(), "Success");
         assert!(returns_err().is_err());
-        
+
         match returns_err() {
             Err(AuraError::NotFound(msg)) => assert_eq!(msg, "Item not found"),
             _ => panic!("Expected NotFound error"),
@@ -145,7 +167,11 @@ mod tests {
             let display = format!("{}", error);
             assert!(!display.is_empty());
             // Even with empty messages, the error type prefix should be present
-            assert!(display.contains("error:") || display.contains("Not found:") || display.contains("Already exists:"));
+            assert!(
+                display.contains("error:")
+                    || display.contains("Not found:")
+                    || display.contains("Already exists:")
+            );
         }
     }
 
@@ -239,10 +265,10 @@ mod tests {
 
         // Same variant and message should be equal
         assert_eq!(format!("{}", err1), format!("{}", err2));
-        
+
         // Different messages should be different
         assert_ne!(format!("{}", err1), format!("{}", err3));
-        
+
         // Different variants should be different
         assert_ne!(format!("{}", err1), format!("{}", err4));
     }
@@ -271,17 +297,13 @@ mod tests {
         }
 
         // Test successful chain
-        let result = step1()
-            .and_then(step2)
-            .and_then(step3);
+        let result = step1().and_then(step2).and_then(step3);
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "step1 -> step2 -> step3");
 
         // Test failing chain
-        let fail_result = Ok("wrong".to_string())
-            .and_then(step2)
-            .and_then(step3);
+        let fail_result = Ok("wrong".to_string()).and_then(step2).and_then(step3);
 
         assert!(fail_result.is_err());
         match fail_result {

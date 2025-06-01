@@ -131,7 +131,10 @@ mod tests {
         assert_eq!(doc.id, did);
         assert_eq!(doc.context.len(), 2);
         assert_eq!(doc.context[0], "https://www.w3.org/ns/did/v1");
-        assert_eq!(doc.context[1], "https://w3id.org/security/suites/ed25519-2020/v1");
+        assert_eq!(
+            doc.context[1],
+            "https://w3id.org/security/suites/ed25519-2020/v1"
+        );
         assert!(doc.controller.is_none());
         assert!(doc.verification_method.is_empty());
         assert!(doc.authentication.is_empty());
@@ -148,10 +151,10 @@ mod tests {
         let mut doc = DidDocument::new(did);
         let created_time = doc.created;
         let initial_updated = doc.updated;
-        
+
         // Sleep briefly to ensure timestamp changes
         std::thread::sleep(std::time::Duration::from_millis(10));
-        
+
         let method = create_test_verification_method();
         doc.add_verification_method(method.clone());
 
@@ -166,10 +169,10 @@ mod tests {
         let did = create_test_did();
         let mut doc = DidDocument::new(did);
         let initial_updated = doc.updated;
-        
+
         // Sleep briefly to ensure timestamp changes
         std::thread::sleep(std::time::Duration::from_millis(10));
-        
+
         let service = create_test_service();
         doc.add_service(service.clone());
 
@@ -228,7 +231,8 @@ mod tests {
         assert!(!encoded.is_empty());
 
         // Test bincode decoding
-        let (decoded, _): (DidRecord, _) = bincode::decode_from_slice(&encoded, bincode::config::standard()).unwrap();
+        let (decoded, _): (DidRecord, _) =
+            bincode::decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(decoded.did_id, record.did_id);
         assert_eq!(decoded.did_document_hash, record.did_document_hash);
         assert_eq!(decoded.owner_public_key, record.owner_public_key);
@@ -291,16 +295,21 @@ mod tests {
         let did = create_test_did();
         let mut doc = DidDocument::new(did);
         let method = create_test_verification_method();
-        
+
         // Add verification method
         doc.add_verification_method(method.clone());
-        
+
         // Add to all relationship types
-        doc.authentication.push(VerificationRelationship::Reference(method.id.clone()));
-        doc.assertion_method.push(VerificationRelationship::Embedded(method.clone()));
-        doc.key_agreement.push(VerificationRelationship::Reference(method.id.clone()));
-        doc.capability_invocation.push(VerificationRelationship::Reference(method.id.clone()));
-        doc.capability_delegation.push(VerificationRelationship::Reference(method.id.clone()));
+        doc.authentication
+            .push(VerificationRelationship::Reference(method.id.clone()));
+        doc.assertion_method
+            .push(VerificationRelationship::Embedded(method.clone()));
+        doc.key_agreement
+            .push(VerificationRelationship::Reference(method.id.clone()));
+        doc.capability_invocation
+            .push(VerificationRelationship::Reference(method.id.clone()));
+        doc.capability_delegation
+            .push(VerificationRelationship::Reference(method.id.clone()));
 
         assert_eq!(doc.authentication.len(), 1);
         assert_eq!(doc.assertion_method.len(), 1);

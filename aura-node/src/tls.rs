@@ -35,9 +35,12 @@ impl TlsConfig {
     pub fn into_server_config(self) -> anyhow::Result<rustls::ServerConfig> {
         self.into_server_config_with_client_auth(false)
     }
-    
+
     /// Convert to rustls ServerConfig with optional client auth
-    pub fn into_server_config_with_client_auth(self, require_client_auth: bool) -> anyhow::Result<rustls::ServerConfig> {
+    pub fn into_server_config_with_client_auth(
+        self,
+        require_client_auth: bool,
+    ) -> anyhow::Result<rustls::ServerConfig> {
         // Install default crypto provider if not already installed
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
@@ -47,7 +50,7 @@ impl TlsConfig {
         let config = if require_client_auth {
             // For mutual TLS, require client certificates
             let mut client_auth_roots = rustls::RootCertStore::empty();
-            
+
             // In production, load trusted client CA certificates
             // For now, accept self-signed certificates
             if let Ok(client_ca_path) = std::env::var("AURA_CLIENT_CA_PATH") {
@@ -56,7 +59,7 @@ impl TlsConfig {
                     client_auth_roots.add(cert)?;
                 }
             }
-            
+
             if client_auth_roots.is_empty() {
                 // If no CA certs configured, fall back to no client auth
                 // In production, proper CA certificates should be configured for mTLS
@@ -65,9 +68,10 @@ impl TlsConfig {
                     .with_no_client_auth()
                     .with_single_cert(certs, key)?
             } else {
-                let client_auth = rustls::server::WebPkiClientVerifier::builder(Arc::new(client_auth_roots))
-                    .build()?;
-                
+                let client_auth =
+                    rustls::server::WebPkiClientVerifier::builder(Arc::new(client_auth_roots))
+                        .build()?;
+
                 rustls::ServerConfig::builder()
                     .with_client_cert_verifier(client_auth)
                     .with_single_cert(certs, key)?
@@ -112,24 +116,24 @@ impl TlsConfig {
             perms.set_mode(0o400);
             tokio::fs::set_permissions(key_path, perms).await?;
         }
-        
+
         #[cfg(windows)]
         {
             // Windows permission handling
             // Note: Full ACL control would require windows-acl crate
             // For now, we mark the file as hidden to provide basic protection
             use std::process::Command;
-            let _ = Command::new("attrib")
-                .arg("+H")
-                .arg(key_path)
-                .output();
-            
+            let _ = Command::new("attrib").arg("+H").arg(key_path).output();
+
             // Also try to restrict permissions using icacls (may fail on some systems)
             let _ = Command::new("icacls")
                 .arg(key_path)
                 .arg("/inheritance:r")
                 .arg("/grant:r")
-                .arg(format!("{}:(R)", std::env::var("USERNAME").unwrap_or_else(|_| "SYSTEM".to_string())))
+                .arg(format!(
+                    "{}:(R)",
+                    std::env::var("USERNAME").unwrap_or_else(|_| "SYSTEM".to_string())
+                ))
                 .output();
         }
 
@@ -180,7 +184,7 @@ pub async fn setup_tls(data_dir: &Path) -> anyhow::Result<TlsConfig> {
         let key_path_str = key_path
             .to_str()
             .ok_or_else(|| anyhow::anyhow!("Invalid key path"))?;
-        
+
         TlsConfig::save_cert_and_key(&cert, &key, cert_path_str, key_path_str).await?;
         tracing::info!("Self-signed certificate saved to {:?}", cert_path);
     }
@@ -196,61 +200,64 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
     use tokio;
-    
+
     #[test]
     fn test_tls_config_creation() {
         let config = TlsConfig {
             cert_path: "/path/to/cert.pem".to_string(),
             key_path: "/path/to/key.pem".to_string(),
         };
-        
+
         assert_eq!(config.cert_path, "/path/to/cert.pem");
         assert_eq!(config.key_path, "/path/to/key.pem");
     }
-    
+
     #[test]
     fn test_generate_self_signed() {
         let result = TlsConfig::generate_self_signed();
         assert!(result.is_ok());
-        
+
         let (cert, key) = result.unwrap();
-        
+
         // Check that we got PEM data
         assert!(cert.starts_with(b"-----BEGIN CERTIFICATE-----"));
         assert!(cert.ends_with(b"-----END CERTIFICATE-----\n"));
-        
-        assert!(key.starts_with(b"-----BEGIN PRIVATE KEY-----") || 
-                key.starts_with(b"-----BEGIN RSA PRIVATE KEY-----") ||
-                key.starts_with(b"-----BEGIN EC PRIVATE KEY-----"));
+
+        assert!(
+            key.starts_with(b"-----BEGIN PRIVATE KEY-----")
+                || key.starts_with(b"-----BEGIN RSA PRIVATE KEY-----")
+                || key.starts_with(b"-----BEGIN EC PRIVATE KEY-----")
+        );
     }
-    
+
     #[tokio::test]
     async fn test_save_cert_and_key() {
         let temp_dir = TempDir::new().unwrap();
         let cert_path = temp_dir.path().join("test.crt");
         let key_path = temp_dir.path().join("test.key");
-        
+
         let cert_data = b"-----BEGIN CERTIFICATE-----\ntest cert\n-----END CERTIFICATE-----\n";
         let key_data = b"-----BEGIN PRIVATE KEY-----\ntest key\n-----END PRIVATE KEY-----\n";
-        
+
         let result = TlsConfig::save_cert_and_key(
             cert_data,
             key_data,
             cert_path.to_str().unwrap(),
             key_path.to_str().unwrap(),
-        ).await;
-        
+        )
+        .await;
+
         assert!(result.is_ok());
         assert!(cert_path.exists());
         assert!(key_path.exists());
-        
+
         // Verify content
         let saved_cert = tokio::fs::read(&cert_path).await.unwrap();
         let saved_key = tokio::fs::read(&key_path).await.unwrap();
-        
+
         assert_eq!(saved_cert, cert_data);
         assert_eq!(saved_key, key_data);
-        
+
         // Check permissions on Unix
         #[cfg(unix)]
         {
@@ -260,204 +267,216 @@ mod tests {
             assert_eq!(mode & 0o777, 0o400); // Read-only for owner
         }
     }
-    
+
     #[tokio::test]
     async fn test_setup_tls_creates_certs() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         let config = setup_tls(temp_dir.path()).await.unwrap();
-        
+
         // Check that certificate files were created
         let cert_path = temp_dir.path().join("api-cert.pem");
         let key_path = temp_dir.path().join("api-key.pem");
-        
+
         assert!(cert_path.exists());
         assert!(key_path.exists());
-        
+
         assert_eq!(config.cert_path, cert_path.to_string_lossy());
         assert_eq!(config.key_path, key_path.to_string_lossy());
     }
-    
+
     #[tokio::test]
     async fn test_setup_tls_uses_existing_certs() {
         let temp_dir = TempDir::new().unwrap();
         let cert_path = temp_dir.path().join("api-cert.pem");
         let key_path = temp_dir.path().join("api-key.pem");
-        
+
         // Pre-create certificate files
-        tokio::fs::write(&cert_path, b"existing cert").await.unwrap();
+        tokio::fs::write(&cert_path, b"existing cert")
+            .await
+            .unwrap();
         tokio::fs::write(&key_path, b"existing key").await.unwrap();
-        
+
         let config = setup_tls(temp_dir.path()).await.unwrap();
-        
+
         // Verify it didn't overwrite existing files
         let cert_content = tokio::fs::read(&cert_path).await.unwrap();
         assert_eq!(cert_content, b"existing cert");
-        
+
         assert_eq!(config.cert_path, cert_path.to_string_lossy());
         assert_eq!(config.key_path, key_path.to_string_lossy());
     }
-    
+
     #[test]
     fn test_load_certs_valid() {
         let temp_dir = TempDir::new().unwrap();
         let cert_path = temp_dir.path().join("test.crt");
-        
+
         // Generate actual certificate for testing
         let (cert_pem, _) = TlsConfig::generate_self_signed().unwrap();
         std::fs::write(&cert_path, cert_pem).unwrap();
-        
+
         let result = load_certs(cert_path.to_str().unwrap());
         assert!(result.is_ok());
-        
+
         let certs = result.unwrap();
         assert!(!certs.is_empty());
     }
-    
+
     #[test]
     fn test_load_certs_invalid_file() {
         let result = load_certs("/nonexistent/path/cert.pem");
         assert!(result.is_err());
     }
-    
+
     #[test]
     fn test_load_certs_invalid_format() {
         let temp_dir = TempDir::new().unwrap();
         let cert_path = temp_dir.path().join("invalid.crt");
-        
+
         std::fs::write(&cert_path, b"not a valid certificate").unwrap();
-        
+
         let result = load_certs(cert_path.to_str().unwrap());
         assert!(result.is_ok()); // Returns empty vec for invalid PEM
         assert!(result.unwrap().is_empty());
     }
-    
+
     #[test]
     fn test_load_key_valid() {
         let temp_dir = TempDir::new().unwrap();
         let key_path = temp_dir.path().join("test.key");
-        
+
         // Generate actual key for testing
         let (_, key_pem) = TlsConfig::generate_self_signed().unwrap();
         std::fs::write(&key_path, key_pem).unwrap();
-        
+
         let result = load_key(key_path.to_str().unwrap());
         assert!(result.is_ok());
     }
-    
+
     #[test]
     fn test_load_key_invalid_file() {
         let result = load_key("/nonexistent/path/key.pem");
         assert!(result.is_err());
     }
-    
+
     #[test]
     fn test_load_key_invalid_format() {
         let temp_dir = TempDir::new().unwrap();
         let key_path = temp_dir.path().join("invalid.key");
-        
+
         std::fs::write(&key_path, b"not a valid key").unwrap();
-        
+
         let result = load_key(key_path.to_str().unwrap());
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No private key found"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No private key found"));
     }
-    
+
     #[test]
     fn test_into_server_config() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Generate and save certificates
         let (cert_pem, key_pem) = TlsConfig::generate_self_signed().unwrap();
         let cert_path = temp_dir.path().join("cert.pem");
         let key_path = temp_dir.path().join("key.pem");
-        
+
         std::fs::write(&cert_path, cert_pem).unwrap();
         std::fs::write(&key_path, key_pem).unwrap();
-        
+
         let config = TlsConfig {
             cert_path: cert_path.to_string_lossy().to_string(),
             key_path: key_path.to_string_lossy().to_string(),
         };
-        
+
         let result = config.into_server_config();
         assert!(result.is_ok());
     }
-    
+
     #[test]
     fn test_into_server_config_with_client_auth() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Generate and save certificates
         let (cert_pem, key_pem) = TlsConfig::generate_self_signed().unwrap();
         let cert_path = temp_dir.path().join("cert.pem");
         let key_path = temp_dir.path().join("key.pem");
-        
+
         std::fs::write(&cert_path, cert_pem).unwrap();
         std::fs::write(&key_path, key_pem).unwrap();
-        
+
         let config = TlsConfig {
             cert_path: cert_path.to_string_lossy().to_string(),
             key_path: key_path.to_string_lossy().to_string(),
         };
-        
+
         // Test without client auth
         let result = config.clone().into_server_config_with_client_auth(false);
         assert!(result.is_ok());
-        
+
         // Test with client auth (no CA configured)
         // This should work - it creates a verifier that allows unauthenticated connections
         let result = config.into_server_config_with_client_auth(true);
-        assert!(result.is_ok(), "Failed to create config with client auth: {}", 
-            result.as_ref().err().map(|e| e.to_string()).unwrap_or_default());
+        assert!(
+            result.is_ok(),
+            "Failed to create config with client auth: {}",
+            result
+                .as_ref()
+                .err()
+                .map(|e| e.to_string())
+                .unwrap_or_default()
+        );
     }
-    
+
     #[test]
     fn test_into_server_config_with_client_ca() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Generate and save certificates
         let (cert_pem, key_pem) = TlsConfig::generate_self_signed().unwrap();
         let cert_path = temp_dir.path().join("cert.pem");
         let key_path = temp_dir.path().join("key.pem");
         let ca_path = temp_dir.path().join("ca.pem");
-        
+
         std::fs::write(&cert_path, &cert_pem).unwrap();
         std::fs::write(&key_path, key_pem).unwrap();
         std::fs::write(&ca_path, &cert_pem).unwrap(); // Use same cert as CA for testing
-        
+
         // Set environment variable for client CA
         std::env::set_var("AURA_CLIENT_CA_PATH", ca_path.to_string_lossy().to_string());
-        
+
         let config = TlsConfig {
             cert_path: cert_path.to_string_lossy().to_string(),
             key_path: key_path.to_string_lossy().to_string(),
         };
-        
+
         let result = config.into_server_config_with_client_auth(true);
         assert!(result.is_ok());
-        
+
         // Clean up env var
         std::env::remove_var("AURA_CLIENT_CA_PATH");
     }
-    
+
     #[tokio::test]
     async fn test_build_acceptor() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Generate and save certificates
         let (cert_pem, key_pem) = TlsConfig::generate_self_signed().unwrap();
         let cert_path = temp_dir.path().join("cert.pem");
         let key_path = temp_dir.path().join("key.pem");
-        
+
         std::fs::write(&cert_path, cert_pem).unwrap();
         std::fs::write(&key_path, key_pem).unwrap();
-        
+
         let config = TlsConfig {
             cert_path: cert_path.to_string_lossy().to_string(),
             key_path: key_path.to_string_lossy().to_string(),
         };
-        
+
         let result = config.build_acceptor().await;
         assert!(result.is_ok());
     }

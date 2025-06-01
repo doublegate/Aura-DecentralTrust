@@ -82,11 +82,21 @@ pub fn validate_url(url: &str) -> Result<()> {
     if let Some(host) = parsed.host_str() {
         // Block common localhost names
         let blocked_hosts = [
-            "localhost", "127.0.0.1", "0.0.0.0", "::1", 
-            "localhost.localdomain", "local", "host.docker.internal"
+            "localhost",
+            "127.0.0.1",
+            "0.0.0.0",
+            "::1",
+            "localhost.localdomain",
+            "local",
+            "host.docker.internal",
         ];
-        if blocked_hosts.iter().any(|&blocked| host.eq_ignore_ascii_case(blocked)) {
-            return Err(AuraError::Validation("Localhost addresses not allowed".to_string()));
+        if blocked_hosts
+            .iter()
+            .any(|&blocked| host.eq_ignore_ascii_case(blocked))
+        {
+            return Err(AuraError::Validation(
+                "Localhost addresses not allowed".to_string(),
+            ));
         }
 
         // Try to parse as IP address for more comprehensive checks
@@ -115,7 +125,9 @@ pub fn validate_url(url: &str) -> Result<()> {
 
     // Prevent file:// and other dangerous schemes through double-check
     if parsed.scheme() != "http" && parsed.scheme() != "https" {
-        return Err(AuraError::Validation("Only HTTP(S) URLs allowed".to_string()));
+        return Err(AuraError::Validation(
+            "Only HTTP(S) URLs allowed".to_string(),
+        ));
     }
 
     Ok(())
@@ -132,24 +144,26 @@ fn is_public_ip(ip: &std::net::IpAddr) -> bool {
             // Check additional reserved ranges
             let octets = ipv4.octets();
             match octets[0] {
-                0 => false,           // 0.0.0.0/8 - Current network
+                0 => false,                                          // 0.0.0.0/8 - Current network
                 100 if octets[1] >= 64 && octets[1] <= 127 => false, // 100.64.0.0/10 - Shared address space
-                169 if octets[1] == 254 => false, // 169.254.0.0/16 - Link local
-                172 if octets[1] >= 16 && octets[1] <= 31 => false, // 172.16.0.0/12 - Private
-                192 if octets[1] == 0 && octets[2] == 0 => false, // 192.0.0.0/24 - IETF Protocol
-                192 if octets[1] == 0 && octets[2] == 2 => false, // 192.0.2.0/24 - TEST-NET-1
-                192 if octets[1] == 88 && octets[2] == 99 => false, // 192.88.99.0/24 - 6to4 relay
-                198 if octets[1] >= 18 && octets[1] <= 19 => false, // 198.18.0.0/15 - Benchmark
+                169 if octets[1] == 254 => false,                    // 169.254.0.0/16 - Link local
+                172 if octets[1] >= 16 && octets[1] <= 31 => false,  // 172.16.0.0/12 - Private
+                192 if octets[1] == 0 && octets[2] == 0 => false,    // 192.0.0.0/24 - IETF Protocol
+                192 if octets[1] == 0 && octets[2] == 2 => false,    // 192.0.2.0/24 - TEST-NET-1
+                192 if octets[1] == 88 && octets[2] == 99 => false,  // 192.88.99.0/24 - 6to4 relay
+                198 if octets[1] >= 18 && octets[1] <= 19 => false,  // 198.18.0.0/15 - Benchmark
                 198 if octets[1] == 51 && octets[2] == 100 => false, // 198.51.100.0/24 - TEST-NET-2
-                203 if octets[1] == 0 && octets[2] == 113 => false, // 203.0.113.0/24 - TEST-NET-3
-                224..=255 => false,   // 224.0.0.0/4 - Multicast and reserved
+                203 if octets[1] == 0 && octets[2] == 113 => false,  // 203.0.113.0/24 - TEST-NET-3
+                224..=255 => false, // 224.0.0.0/4 - Multicast and reserved
                 _ => true,
             }
         }
         std::net::IpAddr::V6(ipv6) => {
             // Check for loopback, private, and link-local
-            !ipv6.is_loopback() && !ipv6.is_unspecified() && 
-            !is_ipv6_link_local(ipv6) && !is_ipv6_unique_local(ipv6)
+            !ipv6.is_loopback()
+                && !ipv6.is_unspecified()
+                && !is_ipv6_link_local(ipv6)
+                && !is_ipv6_unique_local(ipv6)
         }
     }
 }
@@ -296,7 +310,10 @@ pub fn sanitize_string(input: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aura_common::{DidDocument, AuraDid, ServiceEndpoint, VerificationMethod, VerificationRelationship, Timestamp};
+    use aura_common::{
+        AuraDid, DidDocument, ServiceEndpoint, Timestamp, VerificationMethod,
+        VerificationRelationship,
+    };
     use serde_json::json;
 
     #[test]
@@ -311,14 +328,14 @@ mod tests {
         assert!(validate_did("not-a-did").is_err());
         assert!(validate_did(&("did:aura:".to_string() + &"a".repeat(2000))).is_err());
     }
-    
+
     #[test]
     fn test_valid_schema_id() {
         assert!(validate_schema_id("schema123").is_ok());
         assert!(validate_schema_id("test-schema_456").is_ok());
         assert!(validate_schema_id("a".repeat(64).as_str()).is_ok());
     }
-    
+
     #[test]
     fn test_invalid_schema_id() {
         assert!(validate_schema_id("").is_err()); // Empty
@@ -326,14 +343,14 @@ mod tests {
         assert!(validate_schema_id("schema!@#").is_err()); // Invalid chars
         assert!(validate_schema_id("schema with spaces").is_err());
     }
-    
+
     #[test]
     fn test_valid_chain_id() {
         assert!(validate_chain_id("mainnet").is_ok());
         assert!(validate_chain_id("test-chain-1").is_ok());
         assert!(validate_chain_id("a".repeat(32).as_str()).is_ok());
     }
-    
+
     #[test]
     fn test_invalid_chain_id() {
         assert!(validate_chain_id("").is_err()); // Empty
@@ -351,7 +368,7 @@ mod tests {
         assert!(validate_url("https://127.0.0.1").is_err());
         assert!(validate_url("https://192.168.1.1").is_err());
     }
-    
+
     #[test]
     fn test_url_validation_blocked_hosts() {
         let blocked = vec![
@@ -362,15 +379,15 @@ mod tests {
             "http://localhost.localdomain",
             "https://local",
             "http://host.docker.internal",
-            "https://169.254.169.254", // AWS metadata
+            "https://169.254.169.254",         // AWS metadata
             "http://metadata.google.internal", // GCP metadata
         ];
-        
+
         for url in blocked {
             assert!(validate_url(url).is_err(), "URL should be blocked: {}", url);
         }
     }
-    
+
     #[test]
     fn test_url_validation_private_ips() {
         let private_ips = vec![
@@ -378,72 +395,74 @@ mod tests {
             "https://172.16.0.1",
             "http://192.168.0.1",
             "https://192.0.0.1",
-            "http://100.64.0.1", // Shared address space
+            "http://100.64.0.1",   // Shared address space
             "https://169.254.0.1", // Link local
         ];
-        
+
         for url in private_ips {
-            assert!(validate_url(url).is_err(), "Private IP should be blocked: {}", url);
+            assert!(
+                validate_url(url).is_err(),
+                "Private IP should be blocked: {}",
+                url
+            );
         }
     }
-    
+
     #[test]
     fn test_url_validation_internal_domains() {
         assert!(validate_url("https://example.local").is_err());
         assert!(validate_url("http://test.internal").is_err());
     }
-    
+
     #[test]
     fn test_url_validation_length() {
         let long_url = format!("https://example.com/{}", "a".repeat(MAX_STRING_LENGTH));
         assert!(validate_url(&long_url).is_err());
     }
-    
+
     #[test]
     fn test_transaction_size_validation() {
         let small_data = vec![0u8; 1024]; // 1KB
         assert!(validate_transaction_size(&small_data).is_ok());
-        
+
         let max_data = vec![0u8; MAX_TRANSACTION_SIZE];
         assert!(validate_transaction_size(&max_data).is_ok());
-        
+
         let too_large = vec![0u8; MAX_TRANSACTION_SIZE + 1];
         assert!(validate_transaction_size(&too_large).is_err());
     }
-    
+
     #[test]
     fn test_did_document_validation() {
         let doc = DidDocument {
             context: vec!["https://www.w3.org/ns/did/v1".to_string()],
             id: AuraDid("did:aura:test123".to_string()),
             controller: None,
-            verification_method: vec![
-                VerificationMethod {
-                    id: "did:aura:test123#key-1".to_string(),
-                    verification_type: "Ed25519VerificationKey2020".to_string(),
-                    controller: AuraDid("did:aura:test123".to_string()),
-                    public_key_multibase: "zXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX".to_string(),
-                }
-            ],
-            authentication: vec![VerificationRelationship::Reference("did:aura:test123#key-1".to_string())],
+            verification_method: vec![VerificationMethod {
+                id: "did:aura:test123#key-1".to_string(),
+                verification_type: "Ed25519VerificationKey2020".to_string(),
+                controller: AuraDid("did:aura:test123".to_string()),
+                public_key_multibase: "zXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX".to_string(),
+            }],
+            authentication: vec![VerificationRelationship::Reference(
+                "did:aura:test123#key-1".to_string(),
+            )],
             assertion_method: vec![],
             key_agreement: vec![],
             capability_invocation: vec![],
             capability_delegation: vec![],
-            service: vec![
-                ServiceEndpoint {
-                    id: "did:aura:test123#service-1".to_string(),
-                    service_type: "MessagingService".to_string(),
-                    service_endpoint: "https://example.com/messages".to_string(),
-                }
-            ],
+            service: vec![ServiceEndpoint {
+                id: "did:aura:test123#service-1".to_string(),
+                service_type: "MessagingService".to_string(),
+                service_endpoint: "https://example.com/messages".to_string(),
+            }],
             created: Timestamp::now(),
             updated: Timestamp::now(),
         };
-        
+
         assert!(validate_did_document(&doc).is_ok());
     }
-    
+
     #[test]
     fn test_did_document_too_many_methods() {
         let mut doc = DidDocument {
@@ -460,7 +479,7 @@ mod tests {
             created: Timestamp::now(),
             updated: Timestamp::now(),
         };
-        
+
         // Add too many verification methods
         for i in 0..=MAX_ARRAY_LENGTH {
             doc.verification_method.push(VerificationMethod {
@@ -470,10 +489,10 @@ mod tests {
                 public_key_multibase: "zXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX".to_string(),
             });
         }
-        
+
         assert!(validate_did_document(&doc).is_err());
     }
-    
+
     #[test]
     fn test_did_document_invalid_service_url() {
         let doc = DidDocument {
@@ -486,20 +505,18 @@ mod tests {
             key_agreement: vec![],
             capability_invocation: vec![],
             capability_delegation: vec![],
-            service: vec![
-                ServiceEndpoint {
-                    id: "did:aura:test123#service-1".to_string(),
-                    service_type: "MessagingService".to_string(),
-                    service_endpoint: "https://localhost/messages".to_string(), // Invalid
-                }
-            ],
+            service: vec![ServiceEndpoint {
+                id: "did:aura:test123#service-1".to_string(),
+                service_type: "MessagingService".to_string(),
+                service_endpoint: "https://localhost/messages".to_string(), // Invalid
+            }],
             created: Timestamp::now(),
             updated: Timestamp::now(),
         };
-        
+
         assert!(validate_did_document(&doc).is_err());
     }
-    
+
     #[test]
     fn test_validate_credential_claims() {
         let valid_claims = json!({
@@ -507,35 +524,32 @@ mod tests {
             "age": 30,
             "email": "john@example.com"
         });
-        
+
         assert!(validate_credential_claims(&valid_claims).is_ok());
     }
-    
+
     #[test]
     fn test_validate_credential_claims_not_object() {
         let invalid_claims = json!("not an object");
         assert!(validate_credential_claims(&invalid_claims).is_err());
-        
+
         let array_claims = json!([1, 2, 3]);
         assert!(validate_credential_claims(&array_claims).is_err());
     }
-    
+
     #[test]
     fn test_validate_credential_claims_too_large() {
         let mut claims = json!({});
         let claims_obj = claims.as_object_mut().unwrap();
-        
+
         // Add many properties to exceed size limit
         for i in 0..1000 {
-            claims_obj.insert(
-                format!("field_{}", i),
-                json!("x".repeat(100))
-            );
+            claims_obj.insert(format!("field_{}", i), json!("x".repeat(100)));
         }
-        
+
         assert!(validate_credential_claims(&claims).is_err());
     }
-    
+
     #[test]
     fn test_validate_json_value_depth() {
         // Create deeply nested JSON
@@ -543,113 +557,131 @@ mod tests {
         for _ in 0..15 {
             nested = json!({"nested": nested});
         }
-        
+
         assert!(validate_json_value(&nested, 0).is_err());
     }
-    
+
     #[test]
     fn test_validate_json_value_string_length() {
         let long_string = json!("x".repeat(MAX_STRING_LENGTH + 1));
         assert!(validate_json_value(&long_string, 0).is_err());
-        
+
         let ok_string = json!("x".repeat(MAX_STRING_LENGTH));
         assert!(validate_json_value(&ok_string, 0).is_ok());
     }
-    
+
     #[test]
     fn test_validate_json_value_array_length() {
         let long_array = json!(vec![1; MAX_ARRAY_LENGTH + 1]);
         assert!(validate_json_value(&long_array, 0).is_err());
-        
+
         let ok_array = json!(vec![1; MAX_ARRAY_LENGTH]);
         assert!(validate_json_value(&ok_array, 0).is_ok());
     }
-    
+
     #[test]
     fn test_validate_json_value_object_properties() {
         let mut obj = json!({});
         let obj_map = obj.as_object_mut().unwrap();
-        
+
         // Add too many properties
         for i in 0..=MAX_ARRAY_LENGTH {
             obj_map.insert(format!("key_{}", i), json!(i));
         }
-        
+
         assert!(validate_json_value(&obj, 0).is_err());
     }
-    
+
     #[test]
     fn test_validate_json_value_key_length() {
         let long_key = "x".repeat(MAX_STRING_LENGTH + 1);
         let obj = json!({ long_key: "value" });
         assert!(validate_json_value(&obj, 0).is_err());
     }
-    
+
     #[test]
     fn test_sanitize_string() {
         assert_eq!(sanitize_string("Hello World"), "Hello World");
-        
+
         // Remove control characters
         assert_eq!(sanitize_string("Hello\0World"), "HelloWorld");
         assert_eq!(sanitize_string("Tab\tand\nnewline"), "Tabandnewline");
-        
+
         // Truncate long strings
         let long_string = "x".repeat(MAX_STRING_LENGTH + 100);
         assert_eq!(sanitize_string(&long_string).len(), MAX_STRING_LENGTH);
     }
-    
+
     #[test]
     fn test_is_public_ip_v4() {
         use std::net::{IpAddr, Ipv4Addr};
-        
+
         // Public IPs
         assert!(is_public_ip(&IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8))));
         assert!(is_public_ip(&IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1))));
-        
+
         // Private IPs
         assert!(!is_public_ip(&IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))));
         assert!(!is_public_ip(&IpAddr::V4(Ipv4Addr::new(172, 16, 0, 1))));
         assert!(!is_public_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1))));
-        
+
         // Loopback
         assert!(!is_public_ip(&IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))));
-        
+
         // Reserved ranges
         assert!(!is_public_ip(&IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))));
         assert!(!is_public_ip(&IpAddr::V4(Ipv4Addr::new(100, 64, 0, 1))));
         assert!(!is_public_ip(&IpAddr::V4(Ipv4Addr::new(169, 254, 0, 1))));
         assert!(!is_public_ip(&IpAddr::V4(Ipv4Addr::new(224, 0, 0, 1)))); // Multicast
-        assert!(!is_public_ip(&IpAddr::V4(Ipv4Addr::new(255, 255, 255, 255)))); // Broadcast
+        assert!(!is_public_ip(&IpAddr::V4(Ipv4Addr::new(
+            255, 255, 255, 255
+        )))); // Broadcast
     }
-    
+
     #[test]
     fn test_is_public_ip_v6() {
         use std::net::{IpAddr, Ipv6Addr};
-        
+
         // Public IPv6
-        assert!(is_public_ip(&IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1))));
-        
+        assert!(is_public_ip(&IpAddr::V6(Ipv6Addr::new(
+            0x2001, 0xdb8, 0, 0, 0, 0, 0, 1
+        ))));
+
         // Loopback
-        assert!(!is_public_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1))));
-        
+        assert!(!is_public_ip(&IpAddr::V6(Ipv6Addr::new(
+            0, 0, 0, 0, 0, 0, 0, 1
+        ))));
+
         // Unspecified
-        assert!(!is_public_ip(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0))));
+        assert!(!is_public_ip(&IpAddr::V6(Ipv6Addr::new(
+            0, 0, 0, 0, 0, 0, 0, 0
+        ))));
     }
-    
+
     #[test]
     fn test_is_ipv6_link_local() {
         use std::net::Ipv6Addr;
-        
-        assert!(is_ipv6_link_local(&Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 1)));
-        assert!(!is_ipv6_link_local(&Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)));
+
+        assert!(is_ipv6_link_local(&Ipv6Addr::new(
+            0xfe80, 0, 0, 0, 0, 0, 0, 1
+        )));
+        assert!(!is_ipv6_link_local(&Ipv6Addr::new(
+            0x2001, 0xdb8, 0, 0, 0, 0, 0, 1
+        )));
     }
-    
+
     #[test]
     fn test_is_ipv6_unique_local() {
         use std::net::Ipv6Addr;
-        
-        assert!(is_ipv6_unique_local(&Ipv6Addr::new(0xfc00, 0, 0, 0, 0, 0, 0, 1)));
-        assert!(is_ipv6_unique_local(&Ipv6Addr::new(0xfd00, 0, 0, 0, 0, 0, 0, 1)));
-        assert!(!is_ipv6_unique_local(&Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)));
+
+        assert!(is_ipv6_unique_local(&Ipv6Addr::new(
+            0xfc00, 0, 0, 0, 0, 0, 0, 1
+        )));
+        assert!(is_ipv6_unique_local(&Ipv6Addr::new(
+            0xfd00, 0, 0, 0, 0, 0, 0, 1
+        )));
+        assert!(!is_ipv6_unique_local(&Ipv6Addr::new(
+            0x2001, 0xdb8, 0, 0, 0, 0, 0, 1
+        )));
     }
 }

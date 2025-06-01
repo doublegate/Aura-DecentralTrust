@@ -104,7 +104,7 @@ use uuid;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aura_crypto::{KeyPair, sign_json};
+    use aura_crypto::{sign_json, KeyPair};
 
     fn create_test_did_document(_keypair: &KeyPair) -> DidDocument {
         DidDocument::new(AuraDid("did:aura:test123".to_string()))
@@ -139,7 +139,7 @@ mod tests {
             chain_id: tx.chain_id.clone(),
             expires_at: tx.expires_at,
         };
-        
+
         sign_json(keypair.private_key(), &tx_for_signing).unwrap()
     }
 
@@ -150,7 +150,7 @@ mod tests {
         let tx_type = TransactionType::RegisterDid {
             did_document: did_doc,
         };
-        
+
         let signature = Signature(vec![0; 64]);
         let tx = Transaction::new(
             tx_type.clone(),
@@ -159,13 +159,13 @@ mod tests {
             1,
             "test-chain".to_string(),
         );
-        
+
         assert!(!tx.id.0.is_empty());
         assert!(tx.timestamp.as_unix() > 0);
         assert_eq!(tx.nonce, 1);
         assert_eq!(tx.chain_id, "test-chain");
         assert!(tx.expires_at.is_some());
-        
+
         // Check default expiry is about 1 hour
         let expiry_diff = tx.expires_at.unwrap().as_unix() - tx.timestamp.as_unix();
         assert!(expiry_diff >= 3599 && expiry_diff <= 3601);
@@ -178,7 +178,7 @@ mod tests {
         let tx_type = TransactionType::RegisterDid {
             did_document: did_doc,
         };
-        
+
         let mut tx = Transaction::new(
             tx_type,
             keypair.public_key().clone(),
@@ -186,10 +186,10 @@ mod tests {
             1,
             "test-chain".to_string(),
         );
-        
+
         // Sign the transaction properly
         tx.signature = sign_transaction(&tx, &keypair);
-        
+
         let result = tx.verify().unwrap();
         assert!(result);
     }
@@ -202,7 +202,7 @@ mod tests {
         let tx_type = TransactionType::RegisterDid {
             did_document: did_doc,
         };
-        
+
         let mut tx = Transaction::new(
             tx_type,
             keypair1.public_key().clone(),
@@ -210,10 +210,10 @@ mod tests {
             1,
             "test-chain".to_string(),
         );
-        
+
         // Sign with wrong key
         tx.signature = sign_transaction(&tx, &keypair2);
-        
+
         let result = tx.verify().unwrap();
         assert!(!result);
     }
@@ -225,7 +225,7 @@ mod tests {
         let tx_type = TransactionType::RegisterDid {
             did_document: did_doc,
         };
-        
+
         let mut tx = Transaction::new(
             tx_type,
             keypair.public_key().clone(),
@@ -233,11 +233,11 @@ mod tests {
             1,
             "test-chain".to_string(),
         );
-        
+
         // Set expiry to past
         tx.expires_at = Some(Timestamp::from_unix(tx.timestamp.as_unix() - 1000));
         tx.signature = sign_transaction(&tx, &keypair);
-        
+
         let result = tx.verify().unwrap();
         assert!(!result);
     }
@@ -249,7 +249,7 @@ mod tests {
         let tx_type = TransactionType::RegisterDid {
             did_document: did_doc,
         };
-        
+
         let mut tx = Transaction::new(
             tx_type,
             keypair.public_key().clone(),
@@ -257,11 +257,11 @@ mod tests {
             1,
             "test-chain".to_string(),
         );
-        
+
         // Remove expiry
         tx.expires_at = None;
         tx.signature = sign_transaction(&tx, &keypair);
-        
+
         let result = tx.verify().unwrap();
         assert!(result);
     }
@@ -273,7 +273,7 @@ mod tests {
         let tx_type = TransactionType::RegisterDid {
             did_document: did_doc.clone(),
         };
-        
+
         if let TransactionType::RegisterDid { did_document } = tx_type {
             assert_eq!(did_document.id, did_doc.id);
         } else {
@@ -290,8 +290,12 @@ mod tests {
             did: did.clone(),
             did_document: did_doc.clone(),
         };
-        
-        if let TransactionType::UpdateDid { did: tx_did, did_document } = tx_type {
+
+        if let TransactionType::UpdateDid {
+            did: tx_did,
+            did_document,
+        } = tx_type
+        {
             assert_eq!(tx_did, did);
             assert_eq!(did_document.id, did_doc.id);
         } else {
@@ -302,10 +306,8 @@ mod tests {
     #[test]
     fn test_transaction_types_deactivate_did() {
         let did = AuraDid("did:aura:test123".to_string());
-        let tx_type = TransactionType::DeactivateDid {
-            did: did.clone(),
-        };
-        
+        let tx_type = TransactionType::DeactivateDid { did: did.clone() };
+
         if let TransactionType::DeactivateDid { did: tx_did } = tx_type {
             assert_eq!(tx_did, did);
         } else {
@@ -319,7 +321,7 @@ mod tests {
         let tx_type = TransactionType::RegisterSchema {
             schema: schema.clone(),
         };
-        
+
         if let TransactionType::RegisterSchema { schema: tx_schema } = tx_type {
             assert_eq!(tx_schema.id, schema.id);
             assert_eq!(tx_schema.name, schema.name);
@@ -336,11 +338,12 @@ mod tests {
             list_id: list_id.clone(),
             revoked_indices: indices.clone(),
         };
-        
-        if let TransactionType::UpdateRevocationList { 
-            list_id: tx_list_id, 
-            revoked_indices: tx_indices 
-        } = tx_type {
+
+        if let TransactionType::UpdateRevocationList {
+            list_id: tx_list_id,
+            revoked_indices: tx_indices,
+        } = tx_type
+        {
             assert_eq!(tx_list_id, list_id);
             assert_eq!(tx_indices, indices);
         } else {
@@ -355,7 +358,7 @@ mod tests {
         let tx_type = TransactionType::RegisterDid {
             did_document: did_doc,
         };
-        
+
         let tx = Transaction::new(
             tx_type,
             keypair.public_key().clone(),
@@ -363,11 +366,11 @@ mod tests {
             1,
             "test-chain".to_string(),
         );
-        
+
         // Test JSON serialization
         let json = serde_json::to_string(&tx).unwrap();
         let deserialized: Transaction = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(tx.id, deserialized.id);
         assert_eq!(tx.nonce, deserialized.nonce);
         assert_eq!(tx.chain_id, deserialized.chain_id);
@@ -380,7 +383,7 @@ mod tests {
         let tx_type = TransactionType::RegisterDid {
             did_document: did_doc,
         };
-        
+
         let tx1 = Transaction::new(
             tx_type.clone(),
             keypair.public_key().clone(),
@@ -388,7 +391,7 @@ mod tests {
             1,
             "chain-1".to_string(),
         );
-        
+
         let tx2 = Transaction::new(
             tx_type,
             keypair.public_key().clone(),
@@ -396,7 +399,7 @@ mod tests {
             1,
             "chain-2".to_string(),
         );
-        
+
         assert_ne!(tx1.chain_id, tx2.chain_id);
     }
 
@@ -407,7 +410,7 @@ mod tests {
         let tx_type = TransactionType::RegisterDid {
             did_document: did_doc,
         };
-        
+
         let tx1 = Transaction::new(
             tx_type.clone(),
             keypair.public_key().clone(),
@@ -415,7 +418,7 @@ mod tests {
             1,
             "test-chain".to_string(),
         );
-        
+
         let tx2 = Transaction::new(
             tx_type,
             keypair.public_key().clone(),
@@ -423,7 +426,7 @@ mod tests {
             2,
             "test-chain".to_string(),
         );
-        
+
         assert_ne!(tx1.nonce, tx2.nonce);
     }
 
@@ -434,7 +437,7 @@ mod tests {
         let tx_type = TransactionType::RegisterDid {
             did_document: did_doc,
         };
-        
+
         let tx = Transaction::new(
             tx_type,
             keypair.public_key().clone(),
@@ -442,7 +445,7 @@ mod tests {
             1,
             "test-chain".to_string(),
         );
-        
+
         let tx_for_signing = TransactionForSigning {
             id: tx.id.clone(),
             transaction_type: tx.transaction_type.clone(),
@@ -452,7 +455,7 @@ mod tests {
             chain_id: tx.chain_id.clone(),
             expires_at: tx.expires_at,
         };
-        
+
         // Should serialize without signature field
         let json = serde_json::to_string(&tx_for_signing).unwrap();
         assert!(!json.contains("signature"));
@@ -465,7 +468,7 @@ mod tests {
         let tx_type = TransactionType::RegisterDid {
             did_document: did_doc,
         };
-        
+
         let tx1 = Transaction::new(
             tx_type.clone(),
             keypair.public_key().clone(),
@@ -473,7 +476,7 @@ mod tests {
             1,
             "test-chain".to_string(),
         );
-        
+
         let tx2 = Transaction::new(
             tx_type,
             keypair.public_key().clone(),
@@ -481,7 +484,7 @@ mod tests {
             1,
             "test-chain".to_string(),
         );
-        
+
         // IDs should be unique even for identical transactions
         assert_ne!(tx1.id, tx2.id);
     }
@@ -518,7 +521,7 @@ mod tests {
                 }
             }),
         };
-        
+
         let tx_type = TransactionType::RegisterSchema { schema };
         let mut tx = Transaction::new(
             tx_type,
@@ -527,7 +530,7 @@ mod tests {
             1,
             "test-chain".to_string(),
         );
-        
+
         tx.signature = sign_transaction(&tx, &keypair);
         assert!(tx.verify().unwrap());
     }

@@ -121,63 +121,69 @@ impl NodeConfig {
 mod tests {
     use super::*;
     use tempfile::TempDir;
-    
+
     #[test]
     fn test_default_config() {
         let config = NodeConfig::default();
-        
+
         // Check node_id is a valid UUID
         assert!(!config.node_id.is_empty());
         assert_eq!(config.node_id.len(), 36); // UUID v4 length
-        
+
         // Check network defaults
-        assert_eq!(config.network.listen_addresses, vec!["/ip4/0.0.0.0/tcp/9000".to_string()]);
+        assert_eq!(
+            config.network.listen_addresses,
+            vec!["/ip4/0.0.0.0/tcp/9000".to_string()]
+        );
         assert!(config.network.bootstrap_nodes.is_empty());
         assert_eq!(config.network.max_peers, 50);
-        
+
         // Check consensus defaults
         assert!(config.consensus.validator_key_path.is_none());
         assert_eq!(config.consensus.block_time_secs, 5);
         assert_eq!(config.consensus.max_transactions_per_block, 1000);
-        
+
         // Check storage defaults
         assert_eq!(config.storage.db_path, "./data/ledger");
         assert_eq!(config.storage.cache_size_mb, 128);
-        
+
         // Check API defaults
         assert_eq!(config.api.listen_address, "127.0.0.1:8080");
         assert!(config.api.enable_cors);
         assert_eq!(config.api.max_request_size, 10 * 1024 * 1024);
-        
+
         // Check security defaults
         assert!(config.security.jwt_secret.is_none());
-        assert_eq!(config.security.credentials_path, Some("./config/credentials.json".to_string()));
+        assert_eq!(
+            config.security.credentials_path,
+            Some("./config/credentials.json".to_string())
+        );
         assert_eq!(config.security.token_expiry_hours, 24);
         assert_eq!(config.security.rate_limit_rpm, 60);
         assert_eq!(config.security.rate_limit_rph, 1000);
     }
-    
+
     #[test]
     fn test_load_non_existent_config() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.toml");
-        
+
         // Load should create default config
         let config = NodeConfig::load_or_create(&config_path).unwrap();
-        
+
         // File should be created
         assert!(config_path.exists());
-        
+
         // Config should be default
         assert_eq!(config.network.max_peers, 50);
         assert_eq!(config.consensus.block_time_secs, 5);
     }
-    
+
     #[test]
     fn test_load_existing_config() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.toml");
-        
+
         // Create custom config
         let custom_config = NodeConfig {
             node_id: "custom-node-123".to_string(),
@@ -208,10 +214,10 @@ mod tests {
                 rate_limit_rph: 500,
             },
         };
-        
+
         // Save custom config
         custom_config.save(&config_path).unwrap();
-        
+
         // Load and verify
         let loaded = NodeConfig::load_or_create(&config_path).unwrap();
         assert_eq!(loaded.node_id, "custom-node-123");
@@ -221,17 +227,17 @@ mod tests {
         assert!(!loaded.api.enable_cors);
         assert_eq!(loaded.security.rate_limit_rpm, 30);
     }
-    
+
     #[test]
     fn test_save_config() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("save_test.toml");
-        
+
         let config = NodeConfig::default();
         config.save(&config_path).unwrap();
-        
+
         assert!(config_path.exists());
-        
+
         // Read back and verify
         let content = std::fs::read_to_string(&config_path).unwrap();
         assert!(content.contains("node_id"));
@@ -241,25 +247,25 @@ mod tests {
         assert!(content.contains("[api]"));
         assert!(content.contains("[security]"));
     }
-    
+
     #[test]
     fn test_config_serialization() {
         let config = NodeConfig::default();
-        
+
         // Serialize to TOML
         let toml_str = toml::to_string(&config).unwrap();
-        
+
         // Deserialize back
         let deserialized: NodeConfig = toml::from_str(&toml_str).unwrap();
-        
+
         // JWT secret should not be serialized
         assert!(!toml_str.contains("jwt_secret"));
-        
+
         // Other fields should match
         assert_eq!(config.node_id, deserialized.node_id);
         assert_eq!(config.network.max_peers, deserialized.network.max_peers);
     }
-    
+
     #[test]
     fn test_security_config_jwt_secret_not_serialized() {
         let config = SecurityConfig {
@@ -269,27 +275,27 @@ mod tests {
             rate_limit_rpm: 60,
             rate_limit_rph: 1000,
         };
-        
+
         let serialized = toml::to_string(&config).unwrap();
         assert!(!serialized.contains("super_secret_key"));
         assert!(!serialized.contains("jwt_secret"));
     }
-    
+
     #[test]
     fn test_create_parent_directory() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("subdir/config.toml");
-        
+
         // Parent doesn't exist yet
         assert!(!config_path.parent().unwrap().exists());
-        
+
         // Load should create parent directory
         NodeConfig::load_or_create(&config_path).unwrap();
-        
+
         assert!(config_path.exists());
         assert!(config_path.parent().unwrap().exists());
     }
-    
+
     #[test]
     fn test_custom_network_config() {
         let config = NetworkConfig {
@@ -303,12 +309,12 @@ mod tests {
             ],
             max_peers: 200,
         };
-        
+
         assert_eq!(config.listen_addresses.len(), 2);
         assert_eq!(config.bootstrap_nodes.len(), 2);
         assert_eq!(config.max_peers, 200);
     }
-    
+
     #[test]
     fn test_consensus_config_with_validator() {
         let config = ConsensusConfig {
@@ -316,12 +322,12 @@ mod tests {
             block_time_secs: 3,
             max_transactions_per_block: 2000,
         };
-        
+
         assert!(config.validator_key_path.is_some());
         assert_eq!(config.block_time_secs, 3);
         assert_eq!(config.max_transactions_per_block, 2000);
     }
-    
+
     #[test]
     fn test_api_config_cors_disabled() {
         let config = ApiConfig {
@@ -329,11 +335,11 @@ mod tests {
             enable_cors: false,
             max_request_size: 1024 * 1024, // 1MB
         };
-        
+
         assert!(!config.enable_cors);
         assert_eq!(config.max_request_size, 1024 * 1024);
     }
-    
+
     #[test]
     fn test_config_roundtrip() {
         let original = NodeConfig {
@@ -365,11 +371,11 @@ mod tests {
                 rate_limit_rph: 2000,
             },
         };
-        
+
         // Serialize and deserialize
         let serialized = toml::to_string(&original).unwrap();
         let deserialized: NodeConfig = toml::from_str(&serialized).unwrap();
-        
+
         // Compare (jwt_secret won't match due to skip_serializing)
         assert_eq!(original.node_id, deserialized.node_id);
         assert_eq!(original.network, deserialized.network);
@@ -377,28 +383,34 @@ mod tests {
         assert_eq!(original.storage, deserialized.storage);
         assert_eq!(original.api, deserialized.api);
         assert!(deserialized.security.jwt_secret.is_none()); // Should be None after deserialization
-        assert_eq!(original.security.credentials_path, deserialized.security.credentials_path);
-        assert_eq!(original.security.token_expiry_hours, deserialized.security.token_expiry_hours);
+        assert_eq!(
+            original.security.credentials_path,
+            deserialized.security.credentials_path
+        );
+        assert_eq!(
+            original.security.token_expiry_hours,
+            deserialized.security.token_expiry_hours
+        );
     }
-    
+
     #[test]
     fn test_load_invalid_toml() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("invalid.toml");
-        
+
         // Write invalid TOML
         std::fs::write(&config_path, "invalid = toml content [").unwrap();
-        
+
         // Should fail to load
         let result = NodeConfig::load_or_create(&config_path);
         assert!(result.is_err());
     }
-    
+
     #[test]
     fn test_missing_fields_in_config() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("partial.toml");
-        
+
         // Write partial config (missing some required fields)
         let partial_config = r#"
             node_id = "partial-node"
@@ -407,23 +419,23 @@ mod tests {
             max_peers = 75
         "#;
         std::fs::write(&config_path, partial_config).unwrap();
-        
+
         // Should fail to load due to missing fields
         let result = NodeConfig::load_or_create(&config_path);
         assert!(result.is_err());
     }
-    
+
     #[test]
     fn test_node_id_generation() {
         // Create multiple configs and ensure unique node_ids
         let config1 = NodeConfig::default();
         let config2 = NodeConfig::default();
         let config3 = NodeConfig::default();
-        
+
         assert_ne!(config1.node_id, config2.node_id);
         assert_ne!(config2.node_id, config3.node_id);
         assert_ne!(config1.node_id, config3.node_id);
-        
+
         // All should be valid UUIDs
         for config in &[config1, config2, config3] {
             assert_eq!(config.node_id.len(), 36);

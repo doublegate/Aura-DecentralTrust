@@ -56,7 +56,7 @@ impl ProofOfAuthority {
 
         // Sort to ensure deterministic ordering
         validators.sort_by_key(|pk| pk.to_bytes());
-        
+
         let index = (block_number.0 / self.validator_rotation_interval) as usize % validators.len();
         Ok(validators[index])
     }
@@ -174,10 +174,10 @@ struct BlockHeaderForSigning {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transaction::{Transaction, TransactionType};
-    use aura_common::{DidDocument, AuraDid, Timestamp, TransactionId};
-    use aura_crypto::{KeyPair, Signature};
     use crate::blockchain::Block;
+    use crate::transaction::{Transaction, TransactionType};
+    use aura_common::{AuraDid, DidDocument, Timestamp, TransactionId};
+    use aura_crypto::{KeyPair, Signature};
     use std::sync::Arc;
     use tempfile::TempDir;
 
@@ -193,7 +193,7 @@ mod tests {
 
     fn create_test_transaction(keypair: &KeyPair, nonce: u64) -> Transaction {
         let did_doc = DidDocument::new(AuraDid("did:aura:test123".to_string()));
-        
+
         Transaction {
             id: TransactionId(format!("tx-{}", uuid::Uuid::new_v4())),
             transaction_type: TransactionType::RegisterDid {
@@ -212,9 +212,9 @@ mod tests {
     fn test_poa_new() {
         let validators = create_test_validators();
         let public_keys: Vec<PublicKey> = validators.iter().map(|(_, pk)| pk.clone()).collect();
-        
+
         let poa = ProofOfAuthority::new(public_keys.clone());
-        
+
         assert_eq!(poa.validators.len(), 3);
         assert_eq!(poa.current_validator_index, 0);
         assert_eq!(poa.validator_rotation_interval, 10);
@@ -228,10 +228,10 @@ mod tests {
         let validators = create_test_validators();
         let public_keys: Vec<PublicKey> = validators.iter().map(|(_, pk)| pk.clone()).collect();
         let poa = ProofOfAuthority::new(public_keys.clone());
-        
+
         // Test valid validator
         assert!(poa.is_validator(&public_keys[0]));
-        
+
         // Test non-validator
         let non_validator = KeyPair::generate().unwrap().public_key().clone();
         assert!(!poa.is_validator(&non_validator));
@@ -242,18 +242,18 @@ mod tests {
         let validators = create_test_validators();
         let public_keys: Vec<PublicKey> = validators.iter().map(|(_, pk)| pk.clone()).collect();
         let mut poa = ProofOfAuthority::new(public_keys);
-        
+
         // Add new validator
         let new_validator = KeyPair::generate().unwrap().public_key().clone();
         poa.add_validator(new_validator.clone()).unwrap();
         assert_eq!(poa.validators.len(), 4);
         assert!(poa.is_validator(&new_validator));
-        
+
         // Try to add duplicate
         let result = poa.add_validator(new_validator);
         assert!(result.is_err());
         match result {
-            Err(AuraError::AlreadyExists(_)) => {},
+            Err(AuraError::AlreadyExists(_)) => {}
             _ => panic!("Expected AlreadyExists error"),
         }
     }
@@ -263,18 +263,18 @@ mod tests {
         let validators = create_test_validators();
         let public_keys: Vec<PublicKey> = validators.iter().map(|(_, pk)| pk.clone()).collect();
         let mut poa = ProofOfAuthority::new(public_keys.clone());
-        
+
         // Remove validator
         poa.remove_validator(&public_keys[0]).unwrap();
         assert_eq!(poa.validators.len(), 2);
         assert!(!poa.is_validator(&public_keys[0]));
-        
+
         // Try to remove non-existent validator
         let non_validator = KeyPair::generate().unwrap().public_key().clone();
         let result = poa.remove_validator(&non_validator);
         assert!(result.is_err());
         match result {
-            Err(AuraError::NotFound(_)) => {},
+            Err(AuraError::NotFound(_)) => {}
             _ => panic!("Expected NotFound error"),
         }
     }
@@ -283,14 +283,14 @@ mod tests {
     fn test_remove_last_validator() {
         let validator = KeyPair::generate().unwrap().public_key().clone();
         let mut poa = ProofOfAuthority::new(vec![validator.clone()]);
-        
+
         // Try to remove last validator
         let result = poa.remove_validator(&validator);
         assert!(result.is_err());
         match result {
             Err(AuraError::Validation(msg)) => {
                 assert!(msg.contains("Cannot remove last validator"));
-            },
+            }
             _ => panic!("Expected Validation error"),
         }
     }
@@ -300,13 +300,13 @@ mod tests {
         let validators = create_test_validators();
         let public_keys: Vec<PublicKey> = validators.iter().map(|(_, pk)| pk.clone()).collect();
         let poa = ProofOfAuthority::new(public_keys.clone());
-        
+
         // Test block validator rotation
         let validator1 = poa.get_block_validator(&BlockNumber(0)).unwrap();
         let validator2 = poa.get_block_validator(&BlockNumber(10)).unwrap();
         let validator3 = poa.get_block_validator(&BlockNumber(20)).unwrap();
         let validator4 = poa.get_block_validator(&BlockNumber(30)).unwrap();
-        
+
         // Should rotate every 10 blocks
         assert_ne!(validator1, validator2);
         assert_ne!(validator2, validator3);
@@ -320,13 +320,13 @@ mod tests {
             current_validator_index: 0,
             validator_rotation_interval: 10,
         };
-        
+
         let result = poa.get_block_validator(&BlockNumber(0));
         assert!(result.is_err());
         match result {
             Err(AuraError::Internal(msg)) => {
                 assert!(msg.contains("No validators available"));
-            },
+            }
             _ => panic!("Expected Internal error"),
         }
     }
@@ -336,16 +336,17 @@ mod tests {
         let validators = create_test_validators();
         let public_keys: Vec<PublicKey> = validators.iter().map(|(_, pk)| pk.clone()).collect();
         let poa = ProofOfAuthority::new(public_keys.clone());
-        
+
         // Get the expected validator for block 0
         let expected_validator = poa.get_block_validator(&BlockNumber(0)).unwrap();
-        
+
         // Find the corresponding keypair
-        let validator_keypair = validators.iter()
+        let validator_keypair = validators
+            .iter()
             .find(|(_, pk)| pk == expected_validator)
             .map(|(kp, _)| kp)
             .unwrap();
-        
+
         // Create a valid block with the correct validator
         let mut block = Block::new(
             BlockNumber(0),
@@ -353,10 +354,11 @@ mod tests {
             vec![],
             expected_validator.clone(),
         );
-        
+
         // Sign the block
-        poa.sign_block(&mut block, validator_keypair.private_key()).unwrap();
-        
+        poa.sign_block(&mut block, validator_keypair.private_key())
+            .unwrap();
+
         // Validate
         let result = poa.validate_block(&block, &[0u8; 32]);
         assert!(result.is_ok());
@@ -367,30 +369,26 @@ mod tests {
         let validators = create_test_validators();
         let public_keys: Vec<PublicKey> = validators.iter().map(|(_, pk)| pk.clone()).collect();
         let poa = ProofOfAuthority::new(public_keys.clone());
-        
+
         // Get the expected validator for block 0
         let expected_validator = poa.get_block_validator(&BlockNumber(0)).unwrap();
-        
+
         // Find a different validator
-        let wrong_validator = validators.iter()
+        let wrong_validator = validators
+            .iter()
             .find(|(_, pk)| pk != expected_validator)
             .map(|(_, pk)| pk.clone())
             .unwrap();
-        
+
         // Create block with wrong validator
-        let block = Block::new(
-            BlockNumber(0),
-            [0u8; 32],
-            vec![],
-            wrong_validator,
-        );
-        
+        let block = Block::new(BlockNumber(0), [0u8; 32], vec![], wrong_validator);
+
         let result = poa.validate_block(&block, &[0u8; 32]);
         assert!(result.is_err());
         match result {
             Err(AuraError::Validation(msg)) => {
                 assert!(msg.contains("Invalid block validator"));
-            },
+            }
             _ => panic!("Expected Validation error"),
         }
     }
@@ -400,23 +398,23 @@ mod tests {
         let validators = create_test_validators();
         let public_keys: Vec<PublicKey> = validators.iter().map(|(_, pk)| pk.clone()).collect();
         let poa = ProofOfAuthority::new(public_keys.clone());
-        
+
         // Get the expected validator for block 0
         let expected_validator = poa.get_block_validator(&BlockNumber(0)).unwrap();
-        
+
         let block = Block::new(
             BlockNumber(0),
             [1u8; 32], // Wrong hash
             vec![],
             expected_validator.clone(),
         );
-        
+
         let result = poa.validate_block(&block, &[0u8; 32]);
         assert!(result.is_err());
         match result {
             Err(AuraError::Validation(msg)) => {
                 assert!(msg.contains("Invalid previous block hash"));
-            },
+            }
             _ => panic!("Expected Validation error"),
         }
     }
@@ -426,30 +424,32 @@ mod tests {
         let validators = create_test_validators();
         let public_keys: Vec<PublicKey> = validators.iter().map(|(_, pk)| pk.clone()).collect();
         let poa = ProofOfAuthority::new(public_keys.clone());
-        
+
         // Get the expected validator for block 0
         let expected_validator = poa.get_block_validator(&BlockNumber(0)).unwrap();
-        
+
         // Find a different keypair to sign with
-        let wrong_keypair = validators.iter()
+        let wrong_keypair = validators
+            .iter()
             .find(|(_, pk)| pk != expected_validator)
             .map(|(kp, _)| kp)
             .unwrap();
-        
+
         let mut block = Block::new(
             BlockNumber(0),
             [0u8; 32],
             vec![],
             expected_validator.clone(),
         );
-        
+
         // Sign with wrong key
-        poa.sign_block(&mut block, wrong_keypair.private_key()).unwrap();
-        
+        poa.sign_block(&mut block, wrong_keypair.private_key())
+            .unwrap();
+
         let result = poa.validate_block(&block, &[0u8; 32]);
         assert!(result.is_err());
         match result {
-            Err(AuraError::InvalidSignature) => {},
+            Err(AuraError::InvalidSignature) => {}
             _ => panic!("Expected InvalidSignature error"),
         }
     }
@@ -459,10 +459,10 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let storage = Arc::new(Storage::new(temp_dir.path()).unwrap());
         let poa = ProofOfAuthority::new(vec![]);
-        
+
         let keypair = KeyPair::generate().unwrap();
         let mut tx = create_test_transaction(&keypair, 1);
-        
+
         // Sign transaction properly
         let tx_for_signing = crate::transaction::TransactionForSigning {
             id: tx.id.clone(),
@@ -474,7 +474,7 @@ mod tests {
             expires_at: tx.expires_at,
         };
         tx.signature = signing::sign_json(keypair.private_key(), &tx_for_signing).unwrap();
-        
+
         // Validate
         let result = poa.validate_transactions(&[tx], &storage, "test-chain");
         assert!(result.is_ok());
@@ -485,16 +485,16 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let storage = Arc::new(Storage::new(temp_dir.path()).unwrap());
         let poa = ProofOfAuthority::new(vec![]);
-        
+
         let keypair = KeyPair::generate().unwrap();
         let tx = create_test_transaction(&keypair, 1);
-        
+
         let result = poa.validate_transactions(&[tx], &storage, "wrong-chain");
         assert!(result.is_err());
         match result {
             Err(AuraError::Validation(msg)) => {
                 assert!(msg.contains("Invalid chain ID"));
-            },
+            }
             _ => panic!("Expected Validation error"),
         }
     }
@@ -503,18 +503,18 @@ mod tests {
     fn test_sign_block() {
         let keypair = KeyPair::generate().unwrap();
         let poa = ProofOfAuthority::new(vec![keypair.public_key().clone()]);
-        
+
         let mut block = Block::new(
             BlockNumber(0),
             [0u8; 32],
             vec![],
             keypair.public_key().clone(),
         );
-        
+
         assert!(block.header.signature.is_empty());
-        
+
         poa.sign_block(&mut block, keypair.private_key()).unwrap();
-        
+
         assert_eq!(block.header.signature.len(), 64);
     }
 
@@ -523,23 +523,23 @@ mod tests {
         let validators = create_test_validators();
         let public_keys: Vec<PublicKey> = validators.iter().map(|(_, pk)| pk.clone()).collect();
         let poa = ProofOfAuthority::new(public_keys.clone());
-        
+
         // Test that validators rotate correctly
         let mut validator_sequence = vec![];
         for i in 0..30 {
             let validator = poa.get_block_validator(&BlockNumber(i)).unwrap();
             validator_sequence.push(validator);
         }
-        
+
         // Every 10 blocks should have same validator
         for i in 0..3 {
             let start = i * 10;
             let end = (i + 1) * 10;
-            for j in start+1..end {
+            for j in start + 1..end {
                 assert_eq!(validator_sequence[start], validator_sequence[j]);
             }
         }
-        
+
         // Different rotation periods should have different validators
         assert_ne!(validator_sequence[0], validator_sequence[10]);
         assert_ne!(validator_sequence[10], validator_sequence[20]);

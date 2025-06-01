@@ -140,19 +140,15 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let list_id = "list123";
         let issuer_did = AuraDid("did:aura:issuer123".to_string());
-        
-        let result = registry.create_revocation_list(
-            list_id,
-            &issuer_did,
-            BlockNumber(1),
-        );
-        
+
+        let result = registry.create_revocation_list(list_id, &issuer_did, BlockNumber(1));
+
         assert!(result.is_ok());
-        
+
         // Verify list was created
         let list = registry.get_revocation_list(list_id).unwrap();
         assert!(list.is_some());
-        
+
         let list = list.unwrap();
         assert_eq!(list.list_id, list_id);
         assert_eq!(list.issuer_did, issuer_did);
@@ -165,24 +161,18 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let list_id = "list123";
         let issuer_did = AuraDid("did:aura:issuer123".to_string());
-        
+
         // Create first list
-        registry.create_revocation_list(
-            list_id,
-            &issuer_did,
-            BlockNumber(1),
-        ).unwrap();
-        
+        registry
+            .create_revocation_list(list_id, &issuer_did, BlockNumber(1))
+            .unwrap();
+
         // Try to create duplicate
-        let result = registry.create_revocation_list(
-            list_id,
-            &issuer_did,
-            BlockNumber(2),
-        );
-        
+        let result = registry.create_revocation_list(list_id, &issuer_did, BlockNumber(2));
+
         assert!(result.is_err());
         match result {
-            Err(AuraError::AlreadyExists(_)) => {},
+            Err(AuraError::AlreadyExists(_)) => {}
             _ => panic!("Expected AlreadyExists error"),
         }
     }
@@ -192,23 +182,18 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let list_id = "list123";
         let issuer_did = AuraDid("did:aura:issuer123".to_string());
-        
+
         // Create list
-        registry.create_revocation_list(
-            list_id,
-            &issuer_did,
-            BlockNumber(1),
-        ).unwrap();
-        
+        registry
+            .create_revocation_list(list_id, &issuer_did, BlockNumber(1))
+            .unwrap();
+
         // Update with revoked indices
         let revoked = vec![1, 5, 10];
-        registry.update_revocation_list(
-            list_id,
-            &issuer_did,
-            revoked.clone(),
-            BlockNumber(2),
-        ).unwrap();
-        
+        registry
+            .update_revocation_list(list_id, &issuer_did, revoked.clone(), BlockNumber(2))
+            .unwrap();
+
         // Verify update
         let list = registry.get_revocation_list(list_id).unwrap().unwrap();
         assert_eq!(list.revoked_indices.len(), 3);
@@ -223,38 +208,27 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let list_id = "list123";
         let issuer_did = AuraDid("did:aura:issuer123".to_string());
-        
+
         // Create list
-        registry.create_revocation_list(
-            list_id,
-            &issuer_did,
-            BlockNumber(1),
-        ).unwrap();
-        
+        registry
+            .create_revocation_list(list_id, &issuer_did, BlockNumber(1))
+            .unwrap();
+
         // First update
-        registry.update_revocation_list(
-            list_id,
-            &issuer_did,
-            vec![1, 2, 3],
-            BlockNumber(2),
-        ).unwrap();
-        
+        registry
+            .update_revocation_list(list_id, &issuer_did, vec![1, 2, 3], BlockNumber(2))
+            .unwrap();
+
         // Second update (should add to existing)
-        registry.update_revocation_list(
-            list_id,
-            &issuer_did,
-            vec![4, 5, 6],
-            BlockNumber(3),
-        ).unwrap();
-        
+        registry
+            .update_revocation_list(list_id, &issuer_did, vec![4, 5, 6], BlockNumber(3))
+            .unwrap();
+
         // Third update with some duplicates
-        registry.update_revocation_list(
-            list_id,
-            &issuer_did,
-            vec![3, 6, 7, 8],
-            BlockNumber(4),
-        ).unwrap();
-        
+        registry
+            .update_revocation_list(list_id, &issuer_did, vec![3, 6, 7, 8], BlockNumber(4))
+            .unwrap();
+
         // Verify all indices are present
         let list = registry.get_revocation_list(list_id).unwrap().unwrap();
         assert_eq!(list.revoked_indices.len(), 8); // 1,2,3,4,5,6,7,8
@@ -267,17 +241,17 @@ mod tests {
     fn test_update_nonexistent_list() {
         let (mut registry, _temp_dir) = setup_registry();
         let issuer_did = AuraDid("did:aura:issuer123".to_string());
-        
+
         let result = registry.update_revocation_list(
             "nonexistent",
             &issuer_did,
             vec![1, 2, 3],
             BlockNumber(1),
         );
-        
+
         assert!(result.is_err());
         match result {
-            Err(AuraError::NotFound(_)) => {},
+            Err(AuraError::NotFound(_)) => {}
             _ => panic!("Expected NotFound error"),
         }
     }
@@ -288,25 +262,19 @@ mod tests {
         let list_id = "list123";
         let issuer_did = AuraDid("did:aura:issuer123".to_string());
         let wrong_issuer = AuraDid("did:aura:wrong".to_string());
-        
+
         // Create list
-        registry.create_revocation_list(
-            list_id,
-            &issuer_did,
-            BlockNumber(1),
-        ).unwrap();
-        
+        registry
+            .create_revocation_list(list_id, &issuer_did, BlockNumber(1))
+            .unwrap();
+
         // Try to update with wrong issuer
-        let result = registry.update_revocation_list(
-            list_id,
-            &wrong_issuer,
-            vec![1, 2, 3],
-            BlockNumber(2),
-        );
-        
+        let result =
+            registry.update_revocation_list(list_id, &wrong_issuer, vec![1, 2, 3], BlockNumber(2));
+
         assert!(result.is_err());
         match result {
-            Err(AuraError::Unauthorized) => {},
+            Err(AuraError::Unauthorized) => {}
             _ => panic!("Expected Unauthorized error"),
         }
     }
@@ -316,27 +284,22 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let list_id = "list123";
         let issuer_did = AuraDid("did:aura:issuer123".to_string());
-        
+
         // Create list and add some revoked indices
-        registry.create_revocation_list(
-            list_id,
-            &issuer_did,
-            BlockNumber(1),
-        ).unwrap();
-        
-        registry.update_revocation_list(
-            list_id,
-            &issuer_did,
-            vec![5, 10, 15, 20],
-            BlockNumber(2),
-        ).unwrap();
-        
+        registry
+            .create_revocation_list(list_id, &issuer_did, BlockNumber(1))
+            .unwrap();
+
+        registry
+            .update_revocation_list(list_id, &issuer_did, vec![5, 10, 15, 20], BlockNumber(2))
+            .unwrap();
+
         // Check revoked credentials
         assert!(registry.is_credential_revoked(list_id, 5).unwrap());
         assert!(registry.is_credential_revoked(list_id, 10).unwrap());
         assert!(registry.is_credential_revoked(list_id, 15).unwrap());
         assert!(registry.is_credential_revoked(list_id, 20).unwrap());
-        
+
         // Check non-revoked credentials
         assert!(!registry.is_credential_revoked(list_id, 1).unwrap());
         assert!(!registry.is_credential_revoked(list_id, 7).unwrap());
@@ -346,7 +309,7 @@ mod tests {
     #[test]
     fn test_is_credential_revoked_nonexistent_list() {
         let (registry, _temp_dir) = setup_registry();
-        
+
         // Checking a nonexistent list should return false
         assert!(!registry.is_credential_revoked("nonexistent", 1).unwrap());
     }
@@ -356,24 +319,36 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let issuer1 = AuraDid("did:aura:issuer1".to_string());
         let issuer2 = AuraDid("did:aura:issuer2".to_string());
-        
+
         // Create multiple lists
-        registry.create_revocation_list("list1", &issuer1, BlockNumber(1)).unwrap();
-        registry.create_revocation_list("list2", &issuer2, BlockNumber(2)).unwrap();
-        registry.create_revocation_list("list3", &issuer1, BlockNumber(3)).unwrap();
-        
+        registry
+            .create_revocation_list("list1", &issuer1, BlockNumber(1))
+            .unwrap();
+        registry
+            .create_revocation_list("list2", &issuer2, BlockNumber(2))
+            .unwrap();
+        registry
+            .create_revocation_list("list3", &issuer1, BlockNumber(3))
+            .unwrap();
+
         // Update different lists
-        registry.update_revocation_list("list1", &issuer1, vec![1, 2], BlockNumber(4)).unwrap();
-        registry.update_revocation_list("list2", &issuer2, vec![3, 4], BlockNumber(5)).unwrap();
-        registry.update_revocation_list("list3", &issuer1, vec![5, 6], BlockNumber(6)).unwrap();
-        
+        registry
+            .update_revocation_list("list1", &issuer1, vec![1, 2], BlockNumber(4))
+            .unwrap();
+        registry
+            .update_revocation_list("list2", &issuer2, vec![3, 4], BlockNumber(5))
+            .unwrap();
+        registry
+            .update_revocation_list("list3", &issuer1, vec![5, 6], BlockNumber(6))
+            .unwrap();
+
         // Verify lists are independent
         assert!(registry.is_credential_revoked("list1", 1).unwrap());
         assert!(!registry.is_credential_revoked("list1", 3).unwrap());
-        
+
         assert!(registry.is_credential_revoked("list2", 3).unwrap());
         assert!(!registry.is_credential_revoked("list2", 1).unwrap());
-        
+
         assert!(registry.is_credential_revoked("list3", 5).unwrap());
         assert!(!registry.is_credential_revoked("list3", 1).unwrap());
     }
@@ -383,22 +358,17 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let list_id = "list123";
         let issuer_did = AuraDid("did:aura:issuer123".to_string());
-        
-        registry.create_revocation_list(
-            list_id,
-            &issuer_did,
-            BlockNumber(1),
-        ).unwrap();
-        
+
+        registry
+            .create_revocation_list(list_id, &issuer_did, BlockNumber(1))
+            .unwrap();
+
         // Add large indices
         let large_indices = vec![1000000, 2000000, u32::MAX - 1, u32::MAX];
-        registry.update_revocation_list(
-            list_id,
-            &issuer_did,
-            large_indices.clone(),
-            BlockNumber(2),
-        ).unwrap();
-        
+        registry
+            .update_revocation_list(list_id, &issuer_did, large_indices.clone(), BlockNumber(2))
+            .unwrap();
+
         // Verify large indices work correctly
         for index in &large_indices {
             assert!(registry.is_credential_revoked(list_id, *index).unwrap());
@@ -410,21 +380,16 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let list_id = "list123";
         let issuer_did = AuraDid("did:aura:issuer123".to_string());
-        
-        registry.create_revocation_list(
-            list_id,
-            &issuer_did,
-            BlockNumber(1),
-        ).unwrap();
-        
+
+        registry
+            .create_revocation_list(list_id, &issuer_did, BlockNumber(1))
+            .unwrap();
+
         // Update with empty list (should still update block number)
-        registry.update_revocation_list(
-            list_id,
-            &issuer_did,
-            vec![],
-            BlockNumber(2),
-        ).unwrap();
-        
+        registry
+            .update_revocation_list(list_id, &issuer_did, vec![], BlockNumber(2))
+            .unwrap();
+
         let list = registry.get_revocation_list(list_id).unwrap().unwrap();
         assert!(list.revoked_indices.is_empty());
         assert_eq!(list.last_updated_block, 2);
@@ -435,16 +400,15 @@ mod tests {
         let (mut registry, _temp_dir) = setup_registry();
         let list_id = "persist_test";
         let issuer_did = AuraDid("did:aura:issuer".to_string());
-        
+
         // Create and update list
-        registry.create_revocation_list(list_id, &issuer_did, BlockNumber(1)).unwrap();
-        registry.update_revocation_list(
-            list_id,
-            &issuer_did,
-            vec![10, 20, 30],
-            BlockNumber(2),
-        ).unwrap();
-        
+        registry
+            .create_revocation_list(list_id, &issuer_did, BlockNumber(1))
+            .unwrap();
+        registry
+            .update_revocation_list(list_id, &issuer_did, vec![10, 20, 30], BlockNumber(2))
+            .unwrap();
+
         // Retrieve multiple times to ensure persistence
         for _ in 0..5 {
             let list = registry.get_revocation_list(list_id).unwrap().unwrap();

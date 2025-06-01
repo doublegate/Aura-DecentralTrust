@@ -1,4 +1,4 @@
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -39,14 +39,14 @@ impl CertPinningManager {
     pub async fn load_from_file(&self, path: &str) -> anyhow::Result<()> {
         let content = tokio::fs::read_to_string(path).await?;
         let mut trusted = self.trusted_fingerprints.write().await;
-        
+
         for line in content.lines() {
             let line = line.trim();
             if !line.is_empty() && !line.starts_with('#') {
                 trusted.insert(line.to_string());
             }
         }
-        
+
         tracing::info!("Loaded {} trusted certificate fingerprints", trusted.len());
         Ok(())
     }
@@ -56,12 +56,12 @@ impl CertPinningManager {
         let trusted = self.trusted_fingerprints.read().await;
         let mut content = String::from("# Trusted P2P Certificate Fingerprints\n");
         content.push_str("# One SHA256 fingerprint per line\n\n");
-        
+
         for fingerprint in trusted.iter() {
             content.push_str(fingerprint);
             content.push('\n');
         }
-        
+
         tokio::fs::write(path, content).await?;
         Ok(())
     }
@@ -70,10 +70,10 @@ impl CertPinningManager {
     pub async fn verify_certificate(&self, cert_der: &[u8]) -> Result<(), String> {
         // Calculate fingerprint
         let fingerprint = calculate_fingerprint(cert_der);
-        
+
         // Check if it's trusted
         let trusted = self.trusted_fingerprints.read().await;
-        
+
         if trusted.contains(&fingerprint) {
             tracing::debug!("Certificate fingerprint {} is trusted", fingerprint);
             Ok(())
@@ -124,14 +124,16 @@ mod tests {
     #[tokio::test]
     async fn test_cert_pinning() {
         let manager = CertPinningManager::new(false);
-        
+
         // Add a trusted fingerprint
-        manager.add_trusted_fingerprint("abcd1234".to_string()).await;
-        
+        manager
+            .add_trusted_fingerprint("abcd1234".to_string())
+            .await;
+
         // Verify it's trusted
         let trusted = manager.get_trusted_fingerprints().await;
         assert!(trusted.contains(&"abcd1234".to_string()));
-        
+
         // Remove it
         manager.remove_trusted_fingerprint("abcd1234").await;
         let trusted = manager.get_trusted_fingerprints().await;

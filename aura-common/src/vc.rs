@@ -173,7 +173,10 @@ mod tests {
         // Check context
         assert_eq!(vc.context.len(), 2);
         assert_eq!(vc.context[0], "https://www.w3.org/2018/credentials/v1");
-        assert_eq!(vc.context[1], "https://w3id.org/security/suites/ed25519-2020/v1");
+        assert_eq!(
+            vc.context[1],
+            "https://w3id.org/security/suites/ed25519-2020/v1"
+        );
 
         // Check types
         assert_eq!(vc.credential_type.len(), 2);
@@ -189,7 +192,10 @@ mod tests {
         // Check subject
         assert_eq!(vc.credential_subject.id, Some(subject));
         assert_eq!(vc.credential_subject.claims.len(), 3);
-        assert_eq!(vc.credential_subject.claims.get("name"), Some(&json!("John Doe")));
+        assert_eq!(
+            vc.credential_subject.claims.get("name"),
+            Some(&json!("John Doe"))
+        );
 
         // Check optional fields
         assert!(vc.id.is_none());
@@ -241,10 +247,7 @@ mod tests {
         assert_eq!(json["email"], "john.doe@example.com");
 
         // Test with no ID
-        let subject_no_id = CredentialSubject {
-            id: None,
-            claims,
-        };
+        let subject_no_id = CredentialSubject { id: None, claims };
         let json = serde_json::to_value(&subject_no_id).unwrap();
         // serde includes null values for Option fields, so check it's null not missing
         assert_eq!(json.get("id"), Some(&serde_json::Value::Null));
@@ -264,7 +267,10 @@ mod tests {
         assert_eq!(json["id"], "https://example.com/credentials/status/3");
         assert_eq!(json["type"], "RevocationList2020Status");
         assert_eq!(json["statusListIndex"], 94567);
-        assert_eq!(json["statusListCredential"], "https://example.com/credentials/status/3");
+        assert_eq!(
+            json["statusListCredential"],
+            "https://example.com/credentials/status/3"
+        );
 
         // Test with minimal fields
         let minimal_status = CredentialStatus {
@@ -276,7 +282,10 @@ mod tests {
         let json = serde_json::to_value(&minimal_status).unwrap();
         // serde includes null values for Option fields
         assert_eq!(json.get("statusListIndex"), Some(&serde_json::Value::Null));
-        assert_eq!(json.get("statusListCredential"), Some(&serde_json::Value::Null));
+        assert_eq!(
+            json.get("statusListCredential"),
+            Some(&serde_json::Value::Null)
+        );
     }
 
     #[test]
@@ -319,14 +328,14 @@ mod tests {
         let holder = create_test_did();
         let issuer = AuraDid("did:aura:issuer999".to_string());
         let subject = create_test_subject_did();
-        
+
         let vc1 = VerifiableCredential::new(
             issuer.clone(),
             subject.clone(),
             vec!["TestCredential".to_string()],
             create_test_claims(),
         );
-        
+
         let vc2 = VerifiableCredential::new(
             issuer,
             subject,
@@ -350,7 +359,7 @@ mod tests {
         let issuer = create_test_did();
         let subject = create_test_subject_did();
         let claims = create_test_claims();
-        
+
         let mut vc = VerifiableCredential::new(
             issuer,
             subject,
@@ -435,7 +444,7 @@ mod tests {
         assert!(!encoded.is_empty());
 
         // Test bincode decoding
-        let (decoded, _): (SchemaRecord, _) = 
+        let (decoded, _): (SchemaRecord, _) =
             bincode::decode_from_slice(&encoded, bincode::config::standard()).unwrap();
         assert_eq!(decoded.schema_id, record.schema_id);
         assert_eq!(decoded.schema_content_hash, record.schema_content_hash);
@@ -451,20 +460,26 @@ mod tests {
         };
 
         let mut claims = HashMap::new();
-        claims.insert("degree".to_string(), json!({
-            "type": "BachelorDegree",
-            "name": "Bachelor of Science and Arts",
-            "major": "Computer Science",
-            "minor": "Philosophy",
-            "gpa": 3.8
-        }));
-        claims.insert("alumniOf".to_string(), json!({
-            "id": "did:example:c276e12ec21ebfeb1f712ebc6f1",
-            "name": [{
-                "value": "Example University",
-                "lang": "en"
-            }]
-        }));
+        claims.insert(
+            "degree".to_string(),
+            json!({
+                "type": "BachelorDegree",
+                "name": "Bachelor of Science and Arts",
+                "major": "Computer Science",
+                "minor": "Philosophy",
+                "gpa": 3.8
+            }),
+        );
+        claims.insert(
+            "alumniOf".to_string(),
+            json!({
+                "id": "did:example:c276e12ec21ebfeb1f712ebc6f1",
+                "name": [{
+                    "value": "Example University",
+                    "lang": "en"
+                }]
+            }),
+        );
 
         let subject = CredentialSubject {
             id: Some(create_test_subject_did()),
@@ -500,7 +515,10 @@ mod tests {
         // Test serialization of complex credential
         let json = serde_json::to_value(&vc).unwrap();
         assert!(json["issuer"]["name"].is_string());
-        assert_eq!(json["credentialSubject"]["degree"]["type"], "BachelorDegree");
+        assert_eq!(
+            json["credentialSubject"]["degree"]["type"],
+            "BachelorDegree"
+        );
         assert_eq!(json["credentialSubject"]["degree"]["gpa"], 3.8);
         assert!(json["proof"]["proofValue"].is_string());
 
@@ -508,7 +526,11 @@ mod tests {
         let json_str = serde_json::to_string_pretty(&vc).unwrap();
         let deserialized: VerifiableCredential = serde_json::from_str(&json_str).unwrap();
         assert_eq!(
-            deserialized.credential_subject.claims.get("degree").unwrap()["major"],
+            deserialized
+                .credential_subject
+                .claims
+                .get("degree")
+                .unwrap()["major"],
             "Computer Science"
         );
     }
@@ -528,7 +550,7 @@ mod tests {
         // Test empty presentation
         let vp = VerifiablePresentation::new(create_test_did(), vec![]);
         assert!(vp.verifiable_credential.is_empty());
-        
+
         // Test serialization
         let json = serde_json::to_value(&vp).unwrap();
         assert_eq!(json["verifiableCredential"].as_array().unwrap().len(), 0);
@@ -580,6 +602,9 @@ mod tests {
         let json_str = serde_json::to_string(&vc).unwrap();
         let deserialized: VerifiableCredential = serde_json::from_str(&json_str).unwrap();
         assert_eq!(deserialized.issuance_date.as_unix(), past.as_unix());
-        assert_eq!(deserialized.expiration_date.unwrap().as_unix(), future.as_unix());
+        assert_eq!(
+            deserialized.expiration_date.unwrap().as_unix(),
+            future.as_unix()
+        );
     }
 }

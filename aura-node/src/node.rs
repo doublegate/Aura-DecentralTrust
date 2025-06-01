@@ -280,10 +280,13 @@ impl AuraNode {
         let block_data = serde_json::to_vec(&block)
             .map_err(|e| anyhow::anyhow!("Failed to serialize block: {}", e))?;
         let mut network_guard = params.network.lock().await;
-        
+
         // In tests, broadcasting may fail due to no connected peers - log but don't fail
         if let Err(e) = network_guard.broadcast_block(block_data).await {
-            warn!("Failed to broadcast block: {}. This is expected in tests without connected peers.", e);
+            warn!(
+                "Failed to broadcast block: {}. This is expected in tests without connected peers.",
+                e
+            );
         }
 
         Ok(())
@@ -325,7 +328,7 @@ impl AuraNode {
                 let mut registry = self.revocation_registry.write().await;
                 // In a real implementation, we would look up the issuer from the revocation list
                 // For now, we'll create the list if it doesn't exist (using sender as issuer)
-                
+
                 // Try to get existing list first
                 if let Some(existing_list) = registry.get_revocation_list(list_id)? {
                     // Update existing list - verify sender owns it
@@ -338,13 +341,11 @@ impl AuraNode {
                     )?;
                 } else {
                     // Create new list using sender's public key as basis for DID
-                    let issuer_did = aura_common::AuraDid::new(&format!("did:aura:{}", 
-                        hex::encode(&tx.sender.to_bytes()[..8])));
-                    registry.create_revocation_list(
-                        list_id,
-                        &issuer_did,
-                        block_number,
-                    )?;
+                    let issuer_did = aura_common::AuraDid::new(&format!(
+                        "did:aura:{}",
+                        hex::encode(&tx.sender.to_bytes()[..8])
+                    ));
+                    registry.create_revocation_list(list_id, &issuer_did, block_number)?;
                     // Now update it
                     registry.update_revocation_list(
                         list_id,
@@ -377,15 +378,17 @@ impl AuraNode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aura_common::{AuraDid, DidDocument, VerificationMethod, VerificationRelationship, Timestamp};
-    use aura_ledger::Block;
     use aura_common::vc::CredentialSchema;
+    use aura_common::{
+        AuraDid, DidDocument, Timestamp, VerificationMethod, VerificationRelationship,
+    };
+    use aura_ledger::Block;
     use tempfile::TempDir;
 
     async fn create_test_node(is_validator: bool) -> (AuraNode, TempDir) {
         let temp_dir = TempDir::new().unwrap();
         let data_dir = temp_dir.path().to_path_buf();
-        
+
         let config = NodeConfig {
             node_id: "test-node-1".to_string(),
             network: crate::config::NetworkConfig {
@@ -394,7 +397,11 @@ mod tests {
                 max_peers: 50,
             },
             consensus: crate::config::ConsensusConfig {
-                validator_key_path: if is_validator { Some("./test-validator-key".to_string()) } else { None },
+                validator_key_path: if is_validator {
+                    Some("./test-validator-key".to_string())
+                } else {
+                    None
+                },
                 block_time_secs: 1,
                 max_transactions_per_block: 100,
             },
@@ -425,7 +432,10 @@ mod tests {
         create_test_transaction_with_keypair(tx_type, &keypair)
     }
 
-    fn create_test_transaction_with_keypair(tx_type: TransactionType, keypair: &KeyPair) -> Transaction {
+    fn create_test_transaction_with_keypair(
+        tx_type: TransactionType,
+        keypair: &KeyPair,
+    ) -> Transaction {
         let tx = Transaction {
             id: aura_common::TransactionId(uuid::Uuid::new_v4().to_string()),
             transaction_type: tx_type,
@@ -436,7 +446,7 @@ mod tests {
             chain_id: "test-chain".to_string(),
             expires_at: Some(Timestamp::from_unix(Timestamp::now().as_unix() + 3600)),
         };
-        
+
         // Create transaction for signing
         let tx_for_signing = aura_ledger::transaction::TransactionForSigning {
             id: tx.id.clone(),
@@ -447,14 +457,11 @@ mod tests {
             chain_id: tx.chain_id.clone(),
             expires_at: tx.expires_at,
         };
-        
+
         // Sign the transaction
         let signature = aura_crypto::sign_json(keypair.private_key(), &tx_for_signing).unwrap();
-        
-        Transaction {
-            signature,
-            ..tx
-        }
+
+        Transaction { signature, ..tx }
     }
 
     #[tokio::test]
@@ -474,7 +481,7 @@ mod tests {
     #[tokio::test]
     async fn test_submit_transaction_valid() {
         let (node, _temp_dir) = create_test_node(false).await;
-        
+
         let did = AuraDid::new("test");
         let mut doc = DidDocument::new(did.clone());
         doc.authentication = vec![VerificationRelationship::Embedded(VerificationMethod {
@@ -483,14 +490,12 @@ mod tests {
             controller: did.clone(),
             public_key_multibase: "zEd25519...".to_string(),
         })];
-        
-        let tx = create_test_transaction(TransactionType::RegisterDid {
-            did_document: doc,
-        });
-        
+
+        let tx = create_test_transaction(TransactionType::RegisterDid { did_document: doc });
+
         let result = node.submit_transaction(tx).await;
         assert!(result.is_ok());
-        
+
         // Verify transaction was added to pool
         let tx_pool = node.transaction_pool.read().await;
         assert_eq!(tx_pool.len(), 1);
@@ -499,13 +504,13 @@ mod tests {
     #[tokio::test]
     async fn test_submit_transaction_invalid_signature() {
         let (node, _temp_dir) = create_test_node(false).await;
-        
+
         let did = AuraDid::new("test");
         let doc = DidDocument::new(did.clone());
-        
+
         // Use a real keypair but provide wrong signature
         let keypair = KeyPair::generate().unwrap();
-        
+
         let tx = Transaction {
             id: aura_common::TransactionId(uuid::Uuid::new_v4().to_string()),
             transaction_type: TransactionType::RegisterDid { did_document: doc },
@@ -516,7 +521,7 @@ mod tests {
             chain_id: "test-chain".to_string(),
             expires_at: None,
         };
-        
+
         let result = node.submit_transaction(tx).await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), AuraError::InvalidSignature));
@@ -525,17 +530,17 @@ mod tests {
     #[tokio::test]
     async fn test_process_transaction_register_did() {
         let (node, _temp_dir) = create_test_node(false).await;
-        
+
         let did = AuraDid::new("test");
         let doc = DidDocument::new(did.clone());
-        
+
         let tx = create_test_transaction(TransactionType::RegisterDid {
             did_document: doc.clone(),
         });
-        
+
         let result = node.process_transaction(&tx, BlockNumber(1)).await;
         assert!(result.is_ok());
-        
+
         // Verify DID was registered
         let registry = node.did_registry.read().await;
         let stored_did = registry.resolve_did(&did).unwrap();
@@ -545,28 +550,36 @@ mod tests {
     #[tokio::test]
     async fn test_process_transaction_update_did() {
         let (node, _temp_dir) = create_test_node(false).await;
-        
+
         let did = AuraDid::new("test");
         let doc = DidDocument::new(did.clone());
-        
+
         // Use the same keypair for both transactions
         let keypair = KeyPair::generate().unwrap();
-        
+
         // First register the DID
-        let register_tx = create_test_transaction_with_keypair(TransactionType::RegisterDid {
-            did_document: doc.clone(),
-        }, &keypair);
-        node.process_transaction(&register_tx, BlockNumber(1)).await.unwrap();
-        
+        let register_tx = create_test_transaction_with_keypair(
+            TransactionType::RegisterDid {
+                did_document: doc.clone(),
+            },
+            &keypair,
+        );
+        node.process_transaction(&register_tx, BlockNumber(1))
+            .await
+            .unwrap();
+
         // Now update it
         let mut updated_doc = doc.clone();
         updated_doc.updated = Timestamp::now();
-        
-        let update_tx = create_test_transaction_with_keypair(TransactionType::UpdateDid {
-            did: did.clone(),
-            did_document: updated_doc,
-        }, &keypair);
-        
+
+        let update_tx = create_test_transaction_with_keypair(
+            TransactionType::UpdateDid {
+                did: did.clone(),
+                did_document: updated_doc,
+            },
+            &keypair,
+        );
+
         let result = node.process_transaction(&update_tx, BlockNumber(2)).await;
         assert!(result.is_ok());
     }
@@ -574,32 +587,38 @@ mod tests {
     #[tokio::test]
     async fn test_process_transaction_deactivate_did() {
         let (node, _temp_dir) = create_test_node(false).await;
-        
+
         let did = AuraDid::new("test");
         let doc = DidDocument::new(did.clone());
-        
+
         // Use the same keypair for both transactions
         let keypair = KeyPair::generate().unwrap();
-        
+
         // First register the DID
-        let register_tx = create_test_transaction_with_keypair(TransactionType::RegisterDid {
-            did_document: doc,
-        }, &keypair);
-        node.process_transaction(&register_tx, BlockNumber(1)).await.unwrap();
-        
+        let register_tx = create_test_transaction_with_keypair(
+            TransactionType::RegisterDid { did_document: doc },
+            &keypair,
+        );
+        node.process_transaction(&register_tx, BlockNumber(1))
+            .await
+            .unwrap();
+
         // Now deactivate it
-        let deactivate_tx = create_test_transaction_with_keypair(TransactionType::DeactivateDid {
-            did: did.clone(),
-        }, &keypair);
-        
-        let result = node.process_transaction(&deactivate_tx, BlockNumber(2)).await;
+        let deactivate_tx = create_test_transaction_with_keypair(
+            TransactionType::DeactivateDid { did: did.clone() },
+            &keypair,
+        );
+
+        let result = node
+            .process_transaction(&deactivate_tx, BlockNumber(2))
+            .await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_process_transaction_register_schema() {
         let (node, _temp_dir) = create_test_node(false).await;
-        
+
         let author_did = AuraDid::new("author");
         let schema = CredentialSchema {
             id: "test-schema".to_string(),
@@ -613,11 +632,11 @@ mod tests {
                 "properties": {}
             }),
         };
-        
+
         let tx = create_test_transaction(TransactionType::RegisterSchema {
             schema: schema.clone(),
         });
-        
+
         let result = node.process_transaction(&tx, BlockNumber(1)).await;
         assert!(result.is_ok());
     }
@@ -625,13 +644,13 @@ mod tests {
     #[tokio::test]
     async fn test_process_transaction_update_revocation_list() {
         let (node, _temp_dir) = create_test_node(false).await;
-        
+
         let revoked_indices = vec![1, 5, 10];
         let tx = create_test_transaction(TransactionType::UpdateRevocationList {
             list_id: "test-list".to_string(),
             revoked_indices: revoked_indices.clone(),
         });
-        
+
         let result = node.process_transaction(&tx, BlockNumber(1)).await;
         assert!(result.is_ok());
     }
@@ -639,13 +658,13 @@ mod tests {
     #[tokio::test]
     async fn test_process_transaction_invalid_signature() {
         let (node, _temp_dir) = create_test_node(false).await;
-        
+
         let did = AuraDid::new("test");
         let doc = DidDocument::new(did.clone());
-        
+
         // Use a real keypair but provide wrong signature
         let keypair = KeyPair::generate().unwrap();
-        
+
         let tx = Transaction {
             id: aura_common::TransactionId(uuid::Uuid::new_v4().to_string()),
             transaction_type: TransactionType::RegisterDid { did_document: doc },
@@ -656,7 +675,7 @@ mod tests {
             chain_id: "test-chain".to_string(),
             expires_at: None,
         };
-        
+
         let result = node.process_transaction(&tx, BlockNumber(1)).await;
         assert!(result.is_err());
     }
@@ -668,29 +687,33 @@ mod tests {
         let consensus = Arc::new(RwLock::new(ProofOfAuthority::new(vec![])));
         let transaction_pool = Arc::new(RwLock::new(Vec::new()));
         let did_registry = Arc::new(RwLock::new(DidRegistry::new(storage.clone())));
-        let network = Arc::new(Mutex::new(NetworkManager::new(crate::config::NetworkConfig {
-            listen_addresses: vec!["/ip4/127.0.0.1/tcp/0".to_string()],
-            bootstrap_nodes: vec![],
-            max_peers: 50,
-        }).await.unwrap()));
-        
+        let network = Arc::new(Mutex::new(
+            NetworkManager::new(crate::config::NetworkConfig {
+                listen_addresses: vec!["/ip4/127.0.0.1/tcp/0".to_string()],
+                bootstrap_nodes: vec![],
+                max_peers: 50,
+            })
+            .await
+            .unwrap(),
+        ));
+
         let validator_key = KeyPair::generate().unwrap();
-        
+
         // Add some transactions
         let tx1 = create_test_transaction(TransactionType::RegisterDid {
             did_document: DidDocument::new(AuraDid::new("test1")),
         });
-        
+
         let tx2 = create_test_transaction(TransactionType::RegisterDid {
             did_document: DidDocument::new(AuraDid::new("test2")),
         });
-        
+
         {
             let mut pool = transaction_pool.write().await;
             pool.push(tx1);
             pool.push(tx2);
         }
-        
+
         let params = BlockProductionParams {
             storage: storage.clone(),
             transaction_pool: transaction_pool.clone(),
@@ -701,19 +724,19 @@ mod tests {
             block_number: BlockNumber(0),
             max_transactions: 10,
         };
-        
+
         let result = AuraNode::produce_block_static(params).await;
         if let Err(e) = &result {
             eprintln!("Block production failed: {}", e);
         }
         assert!(result.is_ok());
-        
+
         // Verify block was stored
         let block = storage.get_block(&BlockNumber(0)).unwrap();
         assert!(block.is_some());
         let block = block.unwrap();
         assert_eq!(block.transactions.len(), 2);
-        
+
         // Verify transaction pool was drained
         let pool = transaction_pool.read().await;
         assert_eq!(pool.len(), 0);
@@ -726,14 +749,18 @@ mod tests {
         let consensus = Arc::new(RwLock::new(ProofOfAuthority::new(vec![])));
         let transaction_pool = Arc::new(RwLock::new(Vec::new()));
         let did_registry = Arc::new(RwLock::new(DidRegistry::new(storage.clone())));
-        let network = Arc::new(Mutex::new(NetworkManager::new(crate::config::NetworkConfig {
-            listen_addresses: vec!["/ip4/127.0.0.1/tcp/0".to_string()],
-            bootstrap_nodes: vec![],
-            max_peers: 50,
-        }).await.unwrap()));
-        
+        let network = Arc::new(Mutex::new(
+            NetworkManager::new(crate::config::NetworkConfig {
+                listen_addresses: vec!["/ip4/127.0.0.1/tcp/0".to_string()],
+                bootstrap_nodes: vec![],
+                max_peers: 50,
+            })
+            .await
+            .unwrap(),
+        ));
+
         let validator_key = KeyPair::generate().unwrap();
-        
+
         let params = BlockProductionParams {
             storage: storage.clone(),
             transaction_pool,
@@ -744,13 +771,13 @@ mod tests {
             block_number: BlockNumber(0),
             max_transactions: 10,
         };
-        
+
         let result = AuraNode::produce_block_static(params).await;
         if let Err(e) = &result {
             eprintln!("Block production failed: {}", e);
         }
         assert!(result.is_ok());
-        
+
         // Verify empty block was stored
         let block = storage.get_block(&BlockNumber(0)).unwrap();
         assert!(block.is_some());
@@ -764,14 +791,18 @@ mod tests {
         let consensus = Arc::new(RwLock::new(ProofOfAuthority::new(vec![])));
         let transaction_pool = Arc::new(RwLock::new(Vec::new()));
         let did_registry = Arc::new(RwLock::new(DidRegistry::new(storage.clone())));
-        let network = Arc::new(Mutex::new(NetworkManager::new(crate::config::NetworkConfig {
-            listen_addresses: vec!["/ip4/127.0.0.1/tcp/0".to_string()],
-            bootstrap_nodes: vec![],
-            max_peers: 50,
-        }).await.unwrap()));
-        
+        let network = Arc::new(Mutex::new(
+            NetworkManager::new(crate::config::NetworkConfig {
+                listen_addresses: vec!["/ip4/127.0.0.1/tcp/0".to_string()],
+                bootstrap_nodes: vec![],
+                max_peers: 50,
+            })
+            .await
+            .unwrap(),
+        ));
+
         let validator_key = KeyPair::generate().unwrap();
-        
+
         // Create and store first block
         let first_block = Block::new(
             BlockNumber(0),
@@ -780,17 +811,17 @@ mod tests {
             validator_key.public_key().clone(),
         );
         storage.put_block(&first_block).unwrap();
-        
+
         // Add a transaction for second block
         let tx = create_test_transaction(TransactionType::RegisterDid {
             did_document: DidDocument::new(AuraDid::new("test")),
         });
-        
+
         {
             let mut pool = transaction_pool.write().await;
             pool.push(tx);
         }
-        
+
         let params = BlockProductionParams {
             storage: storage.clone(),
             transaction_pool: transaction_pool.clone(),
@@ -801,13 +832,13 @@ mod tests {
             block_number: BlockNumber(1),
             max_transactions: 10,
         };
-        
+
         let result = AuraNode::produce_block_static(params).await;
         if let Err(e) = &result {
             eprintln!("Block production failed: {}", e);
         }
         assert!(result.is_ok());
-        
+
         // Verify block references previous
         let block = storage.get_block(&BlockNumber(1)).unwrap().unwrap();
         assert_eq!(block.header.previous_hash, first_block.hash());
@@ -817,23 +848,27 @@ mod tests {
     async fn test_produce_block_wrong_validator() {
         let temp_dir = TempDir::new().unwrap();
         let storage = Arc::new(Storage::new(temp_dir.path().to_path_buf()).unwrap());
-        
+
         // Create consensus with a specific validator
         let authorized_validator = KeyPair::generate().unwrap();
         let validators = vec![authorized_validator.public_key().clone()];
         let consensus = Arc::new(RwLock::new(ProofOfAuthority::new(validators)));
-        
+
         let transaction_pool = Arc::new(RwLock::new(Vec::new()));
         let did_registry = Arc::new(RwLock::new(DidRegistry::new(storage.clone())));
-        let network = Arc::new(Mutex::new(NetworkManager::new(crate::config::NetworkConfig {
-            listen_addresses: vec!["/ip4/127.0.0.1/tcp/0".to_string()],
-            bootstrap_nodes: vec![],
-            max_peers: 50,
-        }).await.unwrap()));
-        
+        let network = Arc::new(Mutex::new(
+            NetworkManager::new(crate::config::NetworkConfig {
+                listen_addresses: vec!["/ip4/127.0.0.1/tcp/0".to_string()],
+                bootstrap_nodes: vec![],
+                max_peers: 50,
+            })
+            .await
+            .unwrap(),
+        ));
+
         // Use a different validator key (not in consensus)
         let wrong_validator = KeyPair::generate().unwrap();
-        
+
         let params = BlockProductionParams {
             storage: storage.clone(),
             transaction_pool,
@@ -844,27 +879,30 @@ mod tests {
             block_number: BlockNumber(0),
             max_transactions: 10,
         };
-        
+
         // Block production itself succeeds (it just signs with the provided key)
         let result = AuraNode::produce_block_static(params).await;
         if let Err(e) = &result {
             eprintln!("Block production failed: {}", e);
         }
         assert!(result.is_ok());
-        
+
         // But the block should fail validation because wrong validator signed it
         let block = storage.get_block(&BlockNumber(0)).unwrap().unwrap();
         let consensus_guard = consensus.read().await;
         let validation_result = consensus_guard.validate_block(&block, &[0u8; 32]);
         assert!(validation_result.is_err());
-        assert!(validation_result.unwrap_err().to_string().contains("Invalid block validator"));
+        assert!(validation_result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid block validator"));
     }
 
     #[tokio::test]
     async fn test_storage_initialization() {
         let temp_dir = TempDir::new().unwrap();
         let data_dir = temp_dir.path().to_path_buf();
-        
+
         let config = NodeConfig {
             node_id: "test-node-1".to_string(),
             network: crate::config::NetworkConfig {
@@ -894,12 +932,14 @@ mod tests {
                 rate_limit_rph: 1000,
             },
         };
-        
+
         let ledger_path = data_dir.join("ledger");
         assert!(!ledger_path.exists());
-        
-        let _node = AuraNode::new(config, data_dir.clone(), false).await.unwrap();
-        
+
+        let _node = AuraNode::new(config, data_dir.clone(), false)
+            .await
+            .unwrap();
+
         // Storage should be initialized
         assert!(ledger_path.exists());
     }
@@ -907,27 +947,39 @@ mod tests {
     #[tokio::test]
     async fn test_process_transaction_all_types() {
         let (node, _temp_dir) = create_test_node(false).await;
-        
+
         // Use the same keypair for DID operations
         let keypair = KeyPair::generate().unwrap();
-        
+
         // Test all transaction types
         let did = AuraDid::new("test");
         let doc = DidDocument::new(did.clone());
-        
+
         // 1. Register DID
-        let register_tx = create_test_transaction_with_keypair(TransactionType::RegisterDid {
-            did_document: doc.clone(),
-        }, &keypair);
-        assert!(node.process_transaction(&register_tx, BlockNumber(1)).await.is_ok());
-        
+        let register_tx = create_test_transaction_with_keypair(
+            TransactionType::RegisterDid {
+                did_document: doc.clone(),
+            },
+            &keypair,
+        );
+        assert!(node
+            .process_transaction(&register_tx, BlockNumber(1))
+            .await
+            .is_ok());
+
         // 2. Update DID
-        let update_tx = create_test_transaction_with_keypair(TransactionType::UpdateDid {
-            did: did.clone(),
-            did_document: doc.clone(),
-        }, &keypair);
-        assert!(node.process_transaction(&update_tx, BlockNumber(2)).await.is_ok());
-        
+        let update_tx = create_test_transaction_with_keypair(
+            TransactionType::UpdateDid {
+                did: did.clone(),
+                did_document: doc.clone(),
+            },
+            &keypair,
+        );
+        assert!(node
+            .process_transaction(&update_tx, BlockNumber(2))
+            .await
+            .is_ok());
+
         // 3. Register Schema
         let schema = CredentialSchema {
             id: "schema-1".to_string(),
@@ -939,24 +991,34 @@ mod tests {
             schema: serde_json::json!({}),
         };
         let schema_tx = create_test_transaction(TransactionType::RegisterSchema { schema });
-        assert!(node.process_transaction(&schema_tx, BlockNumber(3)).await.is_ok());
-        
+        assert!(node
+            .process_transaction(&schema_tx, BlockNumber(3))
+            .await
+            .is_ok());
+
         // 4. Update Revocation List
         let revoke_tx = create_test_transaction(TransactionType::UpdateRevocationList {
             list_id: "list-1".to_string(),
             revoked_indices: vec![1, 2, 3],
         });
-        assert!(node.process_transaction(&revoke_tx, BlockNumber(4)).await.is_ok());
-        
+        assert!(node
+            .process_transaction(&revoke_tx, BlockNumber(4))
+            .await
+            .is_ok());
+
         // 5. Deactivate DID
-        let deactivate_tx = create_test_transaction_with_keypair(TransactionType::DeactivateDid { did }, &keypair);
-        assert!(node.process_transaction(&deactivate_tx, BlockNumber(5)).await.is_ok());
+        let deactivate_tx =
+            create_test_transaction_with_keypair(TransactionType::DeactivateDid { did }, &keypair);
+        assert!(node
+            .process_transaction(&deactivate_tx, BlockNumber(5))
+            .await
+            .is_ok());
     }
 
     #[tokio::test]
     async fn test_transaction_pool_ordering() {
         let (node, _temp_dir) = create_test_node(false).await;
-        
+
         // Create transactions with different nonces
         let mut transactions = vec![];
         for i in 1..=5 {
@@ -966,7 +1028,7 @@ mod tests {
             let keypair = KeyPair::generate().unwrap();
             let mut tx = create_test_transaction_with_keypair(tx_type, &keypair);
             tx.nonce = i as u64;
-            
+
             // Re-sign with updated nonce
             let tx_for_signing = aura_ledger::transaction::TransactionForSigning {
                 id: tx.id.clone(),
@@ -978,19 +1040,19 @@ mod tests {
                 expires_at: tx.expires_at,
             };
             tx.signature = aura_crypto::sign_json(keypair.private_key(), &tx_for_signing).unwrap();
-            
+
             transactions.push(tx);
         }
-        
+
         // Submit in reverse order
         for tx in transactions.iter().rev() {
             node.submit_transaction(tx.clone()).await.unwrap();
         }
-        
+
         // Verify pool contains all transactions
         let pool = node.transaction_pool.read().await;
         assert_eq!(pool.len(), 5);
-        
+
         // Note: In a real implementation, transactions might be ordered by nonce
         // but this basic pool doesn't guarantee ordering
     }
