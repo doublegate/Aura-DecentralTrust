@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added (June 1, 2025 - Afternoon Session)
+## [0.1.5] - 2025-06-01
+
+### Added
 - **Testing**: Comprehensive test coverage FULLY COMPLETED (95% coverage - 505 tests ALL PASSING)
   - aura-common: 64 tests covering DIDs, errors, types, and VCs
   - aura-crypto: 81 tests covering encryption, hashing, keys, and signing  
@@ -273,5 +275,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WASM compilation support for wallet
 - W3C standards compliance for DIDs and VCs
 
-[Unreleased]: https://github.com/doublegate/Aura-DecentralTrust/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/doublegate/Aura-DecentralTrust/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/doublegate/Aura-DecentralTrust/compare/v0.1.0...v0.1.5
 [0.1.0]: https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0

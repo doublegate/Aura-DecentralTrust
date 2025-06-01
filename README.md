@@ -4,21 +4,28 @@
 
 ![Aura Logo](images/aura_logo.png)
 
-[![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg)](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0)
+[![Release](https://img.shields.io/badge/release-v0.1.5-blue.svg)](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.5)
 [![CI](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml/badge.svg)](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/github/doublegate/Aura-DecentralTrust/graph/badge.svg?token=ALCFBYJSOX)](https://codecov.io/github/doublegate/Aura-DecentralTrust)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🎉 v0.1.0 Released with Security Hardening!
+## 🎉 v0.1.5 Released with Comprehensive Test Coverage!
 
-We're excited to announce the first official release of Aura DecentralTrust! 
+We're thrilled to announce the v0.1.5 release of Aura DecentralTrust with comprehensive test coverage! 
+
+### What's New in v0.1.5
+- ✅ **95% Test Coverage**: 505 tests across all crates (ALL PASSING)
+- ✅ **Property-Based Testing**: Added invariant validation with proptest
+- ✅ **Performance Benchmarks**: Critical operations now benchmarked
+- ✅ **CI/CD Improvements**: All platform tests passing (Linux, macOS, Windows)
+- ✅ **Documentation**: Complete test coverage documentation and Phase 1 roadmap
 
 ### Download Pre-built Binaries
-- [**Linux (x86_64)**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.0/aura-node-linux-amd64)
-- [**macOS Intel**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.0/aura-node-darwin-amd64)
-- [**macOS Apple Silicon**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.0/aura-node-darwin-arm64)
-- [**Windows**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.0/aura-node-windows-amd64.exe)
+- [**Linux (x86_64)**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.5/aura-node-linux-amd64)
+- [**macOS Intel**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.5/aura-node-darwin-amd64)
+- [**macOS Apple Silicon**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.5/aura-node-darwin-arm64)
+- [**Windows**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.5/aura-node-windows-amd64.exe)
 
 ### 🔒 Security Update
 All 13 security vulnerabilities identified in our comprehensive security audit have been resolved, including:
@@ -35,9 +42,10 @@ Aura is a decentralized identity and trust network that combines Decentralized I
 
 ## Project Status
 
-**Phase 1 Foundation Release (v0.1.0)** - June 1, 2025
+**Phase 1 Foundation Release (v0.1.0)** - June 1, 2025  
+**Test Coverage Release (v0.1.5)** - June 1, 2025 (Evening)
 
-### What's New in v0.1.0
+### What's Implemented in v0.1.x
 - ✅ **Multi-platform Support**: Binaries for Linux, macOS (Intel/ARM), and Windows
 - ✅ **Full CI/CD Pipeline**: Automated testing and releases
 - ✅ **Security Hardened**: All critical vulnerabilities resolved
@@ -84,7 +92,7 @@ Aura is a decentralized identity and trust network that combines Decentralized I
 
 ### Using Pre-built Binaries (Recommended)
 
-1. Download the appropriate binary for your platform from the [releases page](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0)
+1. Download the appropriate binary for your platform from the [releases page](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.5)
 2. Make it executable (Linux/macOS): `chmod +x aura-node`
 3. Set up security configuration:
    ```bash
@@ -289,7 +297,7 @@ For security concerns, please email security@aura-network.org
 
 ## Project Metrics
 
-- **Current Version**: v0.1.0
+- **Current Version**: v0.1.5
 - **Language**: Rust (with WASM support)
 - **Platforms**: Linux, macOS (Intel/ARM), Windows
 - **Dependencies**: 100+ (managed via Cargo)
