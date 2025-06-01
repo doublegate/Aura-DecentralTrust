@@ -384,7 +384,7 @@ mod tests {
         ];
 
         for url in blocked {
-            assert!(validate_url(url).is_err(), "URL should be blocked: {}", url);
+            assert!(validate_url(url).is_err(), "URL should be blocked: {url}");
         }
     }
 
@@ -402,8 +402,7 @@ mod tests {
         for url in private_ips {
             assert!(
                 validate_url(url).is_err(),
-                "Private IP should be blocked: {}",
-                url
+                "Private IP should be blocked: {url}"
             );
         }
     }
@@ -483,7 +482,7 @@ mod tests {
         // Add too many verification methods
         for i in 0..=MAX_ARRAY_LENGTH {
             doc.verification_method.push(VerificationMethod {
-                id: format!("did:aura:test123#key-{}", i),
+                id: format!("did:aura:test123#key-{i}"),
                 verification_type: "Ed25519VerificationKey2020".to_string(),
                 controller: AuraDid("did:aura:test123".to_string()),
                 public_key_multibase: "zXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX".to_string(),
@@ -544,7 +543,7 @@ mod tests {
 
         // Add many properties to exceed size limit
         for i in 0..1000 {
-            claims_obj.insert(format!("field_{}", i), json!("x".repeat(100)));
+            claims_obj.insert(format!("field_{i}"), json!("x".repeat(100)));
         }
 
         assert!(validate_credential_claims(&claims).is_err());
@@ -586,7 +585,7 @@ mod tests {
 
         // Add too many properties
         for i in 0..=MAX_ARRAY_LENGTH {
-            obj_map.insert(format!("key_{}", i), json!(i));
+            obj_map.insert(format!("key_{i}"), json!(i));
         }
 
         assert!(validate_json_value(&obj, 0).is_err());

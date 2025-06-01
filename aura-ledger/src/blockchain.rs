@@ -606,16 +606,14 @@ mod tests {
             let root = Block::calculate_merkle_root(&transactions);
             assert_ne!(
                 root, [0u8; 32],
-                "Merkle root should not be zero for {} transactions",
-                size
+                "Merkle root should not be zero for {size} transactions"
             );
 
             // Calculate again to ensure determinism
             let root2 = Block::calculate_merkle_root(&transactions);
             assert_eq!(
                 root, root2,
-                "Merkle root should be deterministic for {} transactions",
-                size
+                "Merkle root should be deterministic for {size} transactions"
             );
         }
     }

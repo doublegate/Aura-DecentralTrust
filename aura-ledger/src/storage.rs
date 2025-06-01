@@ -321,7 +321,7 @@ mod tests {
     }
 
     fn create_test_did_record(did: &str) -> (AuraDid, DidRecord) {
-        let did_id = AuraDid(format!("did:aura:{}", did));
+        let did_id = AuraDid(format!("did:aura:{did}"));
         let keypair = KeyPair::generate().unwrap();
         let record = DidRecord {
             did_id: did_id.clone(),
@@ -334,7 +334,7 @@ mod tests {
     }
 
     fn create_test_did_document(did: &str) -> (AuraDid, DidDocument) {
-        let did_id = AuraDid(format!("did:aura:{}", did));
+        let did_id = AuraDid(format!("did:aura:{did}"));
         let document = DidDocument::new(did_id.clone());
         (did_id, document)
     }

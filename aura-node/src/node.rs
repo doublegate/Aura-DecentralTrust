@@ -485,7 +485,7 @@ mod tests {
         let did = AuraDid::new("test");
         let mut doc = DidDocument::new(did.clone());
         doc.authentication = vec![VerificationRelationship::Embedded(VerificationMethod {
-            id: format!("{}#key-1", did),
+            id: format!("{did}#key-1"),
             verification_type: "Ed25519VerificationKey2020".to_string(),
             controller: did.clone(),
             public_key_multibase: "zEd25519...".to_string(),
@@ -727,7 +727,7 @@ mod tests {
 
         let result = AuraNode::produce_block_static(params).await;
         if let Err(e) = &result {
-            eprintln!("Block production failed: {}", e);
+            eprintln!("Block production failed: {e}");
         }
         assert!(result.is_ok());
 
@@ -774,7 +774,7 @@ mod tests {
 
         let result = AuraNode::produce_block_static(params).await;
         if let Err(e) = &result {
-            eprintln!("Block production failed: {}", e);
+            eprintln!("Block production failed: {e}");
         }
         assert!(result.is_ok());
 
@@ -835,7 +835,7 @@ mod tests {
 
         let result = AuraNode::produce_block_static(params).await;
         if let Err(e) = &result {
-            eprintln!("Block production failed: {}", e);
+            eprintln!("Block production failed: {e}");
         }
         assert!(result.is_ok());
 
@@ -883,7 +883,7 @@ mod tests {
         // Block production itself succeeds (it just signs with the provided key)
         let result = AuraNode::produce_block_static(params).await;
         if let Err(e) = &result {
-            eprintln!("Block production failed: {}", e);
+            eprintln!("Block production failed: {e}");
         }
         assert!(result.is_ok());
 
@@ -1023,7 +1023,7 @@ mod tests {
         let mut transactions = vec![];
         for i in 1..=5 {
             let tx_type = TransactionType::RegisterDid {
-                did_document: DidDocument::new(AuraDid::new(&format!("test{}", i))),
+                did_document: DidDocument::new(AuraDid::new(&format!("test{i}"))),
             };
             let keypair = KeyPair::generate().unwrap();
             let mut tx = create_test_transaction_with_keypair(tx_type, &keypair);

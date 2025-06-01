@@ -615,7 +615,7 @@ mod tests {
         }
 
         let msg = NetworkMessage::NewTransaction(vec![1, 2, 3]);
-        let debug_str = format!("{:?}", msg);
+        let debug_str = format!("{msg:?}");
         assert!(debug_str.contains("NewTransaction"));
     }
 

@@ -155,7 +155,7 @@ mod tests {
     }
 
     fn create_test_did_document(did: &str) -> DidDocument {
-        DidDocument::new(AuraDid(format!("did:aura:{}", did)))
+        DidDocument::new(AuraDid(format!("did:aura:{did}")))
     }
 
     #[test]

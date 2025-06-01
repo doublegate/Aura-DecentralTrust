@@ -78,7 +78,7 @@ mod tests {
             schema_type: "https://w3c.github.io/vc-data-model/#schemas".to_string(),
             name: "Test Schema".to_string(),
             version: "1.0.0".to_string(),
-            author: AuraDid(format!("did:aura:{}", author)),
+            author: AuraDid(format!("did:aura:{author}")),
             created: Timestamp::now(),
             schema: serde_json::json!({
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -183,8 +183,8 @@ mod tests {
 
         // Register multiple schemas from different issuers
         for i in 1..=5 {
-            let issuer_did = AuraDid(format!("did:aura:issuer{}", i));
-            let schema = create_test_schema(&format!("schema{}", i), &format!("issuer{}", i));
+            let issuer_did = AuraDid(format!("did:aura:issuer{i}"));
+            let schema = create_test_schema(&format!("schema{i}"), &format!("issuer{i}"));
 
             registry
                 .register_schema(&schema, &issuer_did, BlockNumber(100 + i))
@@ -193,11 +193,11 @@ mod tests {
 
         // Verify all schemas exist
         for i in 1..=5 {
-            let schema_id = format!("schema{}", i);
+            let schema_id = format!("schema{i}");
             assert!(registry.validate_schema_exists(&schema_id).unwrap());
 
             let record = registry.get_schema(&schema_id).unwrap().unwrap();
-            assert_eq!(record.issuer_did.0, format!("did:aura:issuer{}", i));
+            assert_eq!(record.issuer_did.0, format!("did:aura:issuer{i}"));
             assert_eq!(record.registered_at_block, 100 + i);
         }
     }
@@ -297,7 +297,7 @@ mod tests {
         ];
 
         for (schema_id, issuer, block) in schemas {
-            let issuer_did = AuraDid(format!("did:aura:{}", issuer));
+            let issuer_did = AuraDid(format!("did:aura:{issuer}"));
             let schema = create_test_schema(schema_id, issuer);
 
             registry

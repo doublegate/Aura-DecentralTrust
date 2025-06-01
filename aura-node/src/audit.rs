@@ -390,7 +390,7 @@ mod tests {
         // Log 10 events
         for i in 0..10 {
             let event = SecurityEvent::AuthenticationAttempt {
-                node_id: format!("node-{}", i),
+                node_id: format!("node-{i}"),
                 success: true,
                 ip_address: "127.0.0.1".to_string(),
                 reason: None,
@@ -418,9 +418,9 @@ mod tests {
         // Log 10 events
         for i in 0..10 {
             let event = SecurityEvent::DataAccess {
-                user: format!("user-{}", i),
+                user: format!("user-{i}"),
                 resource_type: "Schema".to_string(),
-                resource_id: format!("schema-{}", i),
+                resource_id: format!("schema-{i}"),
                 action: "READ".to_string(),
             };
             logger.log_event(event, None).await;
