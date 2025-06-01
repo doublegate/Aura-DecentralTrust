@@ -354,7 +354,8 @@ mod tests {
     use super::*;
     use aura_common::{AuraDid, DidDocument, VerificationMethod, VerificationRelationship, Timestamp};
     use aura_crypto::{PrivateKey, PublicKey};
-    use aura_ledger::{Block, transaction::CredentialSchema};
+    use aura_ledger::Block;
+    use aura_common::vc::CredentialSchema;
     use std::collections::HashMap;
     use tempfile::TempDir;
 
@@ -366,34 +367,29 @@ mod tests {
             node_id: "test-node-1".to_string(),
             network: crate::config::NetworkConfig {
                 listen_addresses: vec!["/ip4/127.0.0.1/tcp/0".to_string()],
-                bootstrap_peers: vec![],
-                enable_mdns: false,
+                bootstrap_nodes: vec![],
+                max_peers: 50,
             },
             consensus: crate::config::ConsensusConfig {
-                consensus_type: "proof-of-authority".to_string(),
                 validator_key_path: Some("./test-validator-key".to_string()),
                 block_time_secs: 1,
                 max_transactions_per_block: 100,
-                min_transaction_fee: 0,
+            },
+            storage: crate::config::StorageConfig {
+                db_path: data_dir.join("ledger").to_string_lossy().to_string(),
+                cache_size_mb: 128,
             },
             api: crate::config::ApiConfig {
                 listen_address: "127.0.0.1:0".to_string(),
-                enable_tls: false,
-                enable_auth: true,
-                cors_origins: vec!["*".to_string()],
+                enable_cors: true,
                 max_request_size: 1048576,
-                rate_limit_per_minute: 100,
             },
             security: crate::config::SecurityConfig {
-                enable_input_validation: true,
-                max_payload_size: 1048576,
-                enable_audit_logging: true,
                 jwt_secret: Some("test-secret".to_string()),
                 credentials_path: None,
-                tls_cert_path: None,
-                tls_key_path: None,
-                enable_key_pinning: false,
-                pinned_public_keys: vec![],
+                token_expiry_hours: 24,
+                rate_limit_rpm: 100,
+                rate_limit_rph: 1000,
             },
         };
 
@@ -805,34 +801,29 @@ mod tests {
             node_id: "test-node".to_string(),
             network: crate::config::NetworkConfig {
                 listen_addresses: vec!["/ip4/127.0.0.1/tcp/0".to_string()],
-                bootstrap_peers: vec![],
-                enable_mdns: false,
+                bootstrap_nodes: vec![],
+                max_peers: 50,
             },
             consensus: crate::config::ConsensusConfig {
-                consensus_type: "proof-of-authority".to_string(),
                 validator_key_path: None,
                 block_time_secs: 5,
                 max_transactions_per_block: 100,
-                min_transaction_fee: 0,
+            },
+            storage: crate::config::StorageConfig {
+                db_path: data_dir.join("ledger").to_string_lossy().to_string(),
+                cache_size_mb: 128,
             },
             api: crate::config::ApiConfig {
                 listen_address: "127.0.0.1:0".to_string(),
-                enable_tls: false,
-                enable_auth: true,
-                cors_origins: vec![],
+                enable_cors: true,
                 max_request_size: 1048576,
-                rate_limit_per_minute: 100,
             },
             security: crate::config::SecurityConfig {
-                enable_input_validation: true,
-                max_payload_size: 1048576,
-                enable_audit_logging: true,
                 jwt_secret: None,
                 credentials_path: None,
-                tls_cert_path: None,
-                tls_key_path: None,
-                enable_key_pinning: false,
-                pinned_public_keys: vec![],
+                token_expiry_hours: 24,
+                rate_limit_rpm: 100,
+                rate_limit_rph: 1000,
             },
         };
         
