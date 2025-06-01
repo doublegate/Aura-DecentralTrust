@@ -450,11 +450,11 @@ fn verify_transaction_signature(request: &TransactionRequest) -> Result<(), Stri
 
     // Serialize to get consistent bytes for verification
     let _message = serde_json::to_vec(&tx_for_signing)
-        .map_err(|e| format!("Failed to serialize transaction: {}", e))?;
+        .map_err(|e| format!("Failed to serialize transaction: {e}"))?;
 
     // Decode the signature from hex
     let signature_bytes =
-        hex::decode(&request.signature).map_err(|e| format!("Invalid signature format: {}", e))?;
+        hex::decode(&request.signature).map_err(|e| format!("Invalid signature format: {e}"))?;
 
     if signature_bytes.len() != 64 {
         return Err("Invalid signature length".to_string());

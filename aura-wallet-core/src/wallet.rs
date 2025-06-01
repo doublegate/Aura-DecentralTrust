@@ -337,11 +337,8 @@ mod tests {
 
         // Store multiple credentials
         for i in 0..3 {
-            let credential = create_test_credential(
-                format!("cred{}", i),
-                issuer_did.clone(),
-                holder_did.clone(),
-            );
+            let credential =
+                create_test_credential(format!("cred{i}"), issuer_did.clone(), holder_did.clone());
             wallet.store_credential(credential, vec![]).unwrap();
         }
 
@@ -676,7 +673,7 @@ mod tests {
         // Store credentials for each DID
         for (i, did) in dids.iter().enumerate() {
             let credential =
-                create_test_credential(format!("cred{}", i), issuer_did.clone(), did.clone());
+                create_test_credential(format!("cred{i}"), issuer_did.clone(), did.clone());
             wallet
                 .store_credential(credential, vec![format!("tag{}", i)])
                 .unwrap();

@@ -458,7 +458,7 @@ mod tests {
 
         // Generate multiple keys
         for i in 0..5 {
-            let did = AuraDid(format!("did:aura:test{}", i));
+            let did = AuraDid(format!("did:aura:test{i}"));
             let key_pair = km.generate_key_pair(&did).unwrap();
             key_pairs.push((did, key_pair));
         }

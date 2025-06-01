@@ -288,9 +288,9 @@ mod tests {
 
         // Store multiple credentials
         for i in 0..3 {
-            let subject = AuraDid(format!("did:aura:subject{}", i));
+            let subject = AuraDid(format!("did:aura:subject{i}"));
             let credential = create_test_credential(
-                Some(format!("cred{}", i)),
+                Some(format!("cred{i}")),
                 issuer.clone(),
                 subject,
                 "TestCredential",
@@ -611,9 +611,9 @@ mod tests {
 
         // Store multiple credentials
         for i in 0..3 {
-            let subject = AuraDid(format!("did:aura:subject{}", i));
+            let subject = AuraDid(format!("did:aura:subject{i}"));
             let credential = create_test_credential(
-                Some(format!("cred{}", i)),
+                Some(format!("cred{i}")),
                 issuer.clone(),
                 subject,
                 "TestCredential",
@@ -633,9 +633,9 @@ mod tests {
         // Verify all credentials are present
         assert_eq!(store2.credentials.len(), 3);
         for i in 0..3 {
-            let id = format!("cred{}", i);
+            let id = format!("cred{i}");
             let cred = store2.get_credential(&id).unwrap().unwrap();
-            assert_eq!(cred.tags, vec![format!("tag{}", i)]);
+            assert_eq!(cred.tags, vec![format!("tag{i}")]);
         }
     }
 
