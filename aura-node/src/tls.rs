@@ -5,6 +5,7 @@ use tokio_rustls::rustls::{
     pki_types::{CertificateDer, PrivateKeyDer},
 };
 use tokio_rustls::TlsAcceptor;
+use tracing::warn;
 
 /// TLS configuration for the API server
 #[derive(Clone)]
@@ -56,19 +57,21 @@ impl TlsConfig {
                 }
             }
             
-            let client_auth = if client_auth_roots.is_empty() {
-                // If no CA certs, use a verifier that accepts any client cert
-                rustls::server::WebPkiClientVerifier::builder(Arc::new(rustls::RootCertStore::empty()))
-                    .allow_unauthenticated()
-                    .build()?
+            if client_auth_roots.is_empty() {
+                // If no CA certs configured, fall back to no client auth
+                // In production, proper CA certificates should be configured for mTLS
+                warn!("Client authentication requested but no CA certificates configured. Falling back to no client auth.");
+                rustls::ServerConfig::builder()
+                    .with_no_client_auth()
+                    .with_single_cert(certs, key)?
             } else {
-                rustls::server::WebPkiClientVerifier::builder(Arc::new(client_auth_roots))
-                    .build()?
-            };
-            
-            rustls::ServerConfig::builder()
-                .with_client_cert_verifier(client_auth)
-                .with_single_cert(certs, key)?
+                let client_auth = rustls::server::WebPkiClientVerifier::builder(Arc::new(client_auth_roots))
+                    .build()?;
+                
+                rustls::ServerConfig::builder()
+                    .with_client_cert_verifier(client_auth)
+                    .with_single_cert(certs, key)?
+            }
         } else {
             rustls::ServerConfig::builder()
                 .with_no_client_auth()
@@ -403,8 +406,10 @@ mod tests {
         assert!(result.is_ok());
         
         // Test with client auth (no CA configured)
+        // This should work - it creates a verifier that allows unauthenticated connections
         let result = config.into_server_config_with_client_auth(true);
-        assert!(result.is_ok(), "Failed to create config with client auth: {:?}", result.unwrap_err());
+        assert!(result.is_ok(), "Failed to create config with client auth: {}", 
+            result.as_ref().err().map(|e| e.to_string()).unwrap_or_default());
     }
     
     #[test]

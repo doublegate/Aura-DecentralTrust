@@ -44,6 +44,15 @@ pub struct AuthResponse {
 /// Initialize the authentication system with configuration
 pub fn initialize_auth(jwt_secret: Vec<u8>, credentials_path: Option<&str>) -> anyhow::Result<()> {
     // Set JWT secret
+    #[cfg(test)]
+    {
+        // In tests, if already initialized, just continue
+        if JWT_SECRET.get().is_some() {
+            // Already initialized, skip
+            return Ok(());
+        }
+    }
+    
     JWT_SECRET
         .set(jwt_secret)
         .map_err(|_| anyhow::anyhow!("JWT secret already initialized"))?;
