@@ -220,7 +220,11 @@ mod tests {
 
         // Check that we got PEM data
         assert!(cert.starts_with(b"-----BEGIN CERTIFICATE-----"));
-        assert!(cert.ends_with(b"-----END CERTIFICATE-----\n"));
+        // Handle both Unix (\n) and Windows (\r\n) line endings
+        assert!(
+            cert.ends_with(b"-----END CERTIFICATE-----\n")
+                || cert.ends_with(b"-----END CERTIFICATE-----\r\n")
+        );
 
         assert!(
             key.starts_with(b"-----BEGIN PRIVATE KEY-----")

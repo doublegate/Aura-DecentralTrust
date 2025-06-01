@@ -72,7 +72,7 @@ mod tests {
         ];
 
         for error in errors {
-            let display = format!("{}", error);
+            let display = format!("{error}");
             assert!(!display.is_empty());
 
             // Verify error messages contain expected content
@@ -121,7 +121,7 @@ mod tests {
     fn test_error_debug() {
         // Test Debug implementation
         let error = AuraError::Did("Debug test".to_string());
-        let debug_str = format!("{:?}", error);
+        let debug_str = format!("{error:?}");
         assert!(debug_str.contains("Did"));
         assert!(debug_str.contains("Debug test"));
     }
@@ -164,7 +164,7 @@ mod tests {
         ];
 
         for error in errors {
-            let display = format!("{}", error);
+            let display = format!("{error}");
             assert!(!display.is_empty());
             // Even with empty messages, the error type prefix should be present
             assert!(
@@ -214,7 +214,7 @@ mod tests {
         // Test error conversion patterns commonly used in the codebase
         fn parse_number(s: &str) -> Result<i32> {
             s.parse::<i32>()
-                .map_err(|e| AuraError::Validation(format!("Failed to parse number: {}", e)))
+                .map_err(|e| AuraError::Validation(format!("Failed to parse number: {e}")))
         }
 
         // Test successful parsing
@@ -242,13 +242,13 @@ mod tests {
         for error in errors {
             match error {
                 AuraError::InvalidSignature => {
-                    assert_eq!(format!("{}", error), "Invalid signature");
+                    assert_eq!(format!("{error}"), "Invalid signature");
                 }
                 AuraError::InvalidProof => {
-                    assert_eq!(format!("{}", error), "Invalid proof");
+                    assert_eq!(format!("{error}"), "Invalid proof");
                 }
                 AuraError::Unauthorized => {
-                    assert_eq!(format!("{}", error), "Unauthorized");
+                    assert_eq!(format!("{error}"), "Unauthorized");
                 }
                 _ => panic!("Unexpected error variant"),
             }
@@ -264,13 +264,13 @@ mod tests {
         let err4 = AuraError::Vc("Same message".to_string());
 
         // Same variant and message should be equal
-        assert_eq!(format!("{}", err1), format!("{}", err2));
+        assert_eq!(format!("{err1}"), format!("{err2}"));
 
         // Different messages should be different
-        assert_ne!(format!("{}", err1), format!("{}", err3));
+        assert_ne!(format!("{err1}"), format!("{err3}"));
 
         // Different variants should be different
-        assert_ne!(format!("{}", err1), format!("{}", err4));
+        assert_ne!(format!("{err1}"), format!("{err4}"));
     }
 
     #[test]
@@ -282,7 +282,7 @@ mod tests {
 
         fn step2(input: String) -> Result<String> {
             if input == "step1" {
-                Ok(format!("{} -> step2", input))
+                Ok(format!("{input} -> step2"))
             } else {
                 Err(AuraError::Validation("Invalid input to step2".to_string()))
             }
@@ -290,7 +290,7 @@ mod tests {
 
         fn step3(input: String) -> Result<String> {
             if input.contains("step2") {
-                Ok(format!("{} -> step3", input))
+                Ok(format!("{input} -> step3"))
             } else {
                 Err(AuraError::Internal("Step 3 failed".to_string()))
             }
@@ -327,7 +327,7 @@ mod tests {
 
         for msg in special_messages {
             let error = AuraError::Internal(msg.to_string());
-            let display = format!("{}", error);
+            let display = format!("{error}");
             assert!(display.contains(msg));
         }
     }

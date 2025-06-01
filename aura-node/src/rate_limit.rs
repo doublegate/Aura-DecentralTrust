@@ -268,7 +268,10 @@ mod tests {
         {
             let mut requests = limiter.requests.lock().await;
             if let Some(info) = requests.get_mut(&ip) {
-                info.hour_window_start = Instant::now() - Duration::from_secs(3601);
+                // Use checked_sub to avoid overflow on Windows
+                info.hour_window_start = Instant::now()
+                    .checked_sub(Duration::from_secs(3601))
+                    .unwrap_or_else(Instant::now);
             }
         }
 
@@ -296,7 +299,10 @@ mod tests {
         {
             let mut requests = limiter.requests.lock().await;
             if let Some(info) = requests.get_mut("192.168.1.30") {
-                info.hour_window_start = Instant::now() - Duration::from_secs(7201);
+                // Use checked_sub to avoid overflow on Windows
+                info.hour_window_start = Instant::now()
+                    .checked_sub(Duration::from_secs(7201))
+                    .unwrap_or_else(Instant::now);
             }
         }
 

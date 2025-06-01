@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn test_aura_did_display() {
         let did = AuraDid::new("display_test");
-        assert_eq!(format!("{}", did), "did:aura:display_test");
+        assert_eq!(format!("{did}"), "did:aura:display_test");
     }
 
     #[test]
@@ -431,12 +431,12 @@ mod tests {
         };
 
         // Just ensure Debug formatting doesn't panic
-        assert!(!format!("{:?}", did).is_empty());
-        assert!(!format!("{:?}", timestamp).is_empty());
-        assert!(!format!("{:?}", block).is_empty());
-        assert!(!format!("{:?}", tx_id).is_empty());
-        assert!(!format!("{:?}", key).is_empty());
-        assert!(!format!("{:?}", endpoint).is_empty());
+        assert!(!format!("{did:?}").is_empty());
+        assert!(!format!("{timestamp:?}").is_empty());
+        assert!(!format!("{block:?}").is_empty());
+        assert!(!format!("{tx_id:?}").is_empty());
+        assert!(!format!("{key:?}").is_empty());
+        assert!(!format!("{endpoint:?}").is_empty());
     }
 
     #[test]

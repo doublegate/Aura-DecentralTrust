@@ -328,7 +328,7 @@ mod tests {
         for i in 0..10 {
             let key_clone = Arc::clone(&key);
             let handle = thread::spawn(move || {
-                let plaintext = format!("Thread {} data", i);
+                let plaintext = format!("Thread {i} data");
                 let encrypted = encrypt(&key_clone, plaintext.as_bytes()).unwrap();
                 let decrypted = decrypt(&key_clone, &encrypted).unwrap();
                 assert_eq!(&*decrypted, plaintext.as_bytes());

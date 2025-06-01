@@ -287,7 +287,7 @@ mod tests {
         for i in 0..10 {
             let keypair_clone = Arc::clone(&keypair);
             let handle = thread::spawn(move || {
-                let message = format!("Thread {} message", i);
+                let message = format!("Thread {i} message");
                 let signature = sign(keypair_clone.private_key(), message.as_bytes()).unwrap();
                 let valid =
                     verify(keypair_clone.public_key(), message.as_bytes(), &signature).unwrap();
@@ -312,7 +312,7 @@ mod tests {
     #[test]
     fn test_signature_debug() {
         let sig = Signature(vec![0x42; 64]);
-        let debug_str = format!("{:?}", sig);
+        let debug_str = format!("{sig:?}");
         assert!(debug_str.contains("Signature"));
     }
 
@@ -367,17 +367,13 @@ mod tests {
         // Verify each signature matches its message
         for (i, (msg, sig)) in messages.iter().zip(signatures.iter()).enumerate() {
             let valid = verify(keypair.public_key(), msg, sig).unwrap();
-            assert!(valid, "Signature {} should be valid", i);
+            assert!(valid, "Signature {i} should be valid");
 
             // Verify signature doesn't validate other messages
             for (j, other_msg) in messages.iter().enumerate() {
                 if i != j {
                     let invalid = verify(keypair.public_key(), other_msg, sig).unwrap();
-                    assert!(
-                        !invalid,
-                        "Signature {} should not validate message {}",
-                        i, j
-                    );
+                    assert!(!invalid, "Signature {i} should not validate message {j}");
                 }
             }
         }

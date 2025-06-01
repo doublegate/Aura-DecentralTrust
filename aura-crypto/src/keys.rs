@@ -215,7 +215,7 @@ mod tests {
     #[test]
     fn test_private_key_debug() {
         let key = PrivateKey::generate().unwrap();
-        let debug_str = format!("{:?}", key);
+        let debug_str = format!("{key:?}");
         assert!(debug_str.contains("[REDACTED]"));
         assert!(!debug_str.contains("key_bytes"));
     }
@@ -276,7 +276,7 @@ mod tests {
     fn test_public_key_debug() {
         let private_key = PrivateKey::generate().unwrap();
         let public_key = private_key.public_key();
-        let debug_str = format!("{:?}", public_key);
+        let debug_str = format!("{public_key:?}");
         assert!(debug_str.contains("PublicKey"));
     }
 
@@ -335,7 +335,7 @@ mod tests {
     #[test]
     fn test_keypair_debug() {
         let keypair = KeyPair::generate().unwrap();
-        let debug_str = format!("{:?}", keypair);
+        let debug_str = format!("{keypair:?}");
         assert!(debug_str.contains("KeyPair"));
         assert!(debug_str.contains("[REDACTED]")); // Private key should be redacted
     }
