@@ -356,4 +356,154 @@ mod tests {
         let decrypted = cipher.decrypt(&nonce, ciphertext.as_ref()).unwrap();
         assert_eq!(decrypted, plaintext);
     }
+
+    // Additional edge case tests for enhanced security coverage
+
+    #[test]
+    fn test_decrypt_truncated_ciphertext() {
+        let key = generate_encryption_key();
+        let plaintext = b"Test message";
+        
+        let mut encrypted = encrypt(&key, plaintext).unwrap();
+        
+        // Truncate the ciphertext
+        encrypted.ciphertext.truncate(encrypted.ciphertext.len() / 2);
+        
+        // Decryption should fail
+        let result = decrypt(&key, &encrypted);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), crate::CryptoError::DecryptionError(_)));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_decrypt_invalid_nonce_size() {
+        let key = generate_encryption_key();
+        let plaintext = b"Test message";
+        
+        let mut encrypted = encrypt(&key, plaintext).unwrap();
+        
+        // Modify nonce to invalid size
+        encrypted.nonce = vec![0u8; 11]; // Should be 12 bytes, this will panic
+        
+        // This will panic when trying to create nonce from invalid size
+        let _ = decrypt(&key, &encrypted);
+    }
+
+    #[test]
+    fn test_decrypt_tampered_auth_tag() {
+        let key = generate_encryption_key();
+        let plaintext = b"Test message";
+        
+        let mut encrypted = encrypt(&key, plaintext).unwrap();
+        
+        // Tamper with the last byte (likely part of auth tag)
+        let last_idx = encrypted.ciphertext.len() - 1;
+        encrypted.ciphertext[last_idx] ^= 0xFF;
+        
+        // Decryption should fail due to auth tag mismatch
+        let result = decrypt(&key, &encrypted);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), crate::CryptoError::DecryptionError(_)));
+    }
+
+    #[test]
+    fn test_encrypt_very_large_data() {
+        let key = generate_encryption_key();
+        // Test with 10MB to ensure no memory issues
+        let plaintext = vec![0xCD; 10 * 1024 * 1024];
+        
+        let encrypted = encrypt(&key, &plaintext).unwrap();
+        assert!(encrypted.ciphertext.len() >= plaintext.len());
+        
+        let decrypted = decrypt(&key, &encrypted).unwrap();
+        assert_eq!(&*decrypted, &plaintext);
+    }
+
+    #[test]
+    fn test_nonce_uniqueness_stress() {
+        let key = generate_encryption_key();
+        let plaintext = b"Test";
+        
+        // Generate many encryptions and check nonce uniqueness
+        let mut nonces = std::collections::HashSet::new();
+        for _ in 0..1000 {
+            let encrypted = encrypt(&key, plaintext).unwrap();
+            assert!(nonces.insert(encrypted.nonce.clone()), "Duplicate nonce detected!");
+        }
+    }
+
+    #[test]
+    fn test_empty_ciphertext_decryption() {
+        let key = generate_encryption_key();
+        
+        let encrypted = EncryptedData {
+            nonce: vec![0u8; 12],
+            ciphertext: vec![], // Empty ciphertext
+        };
+        
+        // Should fail to decrypt
+        let result = decrypt(&key, &encrypted);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_bit_flip_detection() {
+        let key = generate_encryption_key();
+        let plaintext = b"Sensitive data";
+        
+        let mut encrypted = encrypt(&key, plaintext).unwrap();
+        
+        // Flip a bit in the middle of ciphertext
+        if encrypted.ciphertext.len() > 5 {
+            encrypted.ciphertext[5] ^= 0x01;
+        }
+        
+        // Should fail authentication
+        let result = decrypt(&key, &encrypted);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), crate::CryptoError::DecryptionError(_)));
+    }
+
+    #[test]
+    fn test_key_reuse_different_plaintexts() {
+        let key = generate_encryption_key();
+        
+        // Encrypt different messages with same key
+        let msg1 = b"First message";
+        let msg2 = b"Second message";
+        
+        let enc1 = encrypt(&key, msg1).unwrap();
+        let enc2 = encrypt(&key, msg2).unwrap();
+        
+        // Verify different nonces were used
+        assert_ne!(enc1.nonce, enc2.nonce);
+        
+        // Verify both can be decrypted correctly
+        assert_eq!(&*decrypt(&key, &enc1).unwrap(), msg1);
+        assert_eq!(&*decrypt(&key, &enc2).unwrap(), msg2);
+    }
+
+    #[test]
+    fn test_json_encryption_edge_cases() {
+        let key = generate_encryption_key();
+        
+        // Test with very deeply nested JSON
+        let mut nested = json!({"value": 1});
+        for i in 0..100 {
+            nested = json!({"nested": nested, "level": i});
+        }
+        
+        let encrypted = encrypt_json(&key, &nested).unwrap();
+        let decrypted: serde_json::Value = decrypt_json(&key, &encrypted).unwrap();
+        assert_eq!(nested, decrypted);
+        
+        // Test with large JSON array
+        let large_array: Vec<i32> = (0..10000).collect();
+        let json_array = json!(large_array);
+        
+        let encrypted = encrypt_json(&key, &json_array).unwrap();
+        let decrypted: serde_json::Value = decrypt_json(&key, &encrypted).unwrap();
+        assert_eq!(json_array, decrypted);
+    }
 }

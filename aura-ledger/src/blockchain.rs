@@ -360,4 +360,237 @@ mod tests {
         // Same block number and previous hash but different validators
         assert_ne!(block1.hash(), block2.hash());
     }
+
+    // Additional edge case tests for enhanced blockchain security
+
+    #[test]
+    fn test_block_with_max_transactions() {
+        let keypair = KeyPair::generate().unwrap();
+        let max_txs = 1000;
+        
+        // Create max number of transactions
+        let transactions: Vec<Transaction> = (0..max_txs)
+            .map(|_| create_test_transaction())
+            .collect();
+        
+        let block = Block::new(BlockNumber(1), [0u8; 32], transactions.clone(), keypair.public_key().clone());
+        
+        assert_eq!(block.transactions.len(), max_txs);
+        assert_ne!(block.header.merkle_root, [0u8; 32]);
+        
+        // Verify block can be hashed without issues
+        let hash = block.hash();
+        assert_ne!(hash, [0u8; 32]);
+    }
+
+    #[test]
+    fn test_block_size_limits() {
+        let keypair = KeyPair::generate().unwrap();
+        
+        // Create a transaction with large data
+        let mut large_tx = create_test_transaction();
+        if let TransactionType::RegisterDid { ref mut did_document } = large_tx.transaction_type {
+            // Add large metadata to DID document
+            for i in 0..100 {
+                did_document.authentication.push(aura_common::VerificationRelationship::Embedded(
+                    aura_common::VerificationMethod {
+                        id: format!("{}#key-{}", did_document.id, i),
+                        controller: did_document.id.clone(),
+                        verification_type: "Ed25519VerificationKey2020".to_string(),
+                        public_key_multibase: "z".repeat(1000), // Large key data
+                    }
+                ));
+            }
+        }
+        
+        let block = Block::new(BlockNumber(1), [0u8; 32], vec![large_tx], keypair.public_key().clone());
+        
+        // Should still be able to calculate merkle root and hash
+        assert_ne!(block.header.merkle_root, [0u8; 32]);
+        assert_ne!(block.hash(), [0u8; 32]);
+    }
+
+    #[test]
+    fn test_merkle_root_collision_resistance() {
+        // Test that different transaction sets produce different merkle roots
+        let tx1 = create_test_transaction();
+        let tx2 = create_test_transaction();
+        let tx3 = create_test_transaction();
+        
+        let root1 = Block::calculate_merkle_root(&vec![tx1.clone()]);
+        let root2 = Block::calculate_merkle_root(&vec![tx2.clone()]);
+        let root3 = Block::calculate_merkle_root(&vec![tx1.clone(), tx2.clone()]);
+        let root4 = Block::calculate_merkle_root(&vec![tx2.clone(), tx1.clone()]);
+        let root5 = Block::calculate_merkle_root(&vec![tx1.clone(), tx2.clone(), tx3.clone()]);
+        
+        // All roots should be different
+        assert_ne!(root1, root2);
+        assert_ne!(root1, root3);
+        assert_ne!(root3, root4); // Order matters
+        assert_ne!(root3, root5);
+    }
+
+    #[test]
+    fn test_genesis_block_validation() {
+        // Test various invalid genesis block configurations
+        let keypair = KeyPair::generate().unwrap();
+        
+        // Empty validators
+        let genesis_empty = GenesisBlock {
+            timestamp: Timestamp::now(),
+            validators: vec![],
+            chain_config: ChainConfig::default(),
+        };
+        assert_eq!(genesis_empty.validators.len(), 0);
+        
+        // Many validators
+        let many_validators: Vec<PublicKey> = (0..100)
+            .map(|_| KeyPair::generate().unwrap().public_key().clone())
+            .collect();
+        
+        let genesis_many = GenesisBlock {
+            timestamp: Timestamp::now(),
+            validators: many_validators.clone(),
+            chain_config: ChainConfig::default(),
+        };
+        assert_eq!(genesis_many.validators.len(), 100);
+        
+        // Invalid chain config
+        let invalid_config = ChainConfig {
+            chain_id: "".to_string(), // Empty chain ID
+            block_time: 0, // Zero block time
+            max_transactions_per_block: 0, // Zero max transactions
+        };
+        
+        let genesis_invalid = GenesisBlock {
+            timestamp: Timestamp::now(),
+            validators: vec![keypair.public_key().clone()],
+            chain_config: invalid_config,
+        };
+        
+        // Should still serialize/deserialize
+        let json = serde_json::to_string(&genesis_invalid).unwrap();
+        let _decoded: GenesisBlock = serde_json::from_str(&json).unwrap();
+    }
+
+    #[test]
+    fn test_block_hash_stability() {
+        let keypair = KeyPair::generate().unwrap();
+        let tx = create_test_transaction();
+        let block = Block::new(BlockNumber(1), [0u8; 32], vec![tx], keypair.public_key().clone());
+        
+        // Hash should be stable across multiple calls
+        let hashes: Vec<[u8; 32]> = (0..100)
+            .map(|_| block.hash())
+            .collect();
+        
+        // All hashes should be identical
+        for hash in &hashes[1..] {
+            assert_eq!(hash, &hashes[0]);
+        }
+    }
+
+    #[test]
+    fn test_concurrent_merkle_root_calculation() {
+        use std::sync::Arc;
+        use std::thread;
+        
+        let transactions: Vec<Transaction> = (0..100)
+            .map(|_| create_test_transaction())
+            .collect();
+        
+        let tx_arc = Arc::new(transactions);
+        let mut handles = vec![];
+        
+        // Calculate merkle root in multiple threads
+        for _ in 0..10 {
+            let tx_clone = Arc::clone(&tx_arc);
+            let handle = thread::spawn(move || {
+                Block::calculate_merkle_root(&tx_clone)
+            });
+            handles.push(handle);
+        }
+        
+        // Collect all results
+        let results: Vec<[u8; 32]> = handles
+            .into_iter()
+            .map(|h| h.join().unwrap())
+            .collect();
+        
+        // All results should be identical
+        for result in &results[1..] {
+            assert_eq!(result, &results[0]);
+        }
+    }
+
+    #[test]
+    fn test_block_with_future_timestamp() {
+        let keypair = KeyPair::generate().unwrap();
+        let mut block = Block::new(BlockNumber(1), [0u8; 32], vec![], keypair.public_key().clone());
+        
+        // Set timestamp to future
+        block.header.timestamp = Timestamp(chrono::Utc::now() + chrono::Duration::hours(1));
+        
+        // Should still be able to hash
+        let hash = block.hash();
+        assert_ne!(hash, [0u8; 32]);
+    }
+
+    #[test]
+    fn test_merkle_tree_large_scale() {
+        // Test with varying sizes to ensure algorithm works correctly
+        for size in [1, 2, 3, 4, 5, 7, 8, 15, 16, 31, 32, 63, 64, 127, 128, 255, 256, 512, 1000] {
+            let transactions: Vec<Transaction> = (0..size)
+                .map(|_| create_test_transaction())
+                .collect();
+            
+            let root = Block::calculate_merkle_root(&transactions);
+            assert_ne!(root, [0u8; 32], "Merkle root should not be zero for {} transactions", size);
+            
+            // Calculate again to ensure determinism
+            let root2 = Block::calculate_merkle_root(&transactions);
+            assert_eq!(root, root2, "Merkle root should be deterministic for {} transactions", size);
+        }
+    }
+
+    #[test]
+    fn test_block_header_malleability() {
+        let keypair = KeyPair::generate().unwrap();
+        let block1 = Block::new(BlockNumber(1), [0u8; 32], vec![], keypair.public_key().clone());
+        let mut block2 = block1.clone();
+        
+        // Modify signature - should change hash
+        block2.header.signature = vec![1, 2, 3];
+        assert_ne!(block1.hash(), block2.hash());
+        
+        // Modify timestamp - should change hash
+        block2 = block1.clone();
+        block2.header.timestamp = Timestamp(block1.header.timestamp.0 + chrono::Duration::seconds(1));
+        assert_ne!(block1.hash(), block2.hash());
+        
+        // Modify validator - should change hash
+        let keypair2 = KeyPair::generate().unwrap();
+        block2 = block1.clone();
+        block2.header.validator = keypair2.public_key().clone();
+        assert_ne!(block1.hash(), block2.hash());
+    }
+
+    #[test]
+    fn test_invalid_block_number_sequence() {
+        let keypair = KeyPair::generate().unwrap();
+        
+        // Create blocks with non-sequential numbers
+        let block1 = Block::new(BlockNumber(1), [0u8; 32], vec![], keypair.public_key().clone());
+        let block2 = Block::new(BlockNumber(3), block1.hash(), vec![], keypair.public_key().clone()); // Skip block 2
+        let block3 = Block::new(BlockNumber(2), block2.hash(), vec![], keypair.public_key().clone()); // Out of order
+        
+        // All blocks should have valid hashes regardless of number sequence
+        assert_ne!(block1.hash(), [0u8; 32]);
+        assert_ne!(block2.hash(), [0u8; 32]);
+        assert_ne!(block3.hash(), [0u8; 32]);
+        
+        // But they should reference each other correctly
+        assert_eq!(block2.header.previous_hash, block1.hash());
+        assert_eq!(block3.header.previous_hash, block2.hash());
+    }
 }

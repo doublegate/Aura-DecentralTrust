@@ -159,3 +159,206 @@ fn initialize_auth(config: &mut config::NodeConfig) -> anyhow::Result<()> {
     info!("Authentication system initialized");
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+    
+    #[test]
+    fn test_initialize_auth_with_env_secret() {
+        // Set environment variable
+        env::set_var("AURA_JWT_SECRET", "test-env-secret");
+        
+        let mut config = config::NodeConfig {
+            node_id: "test-node".to_string(),
+            network: config::NetworkConfig {
+                listen_addresses: vec![],
+                bootstrap_peers: vec![],
+                enable_mdns: false,
+            },
+            consensus: config::ConsensusConfig {
+                consensus_type: "proof-of-authority".to_string(),
+                validator_key_path: None,
+                block_time_secs: 5,
+                max_transactions_per_block: 100,
+                min_transaction_fee: 0,
+            },
+            api: config::ApiConfig {
+                listen_address: "127.0.0.1:8080".to_string(),
+                enable_tls: false,
+                enable_auth: true,
+                cors_origins: vec![],
+                max_request_size: 1048576,
+                rate_limit_per_minute: 60,
+            },
+            security: config::SecurityConfig {
+                enable_input_validation: true,
+                max_payload_size: 1048576,
+                enable_audit_logging: true,
+                jwt_secret: None,
+                credentials_path: None,
+                tls_cert_path: None,
+                tls_key_path: None,
+                enable_key_pinning: false,
+                pinned_public_keys: vec![],
+            },
+        };
+        
+        let result = initialize_auth(&mut config);
+        assert!(result.is_ok());
+        
+        // Clean up
+        env::remove_var("AURA_JWT_SECRET");
+    }
+    
+    #[test]
+    fn test_initialize_auth_with_config_secret() {
+        // Make sure env var is not set
+        env::remove_var("AURA_JWT_SECRET");
+        
+        let mut config = config::NodeConfig {
+            node_id: "test-node".to_string(),
+            network: config::NetworkConfig {
+                listen_addresses: vec![],
+                bootstrap_peers: vec![],
+                enable_mdns: false,
+            },
+            consensus: config::ConsensusConfig {
+                consensus_type: "proof-of-authority".to_string(),
+                validator_key_path: None,
+                block_time_secs: 5,
+                max_transactions_per_block: 100,
+                min_transaction_fee: 0,
+            },
+            api: config::ApiConfig {
+                listen_address: "127.0.0.1:8080".to_string(),
+                enable_tls: false,
+                enable_auth: true,
+                cors_origins: vec![],
+                max_request_size: 1048576,
+                rate_limit_per_minute: 60,
+            },
+            security: config::SecurityConfig {
+                enable_input_validation: true,
+                max_payload_size: 1048576,
+                enable_audit_logging: true,
+                jwt_secret: Some("config-secret".to_string()),
+                credentials_path: None,
+                tls_cert_path: None,
+                tls_key_path: None,
+                enable_key_pinning: false,
+                pinned_public_keys: vec![],
+            },
+        };
+        
+        let result = initialize_auth(&mut config);
+        assert!(result.is_ok());
+    }
+    
+    #[test]
+    fn test_initialize_auth_generates_secret() {
+        // Make sure env var is not set
+        env::remove_var("AURA_JWT_SECRET");
+        
+        let mut config = config::NodeConfig {
+            node_id: "test-node".to_string(),
+            network: config::NetworkConfig {
+                listen_addresses: vec![],
+                bootstrap_peers: vec![],
+                enable_mdns: false,
+            },
+            consensus: config::ConsensusConfig {
+                consensus_type: "proof-of-authority".to_string(),
+                validator_key_path: None,
+                block_time_secs: 5,
+                max_transactions_per_block: 100,
+                min_transaction_fee: 0,
+            },
+            api: config::ApiConfig {
+                listen_address: "127.0.0.1:8080".to_string(),
+                enable_tls: false,
+                enable_auth: true,
+                cors_origins: vec![],
+                max_request_size: 1048576,
+                rate_limit_per_minute: 60,
+            },
+            security: config::SecurityConfig {
+                enable_input_validation: true,
+                max_payload_size: 1048576,
+                enable_audit_logging: true,
+                jwt_secret: None,
+                credentials_path: None,
+                tls_cert_path: None,
+                tls_key_path: None,
+                enable_key_pinning: false,
+                pinned_public_keys: vec![],
+            },
+        };
+        
+        let result = initialize_auth(&mut config);
+        assert!(result.is_ok());
+        
+        // Verify a secret was generated and saved to config
+        assert!(config.security.jwt_secret.is_some());
+        let generated_secret = config.security.jwt_secret.as_ref().unwrap();
+        
+        // Verify it's a base64 encoded string
+        use base64::Engine;
+        let decoded = base64::engine::general_purpose::STANDARD.decode(generated_secret);
+        assert!(decoded.is_ok());
+        
+        // Verify it's 32 bytes (256 bits)
+        assert_eq!(decoded.unwrap().len(), 32);
+    }
+    
+    #[test]
+    fn test_initialize_auth_priority_env_over_config() {
+        // Set both env var and config
+        env::set_var("AURA_JWT_SECRET", "env-secret");
+        
+        let mut config = config::NodeConfig {
+            node_id: "test-node".to_string(),
+            network: config::NetworkConfig {
+                listen_addresses: vec![],
+                bootstrap_peers: vec![],
+                enable_mdns: false,
+            },
+            consensus: config::ConsensusConfig {
+                consensus_type: "proof-of-authority".to_string(),
+                validator_key_path: None,
+                block_time_secs: 5,
+                max_transactions_per_block: 100,
+                min_transaction_fee: 0,
+            },
+            api: config::ApiConfig {
+                listen_address: "127.0.0.1:8080".to_string(),
+                enable_tls: false,
+                enable_auth: true,
+                cors_origins: vec![],
+                max_request_size: 1048576,
+                rate_limit_per_minute: 60,
+            },
+            security: config::SecurityConfig {
+                enable_input_validation: true,
+                max_payload_size: 1048576,
+                enable_audit_logging: true,
+                jwt_secret: Some("config-secret".to_string()),
+                credentials_path: Some("./creds.json".to_string()),
+                tls_cert_path: None,
+                tls_key_path: None,
+                enable_key_pinning: false,
+                pinned_public_keys: vec![],
+            },
+        };
+        
+        let result = initialize_auth(&mut config);
+        assert!(result.is_ok());
+        
+        // Config should remain unchanged (env var takes precedence)
+        assert_eq!(config.security.jwt_secret, Some("config-secret".to_string()));
+        
+        // Clean up
+        env::remove_var("AURA_JWT_SECRET");
+    }
+}
