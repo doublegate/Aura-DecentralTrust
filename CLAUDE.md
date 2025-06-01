@@ -68,11 +68,14 @@ ROCKSDB_LIB_DIR=/usr/lib LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo build --release
 - Initial consensus will use Proof-of-Authority, later transitioning to Proof-of-Stake
 - ZKP integration is planned for Phase 2 using libraries like arkworks-rs or bellman
 
-## Current Status - v0.1.0 Released! 🚀
+## Current Status - v0.1.5 Released! 🚀
 
-**Latest Release**: v0.1.0 (June 1, 2025)
-- Download binaries: https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0
+**Latest Release**: v0.1.5 (June 1, 2025 Evening)
+- Download binaries: https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.5
 - Available for: Linux, macOS (Intel/ARM), Windows
+
+**Previous Release**: v0.1.0 (June 1, 2025 Morning)
+- Foundation release with security hardening
 
 Phase 1 (Foundation & Core Infrastructure) is 95% complete:
 
@@ -82,6 +85,7 @@ Phase 1 (Foundation & Core Infrastructure) is 95% complete:
 - ✅ P2P network node with REST API
 - ✅ JWT authentication and TLS support
 - ✅ Comprehensive security hardening
+- ✅ **Comprehensive test coverage (95% - 505 tests)** - COMPLETED June 1, 2025
 - ⏳ API-blockchain integration (remaining 5%)
 
 See `docs/PHASE1_SUMMARY.md` for detailed implementation status.
@@ -117,7 +121,13 @@ cargo clippy
 cargo clippy --all-targets --all-features -- -D warnings
 ```
 
-## Recent Updates (2025-06-01 Afternoon)
+## Recent Updates (2025-06-01 Evening)
+
+### v0.1.5 Release (6:45 PM)
+Released version 0.1.5 with comprehensive test coverage:
+- **Version**: v0.1.5 (tagged and pushed)
+- **Release Workflow**: Triggered for multi-platform binary builds
+- **Documentation**: Updated README, CHANGELOG, and test coverage reports
 
 ### Test Coverage Completion (4:12 PM)
 Successfully completed comprehensive test coverage for the entire project:
@@ -127,6 +137,9 @@ Successfully completed comprehensive test coverage for the entire project:
 - **Key Fixes**: Resolved 17 failing aura-node tests
 - **Documentation**: Created TEST_COVERAGE_FINAL_2025-06-01.md and MASTER_PHASE1-REAL_IMP.md
 - **Remaining Work**: 5% API-blockchain integration documented (9-15 days)
+
+### Important Development Practice
+**Tests should now be written alongside new features** rather than as a separate phase. This ensures better code quality, immediate validation, and continuous integration compliance.
 
 ## Recent Updates (2025-06-01 Morning)
 
@@ -192,7 +205,12 @@ git push origin v0.1.0
 ```
 
 ### Release History
-- **v0.1.0** (2025-06-01): Phase 1 Foundation Release
+- **v0.1.5** (2025-06-01 Evening): Comprehensive Test Coverage Release
+  - 95% test coverage with 505 tests (ALL PASSING)
+  - Property-based testing and performance benchmarks
+  - Platform-specific test handling
+  - Complete test documentation
+- **v0.1.0** (2025-06-01 Morning): Phase 1 Foundation Release
   - Core blockchain infrastructure
   - Security hardening complete
   - Multi-platform CI/CD pipeline
