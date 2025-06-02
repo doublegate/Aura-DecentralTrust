@@ -2,7 +2,7 @@
 
 This directory contains completed tasks, historical session summaries, and resolved issues from the Aura DecentralTrust project.
 
-## Archived Items (as of 2025-06-01)
+## Archived Items (as of 2025-06-02)
 
 ### Build & Development Summaries
 - `BUILD_SUCCESS.md` - Initial successful build documentation
@@ -16,18 +16,33 @@ This directory contains completed tasks, historical session summaries, and resol
 - `CONFIG_MIGRATION_SUMMARY.md` - Configuration migration completion
 - `SECURITY_IMPLEMENTATION_SUMMARY.md` - Security features implemented
 - `NODE_TESTING_SUMMARY.md` - Node testing results
+- `BENCHMARK_CONSOLIDATION_2025-06-01.md` - Benchmark framework unification
+
+### Testing Documentation (Completed)
+- `TESTING_COMPLETE_SUMMARY.md` - Overall testing completion summary
+- `TEST_COVERAGE_PROGRESS_2025-06-01.md` - Test coverage progress tracking
+- `TEST_COVERAGE_PROGRESS_2025-06-01_LEDGER_COMPLETE.md` - Ledger test completion
+- `TEST_COVERAGE_SESSION_2025-06-01.md` - Test coverage session notes
+- `TEST_COVERAGE_SUMMARY.md` - Test coverage overview
+- `TEST_COVERAGE_SUMMARY_2025-06-01_WALLET_COMPLETE.md` - Wallet test completion
+- `TEST_FIX_PROGRESS_2025-06-01.md` - Test fixing progress
+- `TEST_FRAMEWORK_COMPLETION_2025-06-01.md` - Test framework completion
+- `TEST_FRAMEWORK_CONSOLIDATION_SUMMARY.md` - Test consolidation summary
+- `TEST_FRAMEWORK_PHASE1_STATUS.md` - Phase 1 test status
 
 ### CI/CD History
 - `CI_CD_FIXES_2025-06-01.md` - CI/CD issue resolutions
 - `CI_CD_STATUS_2025-06-01.md` - CI/CD status report
 - `CI_CD_SUCCESS_2025-06-01.md` - Successful CI/CD implementation
 - `CI_CD_TROUBLESHOOTING_2025-06-01.md` - CI/CD troubleshooting notes
+- `CI_CD_CLIPPY_FIXES_2025-06-01.md` - Late evening clippy and format fixes
 
 ### Session Summaries
 - `SESSION_SUMMARY_2025-05-30_BUILD_FIXES.md` - Build fix session
 - `SESSION_SUMMARY_2025-05-30_MAIN_BRANCH.md` - Main branch work
 - `SESSION_SUMMARY_2025-05-31_CONFIG_MIGRATION.md` - Config migration session
 - `SESSION_SUMMARY_2025-05-31_POST_SECURITY.md` - Post-security implementation
+- `SESSION_SUMMARY_2025-06-01_EVENING_v015.md` - v0.1.5 release session
 
 ### Memory Updates
 - `MEMORY_UPDATE_2025-05-30.md` - General memory update

@@ -5,40 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.6] - 2025-06-02
 
 ### Added
-- **Testing**: Consolidated test framework - merged aura-benchmarks into aura-tests
-  - Fixed all 21 compilation errors in aura-tests framework
-  - Added 73 tests from aura-tests to total count (578 tests total)
-  - Integrated comprehensive benchmarks from aura-benchmarks
-  - Updated all API calls to match current signatures
-  - Fixed property test macro syntax issues
-  - Implemented missing transaction validation methods
-  - Documented all TODOs and placeholders in test framework
+- **CI/CD**: Pre-commit check documentation matching CI behavior exactly
+- **CI/CD**: Debug output in workflows for troubleshooting file generation
+- **Documentation**: Added CI/CD troubleshooting guide in CLAUDE.md
+- **Documentation**: Created session summary for CI/CD fixes
 
 ### Changed
-- **Testing**: Unified all tests and benchmarks in single aura-tests crate
-- **Documentation**: Updated test counts and benchmark instructions across all docs
-- **Code Style**: Updated all format! macros to use inline variable syntax (e.g., `format!("{i}")` instead of `format!("{}", i)`)
+- **Code Style**: Updated all remaining format! macros to inline syntax (23 in benchmarks)
+- **CI/CD**: Simplified JUnit XML generation using static file approach
+- **Documentation**: Updated all version references to v0.1.6
+- **.gitignore**: Made patterns more precise (`/benchmarks/` not `benchmarks/`)
 
 ### Fixed
-- **Testing**: Resolved aura-tests compilation issues (sign_message → sign, verify_signature → verify)
-- **Testing**: Fixed missing Transaction::validate() and is_expired() methods
-- **Testing**: Corrected property test macro syntax (removed doc comments before #[test])
-- **Testing**: Fixed base64 encoding to use Engine API
-- **Testing**: Resolved Zeroizing type wrapper issues
-- **CI/CD**: Fixed all clippy warnings and formatting issues
-  - Removed unused imports in benchmark files
-  - Updated deprecated `criterion::black_box` to `std::hint::black_box`
-  - Fixed needless borrows in function calls
-  - Resolved redundant closure warnings
-  - Converted single-pattern match to if-let
-  - Fixed unused variable warnings with underscore prefix
+- **CI/CD**: Fixed tarpaulin JUnit output (removed unsupported --out junit flag)
+- **CI/CD**: Resolved all clippy::uninlined_format_args warnings
+- **CI/CD**: Fixed import ordering (std imports after external crates)
+- **CI/CD**: Corrected multi-line format! and closure formatting
+- **Benchmarks**: Added force-add for benchmark source files caught by .gitignore
 
-### Removed
-- **Testing**: Removed empty aura-benchmarks crate (consolidated into aura-tests)
-- **Testing**: Removed empty benches directory
+## [Unreleased]
 
 ## [0.1.5] - 2025-06-01
 

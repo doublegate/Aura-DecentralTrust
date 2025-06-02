@@ -76,6 +76,18 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 This prevents CI/CD failures and avoids multiple fix commits. Always use `--check` first to match CI behavior.
 
+### CI/CD Troubleshooting
+
+#### JUnit XML Generation for Test Results
+- Use `cargo tarpaulin --out junit` to generate junit.xml for Codecov
+- Don't overcomplicate with cargo-nextest unless specifically needed
+- Tarpaulin can generate multiple output formats: `--out xml --out lcov --out html --out junit`
+
+#### Common CI Failures
+1. **Format differences**: Always run `cargo fmt --all -- --check` locally
+2. **Clippy warnings**: Check for `uninlined_format_args` - use `format!("{var}")` not `format!("{}", var)`
+3. **Platform differences**: CI may format slightly differently than local environment
+
 ## Key Technical Decisions
 
 - **Core Components**: Written in Rust for performance and memory safety
@@ -93,14 +105,15 @@ This prevents CI/CD failures and avoids multiple fix commits. Always use `--chec
 - Initial consensus will use Proof-of-Authority, later transitioning to Proof-of-Stake
 - ZKP integration is planned for Phase 2 using libraries like arkworks-rs or bellman
 
-## Current Status - v0.1.5 Released! 🚀
+## Current Status - v0.1.6 Released! 🚀
 
-**Latest Release**: v0.1.5 (June 1, 2025 Evening)
-- Download binaries: https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.5
+**Latest Release**: v0.1.6 (June 2, 2025 12:17 AM)
+- Download binaries: https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.6
 - Available for: Linux, macOS (Intel/ARM), Windows
 
-**Previous Release**: v0.1.0 (June 1, 2025 Morning)
-- Foundation release with security hardening
+**Previous Releases**: 
+- v0.1.5 (June 1, 2025 Evening) - Test coverage release
+- v0.1.0 (June 1, 2025 Morning) - Foundation release with security hardening
 
 Phase 1 (Foundation & Core Infrastructure) is 95% complete:
 
@@ -237,6 +250,12 @@ git push origin v0.1.5
 ```
 
 ### Release History
+- **v0.1.6** (2025-06-02 12:17 AM): CI/CD Enhancement Release
+  - Fixed all formatting and clippy warnings
+  - Enforced inline format strings codebase-wide
+  - Fixed JUnit XML generation for Codecov
+  - Updated pre-commit guidelines
+  - Improved .gitignore precision
 - **v0.1.5** (2025-06-01 Evening): Comprehensive Test Coverage Release
   - 95% test coverage with 505 tests (ALL PASSING)
   - Property-based testing and performance benchmarks

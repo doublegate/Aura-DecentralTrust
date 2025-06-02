@@ -4,29 +4,28 @@
 
 ![Aura Logo](images/aura_logo.png)
 
-[![Release](https://img.shields.io/badge/release-v0.1.5-blue.svg)](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.5)
+[![Release](https://img.shields.io/badge/release-v0.1.6-blue.svg)](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.6)
 [![CI](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml/badge.svg)](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/github/doublegate/Aura-DecentralTrust/graph/badge.svg?token=ALCFBYJSOX)](https://codecov.io/github/doublegate/Aura-DecentralTrust)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🎉 v0.1.5 Released with Comprehensive Test Coverage!
+## 🎉 v0.1.6 Released with CI/CD Enhancements!
 
-We're thrilled to announce the v0.1.5 release of Aura DecentralTrust with comprehensive test coverage! 
+We're excited to announce the v0.1.6 release of Aura DecentralTrust with improved CI/CD and code quality! 
 
-### What's New in v0.1.5
-- ✅ **95% Test Coverage**: 578 tests across all crates (including unified test framework)
-- ✅ **Property-Based Testing**: Added invariant validation with proptest
-- ✅ **Performance Benchmarks**: Critical operations now benchmarked
-- ✅ **Test Framework Consolidation**: Merged aura-benchmarks into unified aura-tests
-- ✅ **CI/CD Improvements**: All platform tests passing (Linux, macOS, Windows)
-- ✅ **Documentation**: Complete test coverage documentation and Phase 1 roadmap
+### What's New in v0.1.6
+- ✅ **CI/CD Fixes**: Resolved all formatting and clippy warnings across the codebase
+- ✅ **Code Quality**: Enforced inline format strings throughout (no more `format!("{}", var)`)
+- ✅ **Test Reporting**: Fixed JUnit XML generation for Codecov integration
+- ✅ **Documentation**: Updated all memory banks and documentation to current standards
+- ✅ **Developer Experience**: Added pre-commit check guidelines matching CI exactly
 
 ### Download Pre-built Binaries
-- [**Linux (x86_64)**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.5/aura-node-linux-amd64)
-- [**macOS Intel**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.5/aura-node-darwin-amd64)
-- [**macOS Apple Silicon**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.5/aura-node-darwin-arm64)
-- [**Windows**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.5/aura-node-windows-amd64.exe)
+- [**Linux (x86_64)**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.6/aura-node-linux-amd64)
+- [**macOS Intel**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.6/aura-node-darwin-amd64)
+- [**macOS Apple Silicon**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.6/aura-node-darwin-arm64)
+- [**Windows**](https://github.com/doublegate/Aura-DecentralTrust/releases/download/v0.1.6/aura-node-windows-amd64.exe)
 
 ### 🔒 Security Update
 All 13 security vulnerabilities identified in our comprehensive security audit have been resolved, including:
@@ -44,7 +43,8 @@ Aura is a decentralized identity and trust network that combines Decentralized I
 ## Project Status
 
 **Phase 1 Foundation Release (v0.1.0)** - June 1, 2025  
-**Test Coverage Release (v0.1.5)** - June 1, 2025 (Evening)
+**Test Coverage Release (v0.1.5)** - June 1, 2025 (Evening)  
+**CI/CD Enhancement Release (v0.1.6)** - June 2, 2025 (12:17 AM)
 
 ### What's Implemented in v0.1.x
 - ✅ **Multi-platform Support**: Binaries for Linux, macOS (Intel/ARM), and Windows
