@@ -62,7 +62,10 @@ cargo build --release
 ### Pre-Commit Checks
 **IMPORTANT**: Before committing any code changes, ALWAYS run:
 ```bash
-# Format all code
+# Check formatting (same as CI)
+cargo fmt --all -- --check
+
+# If formatting issues found, fix them with:
 cargo fmt --all
 
 # Run clippy with strict CI settings
@@ -71,7 +74,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 # Fix any issues before committing!
 ```
 
-This prevents CI/CD failures and avoids multiple fix commits.
+This prevents CI/CD failures and avoids multiple fix commits. Always use `--check` first to match CI behavior.
 
 ## Key Technical Decisions
 
