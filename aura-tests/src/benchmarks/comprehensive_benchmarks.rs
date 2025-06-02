@@ -74,7 +74,7 @@ pub fn benchmark_extended_crypto(c: &mut Criterion) {
             |b, (message, signature)| {
                 b.iter(|| {
                     verify(
-                        keypair.public_key(),
+                        &keypair.public_key(),
                         black_box(message),
                         black_box(signature),
                     )
@@ -114,10 +114,12 @@ pub fn benchmark_did_operations(c: &mut Criterion) {
                 id: format!("{did}#key-1"),
                 controller: did.clone(),
                 verification_type: "Ed25519VerificationKey2020".to_string(),
-                public_key_multibase: format!(
+                public_key_multibase: Some(format!(
                     "z{}",
-                    bs58::encode(keypair.public_key().to_bytes()).into_string()
-                ),
+                    bs58::encode(&keypair.public_key().to_bytes()).into_string()
+                )),
+                public_key_jwk: None,
+                public_key_base58: None,
             };
             doc.add_verification_method(vm);
             doc
@@ -146,12 +148,8 @@ pub fn benchmark_did_operations(c: &mut Criterion) {
                             let doc = DidDocument::new(did);
 
                             let mut reg = registry.write().await;
-                            reg.register_did(
-                                &doc,
-                                keypair.public_key().clone(),
-                                BlockNumber(id as u64),
-                            )
-                            .unwrap();
+                            reg.register_did(&doc, keypair.public_key(), BlockNumber(id as u64))
+                                .unwrap();
                         })
                     })
                     .collect();
@@ -204,7 +202,7 @@ pub fn benchmark_transactions(c: &mut Criterion) {
                     id: TransactionId(uuid::Uuid::new_v4().to_string()),
                     transaction_type: tx_type.clone(),
                     timestamp: Timestamp::now(),
-                    sender: keypair.public_key().clone(),
+                    sender: keypair.public_key(),
                     signature: aura_crypto::Signature(vec![0; 64]),
                     nonce,
                     chain_id: "benchmark".to_string(),
@@ -221,7 +219,7 @@ pub fn benchmark_transactions(c: &mut Criterion) {
             did_document: did_doc.clone(),
         },
         timestamp: Timestamp::now(),
-        sender: keypair.public_key().clone(),
+        sender: keypair.public_key(),
         signature: aura_crypto::Signature(vec![0; 64]),
         nonce: 1,
         chain_id: "benchmark".to_string(),
@@ -252,7 +250,7 @@ pub fn benchmark_transactions(c: &mut Criterion) {
                 did_document: DidDocument::new(AuraDid::new(&format!("batch-user-{i}"))),
             },
             timestamp: Timestamp::now(),
-            sender: keypair.public_key().clone(),
+            sender: keypair.public_key(),
             signature: aura_crypto::Signature(vec![0; 64]),
             nonce: i as u64 + 1,
             chain_id: "benchmark".to_string(),

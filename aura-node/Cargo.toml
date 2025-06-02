@@ -32,6 +32,8 @@ jsonwebtoken = { workspace = true }
 regex = "1.11"
 once_cell = "1.21"
 url = "2.5"
+rocksdb = { workspace = true }
+bs58 = "0.5"
 tokio-rustls = "0.26"
 tokio-stream = { version = "0.1", features = ["net"] }
 rustls = "0.23"

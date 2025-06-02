@@ -164,7 +164,7 @@ mod tests {
         let keypair = KeyPair::generate().unwrap();
         let did_doc = create_test_did_document("test123");
 
-        let result = registry.register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1));
+        let result = registry.register_did(&did_doc, keypair.public_key(), BlockNumber(1));
 
         assert!(result.is_ok());
 
@@ -186,11 +186,11 @@ mod tests {
 
         // Register once
         registry
-            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .register_did(&did_doc, keypair.public_key(), BlockNumber(1))
             .unwrap();
 
         // Try to register again
-        let result = registry.register_did(&did_doc, keypair.public_key().clone(), BlockNumber(2));
+        let result = registry.register_did(&did_doc, keypair.public_key(), BlockNumber(2));
 
         assert!(result.is_err());
         match result {
@@ -207,7 +207,7 @@ mod tests {
 
         // Register first
         registry
-            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .register_did(&did_doc, keypair.public_key(), BlockNumber(1))
             .unwrap();
 
         // Create updated document
@@ -218,7 +218,7 @@ mod tests {
         let result = registry.update_did(
             &did_doc.id,
             &updated_doc,
-            keypair.public_key(),
+            &keypair.public_key(),
             BlockNumber(2),
         );
 
@@ -242,8 +242,12 @@ mod tests {
             .unwrap();
 
         // Try to update with keypair2
-        let result =
-            registry.update_did(&did_doc.id, &did_doc, keypair2.public_key(), BlockNumber(2));
+        let result = registry.update_did(
+            &did_doc.id,
+            &did_doc,
+            &keypair2.public_key(),
+            BlockNumber(2),
+        );
 
         assert!(result.is_err());
         match result {
@@ -259,7 +263,7 @@ mod tests {
         let did_doc = create_test_did_document("test123");
 
         let result =
-            registry.update_did(&did_doc.id, &did_doc, keypair.public_key(), BlockNumber(1));
+            registry.update_did(&did_doc.id, &did_doc, &keypair.public_key(), BlockNumber(1));
 
         assert!(result.is_err());
         match result {
@@ -276,11 +280,11 @@ mod tests {
 
         // Register first
         registry
-            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .register_did(&did_doc, keypair.public_key(), BlockNumber(1))
             .unwrap();
 
         // Deactivate
-        let result = registry.deactivate_did(&did_doc.id, keypair.public_key(), BlockNumber(2));
+        let result = registry.deactivate_did(&did_doc.id, &keypair.public_key(), BlockNumber(2));
 
         assert!(result.is_ok());
 
@@ -302,7 +306,7 @@ mod tests {
             .unwrap();
 
         // Try to deactivate with keypair2
-        let result = registry.deactivate_did(&did_doc.id, keypair2.public_key(), BlockNumber(2));
+        let result = registry.deactivate_did(&did_doc.id, &keypair2.public_key(), BlockNumber(2));
 
         assert!(result.is_err());
         match result {
@@ -319,15 +323,15 @@ mod tests {
 
         // Register and deactivate
         registry
-            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .register_did(&did_doc, keypair.public_key(), BlockNumber(1))
             .unwrap();
 
         registry
-            .deactivate_did(&did_doc.id, keypair.public_key(), BlockNumber(2))
+            .deactivate_did(&did_doc.id, &keypair.public_key(), BlockNumber(2))
             .unwrap();
 
         // Try to deactivate again
-        let result = registry.deactivate_did(&did_doc.id, keypair.public_key(), BlockNumber(3));
+        let result = registry.deactivate_did(&did_doc.id, &keypair.public_key(), BlockNumber(3));
 
         assert!(result.is_err());
         match result {
@@ -346,16 +350,16 @@ mod tests {
 
         // Register and deactivate
         registry
-            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .register_did(&did_doc, keypair.public_key(), BlockNumber(1))
             .unwrap();
 
         registry
-            .deactivate_did(&did_doc.id, keypair.public_key(), BlockNumber(2))
+            .deactivate_did(&did_doc.id, &keypair.public_key(), BlockNumber(2))
             .unwrap();
 
         // Try to update
         let result =
-            registry.update_did(&did_doc.id, &did_doc, keypair.public_key(), BlockNumber(3));
+            registry.update_did(&did_doc.id, &did_doc, &keypair.public_key(), BlockNumber(3));
 
         assert!(result.is_err());
         match result {
@@ -374,7 +378,7 @@ mod tests {
 
         // Register
         registry
-            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .register_did(&did_doc, keypair.public_key(), BlockNumber(1))
             .unwrap();
 
         // Resolve
@@ -407,13 +411,13 @@ mod tests {
 
         // After registration
         registry
-            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .register_did(&did_doc, keypair.public_key(), BlockNumber(1))
             .unwrap();
         assert!(registry.is_did_active(&did_doc.id).unwrap());
 
         // After deactivation
         registry
-            .deactivate_did(&did_doc.id, keypair.public_key(), BlockNumber(2))
+            .deactivate_did(&did_doc.id, &keypair.public_key(), BlockNumber(2))
             .unwrap();
         assert!(!registry.is_did_active(&did_doc.id).unwrap());
     }
@@ -426,7 +430,7 @@ mod tests {
 
         // Register
         registry
-            .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+            .register_did(&did_doc, keypair.public_key(), BlockNumber(1))
             .unwrap();
 
         let record1 = registry.get_did_record(&did_doc.id).unwrap().unwrap();
@@ -443,7 +447,7 @@ mod tests {
             .update_did(
                 &did_doc.id,
                 &updated_doc,
-                keypair.public_key(),
+                &keypair.public_key(),
                 BlockNumber(2),
             )
             .unwrap();

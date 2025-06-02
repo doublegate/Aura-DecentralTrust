@@ -1,3 +1,4 @@
+use crate::auth_setup::setup_initial_credentials;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -7,6 +8,7 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, 
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::Path;
 use tower_http::limit::RequestBodyLimitLayer;
 
 /// Global JWT secret storage
@@ -57,51 +59,34 @@ pub fn initialize_auth(jwt_secret: Vec<u8>, credentials_path: Option<&str>) -> a
         .set(jwt_secret)
         .map_err(|_| anyhow::anyhow!("JWT secret already initialized"))?;
 
-    // Load credentials if path provided
-    if let Some(path) = credentials_path {
-        if std::path::Path::new(path).exists() {
-            let content = std::fs::read_to_string(path)?;
-            let creds: HashMap<String, Credential> = serde_json::from_str(&content)?;
-            CREDENTIALS
-                .set(creds)
-                .map_err(|_| anyhow::anyhow!("Credentials already initialized"))?;
-        } else {
-            // Create default credentials file for development
-            let mut default_creds = HashMap::new();
-
-            // In production, these should be properly hashed passwords
-            // For now, using simple hash for development
-            default_creds.insert(
-                "validator-node-1".to_string(),
-                Credential {
-                    password_hash: hash_password("validator-password-1"),
-                    role: "validator".to_string(),
-                },
-            );
-            default_creds.insert(
-                "query-node-1".to_string(),
-                Credential {
-                    password_hash: hash_password("query-password-1"),
-                    role: "query".to_string(),
-                },
-            );
-
-            // Save default credentials
-            if let Some(parent) = std::path::Path::new(path).parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-            std::fs::write(path, serde_json::to_string_pretty(&default_creds)?)?;
-
-            CREDENTIALS
-                .set(default_creds)
-                .map_err(|_| anyhow::anyhow!("Credentials already initialized"))?;
-        }
+    // Load or generate credentials
+    let config_path = if let Some(path) = credentials_path {
+        Path::new(path)
+            .parent()
+            .unwrap_or(Path::new("."))
+            .to_path_buf()
     } else {
-        // No credentials file, initialize empty
-        CREDENTIALS
-            .set(HashMap::new())
-            .map_err(|_| anyhow::anyhow!("Credentials already initialized"))?;
+        Path::new("./config").to_path_buf()
+    };
+
+    // Setup initial credentials (will load existing if available)
+    let setup_config = setup_initial_credentials(&config_path)?;
+
+    // Convert to internal credential format
+    let mut credentials = HashMap::new();
+    for node_cred in setup_config.credentials {
+        credentials.insert(
+            node_cred.node_id,
+            Credential {
+                password_hash: hash_password(&node_cred.password),
+                role: node_cred.role,
+            },
+        );
     }
+
+    CREDENTIALS
+        .set(credentials)
+        .map_err(|_| anyhow::anyhow!("Credentials already initialized"))?;
 
     Ok(())
 }
@@ -539,5 +524,57 @@ mod tests {
         assert_eq!(decoded.exp, claims.exp);
         assert_eq!(decoded.iat, claims.iat);
         assert_eq!(decoded.role, claims.role);
+    }
+
+    #[test]
+    fn test_auth_setup_integration() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        // Initialize auth with credential generation
+        let result = initialize_auth(
+            b"test_jwt_secret".to_vec(),
+            Some(config_path.to_str().unwrap()),
+        );
+
+        // Handle case where globals are already initialized
+        if result.is_ok() {
+            // Verify credentials were generated
+            let creds_file = temp_dir.path().join("credentials.toml");
+            assert!(creds_file.exists());
+
+            // Check file permissions on Unix
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let metadata = std::fs::metadata(&creds_file).unwrap();
+                let permissions = metadata.permissions();
+                assert_eq!(permissions.mode() & 0o777, 0o600);
+            }
+        }
+    }
+
+    #[test]
+    fn test_secure_credential_generation() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Generate credentials
+        let setup_config = crate::auth_setup::setup_initial_credentials(temp_dir.path()).unwrap();
+
+        // Verify all passwords are unique
+        let passwords: Vec<&String> = setup_config
+            .credentials
+            .iter()
+            .map(|c| &c.password)
+            .collect();
+
+        let unique_passwords: std::collections::HashSet<&&String> = passwords.iter().collect();
+        assert_eq!(passwords.len(), unique_passwords.len());
+
+        // Verify password strength
+        for cred in &setup_config.credentials {
+            assert_eq!(cred.password.len(), 32);
+            assert!(cred.password.chars().all(|c| c.is_alphanumeric()));
+        }
     }
 }

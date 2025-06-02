@@ -441,7 +441,11 @@ mod tests {
                 id: "did:aura:test123#key-1".to_string(),
                 verification_type: "Ed25519VerificationKey2020".to_string(),
                 controller: AuraDid("did:aura:test123".to_string()),
-                public_key_multibase: "zXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX".to_string(),
+                public_key_multibase: Some(
+                    "zXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX".to_string(),
+                ),
+                public_key_jwk: None,
+                public_key_base58: None,
             }],
             authentication: vec![VerificationRelationship::Reference(
                 "did:aura:test123#key-1".to_string(),
@@ -485,7 +489,11 @@ mod tests {
                 id: format!("did:aura:test123#key-{i}"),
                 verification_type: "Ed25519VerificationKey2020".to_string(),
                 controller: AuraDid("did:aura:test123".to_string()),
-                public_key_multibase: "zXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX".to_string(),
+                public_key_multibase: Some(
+                    "zXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX".to_string(),
+                ),
+                public_key_jwk: None,
+                public_key_base58: None,
             });
         }
 

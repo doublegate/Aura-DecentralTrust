@@ -1,5 +1,11 @@
 use crate::auth::{self, AuthRequest, AuthResponse};
+use crate::did_resolver::DIDResolver;
+use crate::nonce_tracker::NonceTracker;
 use crate::validation;
+use aura_ledger::{
+    did_registry::DidRegistry, revocation_registry::RevocationRegistry,
+    vc_schema_registry::VcSchemaRegistry, Blockchain, Transaction,
+};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -11,13 +17,32 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 
+/// Components from the node that the API needs access to
+pub struct NodeComponents {
+    pub blockchain: Arc<RwLock<Blockchain>>,
+    pub did_registry: Arc<RwLock<DidRegistry>>,
+    pub schema_registry: Arc<RwLock<VcSchemaRegistry>>,
+    pub revocation_registry: Arc<RwLock<RevocationRegistry>>,
+    pub transaction_pool: Arc<RwLock<Vec<Transaction>>>,
+}
+
 #[derive(Clone)]
 pub struct ApiState {
-    // In a real implementation, this would contain references to the node components
     pub config: Option<crate::config::NodeConfig>,
+    pub nonce_tracker: Option<Arc<NonceTracker>>,
+    #[allow(dead_code)]
+    pub blockchain: Option<Arc<RwLock<Blockchain>>>,
+    pub did_registry: Option<Arc<RwLock<DidRegistry>>>,
+    #[allow(dead_code)]
+    pub schema_registry: Option<Arc<RwLock<VcSchemaRegistry>>>,
+    #[allow(dead_code)]
+    pub revocation_registry: Option<Arc<RwLock<RevocationRegistry>>>,
+    #[allow(dead_code)]
+    pub transaction_pool: Option<Arc<RwLock<Vec<Transaction>>>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -105,6 +130,7 @@ pub async fn start_api_server(
     enable_tls: bool,
     data_dir: std::path::PathBuf,
     config: Option<crate::config::NodeConfig>,
+    node_components: Option<NodeComponents>,
 ) -> anyhow::Result<()> {
     // Get rate limit config
     let (max_rpm, max_rph) = config
@@ -118,7 +144,70 @@ pub async fn start_api_server(
     // Spawn cleanup task
     crate::rate_limit::spawn_cleanup_task(rate_limiter.clone());
 
-    let state = ApiState { config };
+    // Create nonce tracker
+    let nonce_tracker = NonceTracker::new(&data_dir).map(Arc::new).ok();
+
+    // Spawn nonce cleanup task
+    if let Some(tracker) = nonce_tracker.clone() {
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(300));
+            loop {
+                interval.tick().await;
+                if let Err(e) = tracker.cleanup_expired().await {
+                    tracing::warn!("Failed to cleanup expired nonces: {e}");
+                }
+            }
+        });
+    }
+
+    // Extract node components or create defaults for testing
+    let (blockchain, did_registry, schema_registry, revocation_registry, transaction_pool) =
+        if let Some(components) = node_components {
+            (
+                Some(components.blockchain),
+                Some(components.did_registry),
+                Some(components.schema_registry),
+                Some(components.revocation_registry),
+                Some(components.transaction_pool),
+            )
+        } else {
+            // For backward compatibility and testing, create temporary registries
+            // WARNING: This is only for testing! In production, node_components should always be provided
+            tracing::warn!("API starting without node components - creating temporary registries for testing only!");
+            // Create temporary in-memory storage for testing
+            let storage_path =
+                std::env::temp_dir().join(format!("aura_test_{}", uuid::Uuid::new_v4()));
+            let storage = Arc::new(aura_ledger::storage::Storage::new(storage_path).unwrap());
+            let blockchain = Arc::new(RwLock::new(Blockchain::new(storage.clone())));
+            let did_registry = Arc::new(RwLock::new(aura_ledger::did_registry::DidRegistry::new(
+                storage.clone(),
+            )));
+            let schema_registry = Arc::new(RwLock::new(
+                aura_ledger::vc_schema_registry::VcSchemaRegistry::new(storage.clone()),
+            ));
+            let revocation_registry = Arc::new(RwLock::new(
+                aura_ledger::revocation_registry::RevocationRegistry::new(storage),
+            ));
+            let transaction_pool = Arc::new(RwLock::new(Vec::new()));
+
+            (
+                Some(blockchain),
+                Some(did_registry),
+                Some(schema_registry),
+                Some(revocation_registry),
+                Some(transaction_pool),
+            )
+        };
+
+    let state = ApiState {
+        config,
+        nonce_tracker,
+        blockchain,
+        did_registry,
+        schema_registry,
+        revocation_registry,
+        transaction_pool,
+    };
 
     // Public routes (no auth required)
     let public_routes = Router::new()
@@ -284,7 +373,7 @@ async fn get_node_info(State(_state): State<Arc<ApiState>>) -> Json<ApiResponse<
 
 async fn resolve_did(
     Path(did): Path<String>,
-    State(_state): State<Arc<ApiState>>,
+    State(state): State<Arc<ApiState>>,
 ) -> Result<Json<ApiResponse<DidResolutionResponse>>, StatusCode> {
     // Validate DID format
     if let Err(e) = validation::validate_did(&did) {
@@ -294,8 +383,46 @@ async fn resolve_did(
         )));
     }
 
-    // TODO: In a real implementation, this would query the DID registry
-    // For now, return a mock response
+    // Use actual DID registry if available
+    if let Some(did_registry) = &state.did_registry {
+        let registry = did_registry.read().await;
+        let aura_did = aura_common::AuraDid(did.clone());
+
+        match registry.resolve_did(&aura_did) {
+            Ok(Some((doc, _record))) => {
+                // Convert DidDocument to JSON
+                let did_document = serde_json::to_value(&doc).unwrap_or_else(|_| {
+                    serde_json::json!({
+                        "@context": ["https://www.w3.org/ns/did/v1"],
+                        "id": did,
+                        "error": "Failed to serialize DID document"
+                    })
+                });
+
+                let response = DidResolutionResponse {
+                    did_document,
+                    metadata: DidMetadata {
+                        created: doc.created.0.to_rfc3339(),
+                        updated: doc.updated.0.to_rfc3339(),
+                        deactivated: false,
+                    },
+                };
+
+                return Ok(Json(ApiResponse::success(response)));
+            }
+            Ok(None) => {
+                return Ok(Json(ApiResponse::error(format!("DID not found: {did}"))));
+            }
+            Err(e) => {
+                tracing::error!("Failed to resolve DID: {e}");
+                return Ok(Json(ApiResponse::error(
+                    "Failed to resolve DID".to_string(),
+                )));
+            }
+        }
+    }
+
+    // Fallback to mock response if no registry available (for testing)
     let response = DidResolutionResponse {
         did_document: serde_json::json!({
             "@context": ["https://www.w3.org/ns/did/v1"],
@@ -321,15 +448,53 @@ async fn resolve_did(
 
 async fn get_schema(
     Path(schema_id): Path<String>,
-    State(_state): State<Arc<ApiState>>,
+    State(state): State<Arc<ApiState>>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, StatusCode> {
     // Validate schema ID
     if let Err(e) = validation::validate_schema_id(&schema_id) {
         return Ok(Json(ApiResponse::error(format!("Invalid schema ID: {e}"))));
     }
 
-    // TODO: In a real implementation, this would query the schema registry
-    // For now, return a mock schema
+    // Use actual schema registry if available
+    if let Some(schema_registry) = &state.schema_registry {
+        let registry = schema_registry.read().await;
+
+        match registry.get_schema(&schema_id) {
+            Ok(Some(schema_record)) => {
+                // Convert SchemaRecord to JSON
+                // Note: SchemaRecord only contains hash and metadata, not the full schema content
+                let schema_json = serde_json::json!({
+                    "@context": [
+                        "https://www.w3.org/2018/credentials/v1",
+                        "https://w3id.org/vc-json-schemas/v1"
+                    ],
+                    "id": format!("did:aura:schema:{}", schema_record.schema_id),
+                    "type": "CredentialSchema",
+                    "issuer": schema_record.issuer_did.0,
+                    "registeredAtBlock": schema_record.registered_at_block,
+                    "contentHash": hex::encode(&schema_record.schema_content_hash),
+                    "metadata": {
+                        "note": "Full schema content not available - only hash stored on chain"
+                    }
+                });
+
+                return Ok(Json(ApiResponse::success(schema_json)));
+            }
+            Ok(None) => {
+                return Ok(Json(ApiResponse::error(format!(
+                    "Schema not found: {schema_id}"
+                ))));
+            }
+            Err(e) => {
+                tracing::error!("Failed to retrieve schema: {e}");
+                return Ok(Json(ApiResponse::error(
+                    "Failed to retrieve schema".to_string(),
+                )));
+            }
+        }
+    }
+
+    // Fallback to mock response if no registry available (for testing)
     let schema = serde_json::json!({
         "@context": [
             "https://www.w3.org/2018/credentials/v1",
@@ -366,7 +531,7 @@ async fn get_schema(
 }
 
 async fn submit_transaction(
-    State(_state): State<Arc<ApiState>>,
+    State(state): State<Arc<ApiState>>,
     Json(request): Json<TransactionRequest>,
 ) -> Json<ApiResponse<TransactionResponse>> {
     // Validate transaction data size
@@ -382,7 +547,7 @@ async fn submit_transaction(
     }
 
     // Verify transaction signature
-    if let Err(e) = verify_transaction_signature(&request) {
+    if let Err(e) = verify_transaction_signature(&request, &state.did_registry).await {
         return Json(ApiResponse::error(format!("Invalid signature: {e}")));
     }
 
@@ -394,7 +559,37 @@ async fn submit_transaction(
         ));
     }
 
-    // TODO: Check nonce hasn't been used before (requires state storage)
+    // Check nonce hasn't been used before
+    if let Some(nonce_tracker) = &state.nonce_tracker {
+        match nonce_tracker
+            .is_nonce_used(request.nonce, request.timestamp)
+            .await
+        {
+            Ok(true) => {
+                return Json(ApiResponse::error(
+                    "Transaction replay detected: nonce already used".to_string(),
+                ));
+            }
+            Err(e) => {
+                tracing::error!("Failed to check nonce: {e}");
+                return Json(ApiResponse::error(
+                    "Internal error checking transaction nonce".to_string(),
+                ));
+            }
+            Ok(false) => {
+                // Record the nonce as used
+                if let Err(e) = nonce_tracker
+                    .record_nonce(request.nonce, request.timestamp)
+                    .await
+                {
+                    tracing::error!("Failed to record nonce: {e}");
+                    return Json(ApiResponse::error(
+                        "Internal error recording transaction".to_string(),
+                    ));
+                }
+            }
+        }
+    }
 
     // Validate transaction type specific data
     match &request.transaction_type {
@@ -409,18 +604,94 @@ async fn submit_transaction(
         _ => {}
     }
 
-    // In a real implementation, this would submit the transaction
-    let response = TransactionResponse {
-        transaction_id: uuid::Uuid::new_v4().to_string(),
-        status: "pending".to_string(),
-    };
+    // Submit transaction to the transaction pool
+    if let Some(transaction_pool) = &state.transaction_pool {
+        // Convert API transaction type to ledger transaction type
+        let ledger_tx_type = match &request.transaction_type {
+            TransactionTypeRequest::RegisterDid { did_document } => {
+                // Parse the DID document
+                let did_doc: aura_common::DidDocument =
+                    match serde_json::from_value(did_document.clone()) {
+                        Ok(doc) => doc,
+                        Err(e) => {
+                            return Json(ApiResponse::error(format!("Invalid DID document: {e}")))
+                        }
+                    };
 
-    Json(ApiResponse::success(response))
+                aura_ledger::TransactionType::RegisterDid {
+                    did_document: did_doc,
+                }
+            }
+            TransactionTypeRequest::IssueCredential { .. } => {
+                // This is a placeholder - in a real implementation, we'd create a VC
+                return Json(ApiResponse::error(
+                    "Credential issuance not yet implemented".to_string(),
+                ));
+            }
+            TransactionTypeRequest::UpdateRevocation { list_id, indices } => {
+                aura_ledger::TransactionType::UpdateRevocationList {
+                    list_id: list_id.clone(),
+                    revoked_indices: indices.clone(),
+                }
+            }
+        };
+
+        // Get the signer's public key
+        let public_key = if let Some(did_registry) = &state.did_registry {
+            let resolver = DIDResolver::new(did_registry.clone());
+            match resolver.get_verification_key(&request.signer_did).await {
+                Ok(key) => key,
+                Err(e) => {
+                    return Json(ApiResponse::error(format!(
+                        "Failed to resolve signer public key: {e}"
+                    )))
+                }
+            }
+        } else {
+            return Json(ApiResponse::error("DID registry not available".to_string()));
+        };
+
+        // Create the ledger transaction
+        let transaction = aura_ledger::Transaction {
+            id: aura_common::TransactionId(uuid::Uuid::new_v4().to_string()),
+            transaction_type: ledger_tx_type,
+            timestamp: aura_common::Timestamp::from_unix(request.timestamp),
+            sender: public_key,
+            signature: aura_crypto::Signature(match hex::decode(&request.signature) {
+                Ok(bytes) => bytes,
+                Err(e) => {
+                    return Json(ApiResponse::error(format!("Invalid signature format: {e}")))
+                }
+            }),
+            nonce: request.nonce,
+            chain_id: request.chain_id.clone(),
+            expires_at: Some(aura_common::Timestamp::from_unix(request.timestamp + 3600)), // 1 hour expiry
+        };
+
+        // Add to transaction pool
+        let mut pool = transaction_pool.write().await;
+        pool.push(transaction.clone());
+
+        let response = TransactionResponse {
+            transaction_id: transaction.id.0,
+            status: "pending".to_string(),
+        };
+
+        Json(ApiResponse::success(response))
+    } else {
+        // Fallback for testing
+        let response = TransactionResponse {
+            transaction_id: uuid::Uuid::new_v4().to_string(),
+            status: "pending".to_string(),
+        };
+
+        Json(ApiResponse::success(response))
+    }
 }
 
 async fn check_revocation(
     Path((list_id, index)): Path<(String, u32)>,
-    State(_state): State<Arc<ApiState>>,
+    State(state): State<Arc<ApiState>>,
 ) -> Json<ApiResponse<bool>> {
     // Validate list ID format
     let sanitized_list_id = validation::sanitize_string(&list_id);
@@ -433,12 +704,36 @@ async fn check_revocation(
         return Json(ApiResponse::error("Invalid revocation index".to_string()));
     }
 
-    // In a real implementation, this would check the revocation registry
+    // Check the actual revocation registry if available
+    if let Some(revocation_registry) = &state.revocation_registry {
+        let registry = revocation_registry.read().await;
+
+        match registry.is_credential_revoked(&sanitized_list_id, index) {
+            Ok(is_revoked) => {
+                return Json(ApiResponse::success(is_revoked));
+            }
+            Err(e) => {
+                tracing::error!("Failed to check revocation status: {e}");
+                // If the list doesn't exist, the credential is not revoked
+                if e.to_string().contains("not found") {
+                    return Json(ApiResponse::success(false));
+                }
+                return Json(ApiResponse::error(
+                    "Failed to check revocation status".to_string(),
+                ));
+            }
+        }
+    }
+
+    // Fallback to not revoked if no registry available
     Json(ApiResponse::success(false))
 }
 
 /// Verify transaction signature
-fn verify_transaction_signature(request: &TransactionRequest) -> Result<(), String> {
+async fn verify_transaction_signature(
+    request: &TransactionRequest,
+    did_registry: &Option<Arc<RwLock<DidRegistry>>>,
+) -> Result<(), String> {
     // Create a copy of the transaction without the signature for verification
     let tx_for_signing = serde_json::json!({
         "transaction_type": &request.transaction_type,
@@ -449,7 +744,7 @@ fn verify_transaction_signature(request: &TransactionRequest) -> Result<(), Stri
     });
 
     // Serialize to get consistent bytes for verification
-    let _message = serde_json::to_vec(&tx_for_signing)
+    let message = serde_json::to_vec(&tx_for_signing)
         .map_err(|e| format!("Failed to serialize transaction: {e}"))?;
 
     // Decode the signature from hex
@@ -460,17 +755,36 @@ fn verify_transaction_signature(request: &TransactionRequest) -> Result<(), Stri
         return Err("Invalid signature length".to_string());
     }
 
-    // TODO: In production, this would:
-    // 1. Resolve the signer's DID to get their public key
-    // 2. Verify the signature using the public key
-    // For now, we'll do basic validation
-
     // Basic validation: signature should not be all zeros
     if signature_bytes.iter().all(|&b| b == 0) {
         return Err("Invalid signature: all zeros".to_string());
     }
 
-    Ok(())
+    // If we have a DID registry, do full verification
+    if let Some(registry) = did_registry {
+        // Create a DID resolver to get the public key
+        let resolver = DIDResolver::new(registry.clone());
+
+        // Get the public key from the DID
+        let public_key = resolver
+            .get_verification_key(&request.signer_did)
+            .await
+            .map_err(|e| format!("Failed to resolve signer DID: {e}"))?;
+
+        // Create signature object
+        let signature = aura_crypto::signing::Signature::from_bytes(signature_bytes.to_vec())
+            .map_err(|e| format!("Invalid signature: {e}"))?;
+
+        // Verify the signature
+        match aura_crypto::signing::verify(&public_key, &message, &signature) {
+            Ok(true) => Ok(()),
+            Ok(false) => Err("Signature verification failed".to_string()),
+            Err(e) => Err(format!("Signature verification error: {e}")),
+        }
+    } else {
+        // If no registry available, we can only do basic validation
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -594,8 +908,8 @@ mod tests {
         assert!(json.contains("UpdateRevocation"));
     }
 
-    #[test]
-    fn test_verify_transaction_signature_valid() {
+    #[tokio::test]
+    async fn test_verify_transaction_signature_valid() {
         // Create a valid signature (64 bytes hex)
         let valid_sig = "a".repeat(128); // 64 bytes in hex
         let request = TransactionRequest {
@@ -609,12 +923,12 @@ mod tests {
             signature: valid_sig,
         };
 
-        let result = verify_transaction_signature(&request);
+        let result = verify_transaction_signature(&request, &None).await;
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn test_verify_transaction_signature_invalid_hex() {
+    #[tokio::test]
+    async fn test_verify_transaction_signature_invalid_hex() {
         let request = TransactionRequest {
             transaction_type: TransactionTypeRequest::RegisterDid {
                 did_document: json!({}),
@@ -626,13 +940,13 @@ mod tests {
             signature: "invalid_hex!@#".to_string(),
         };
 
-        let result = verify_transaction_signature(&request);
+        let result = verify_transaction_signature(&request, &None).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Invalid signature format"));
     }
 
-    #[test]
-    fn test_verify_transaction_signature_wrong_length() {
+    #[tokio::test]
+    async fn test_verify_transaction_signature_wrong_length() {
         let request = TransactionRequest {
             transaction_type: TransactionTypeRequest::RegisterDid {
                 did_document: json!({}),
@@ -644,13 +958,13 @@ mod tests {
             signature: "abcd".to_string(), // Too short
         };
 
-        let result = verify_transaction_signature(&request);
+        let result = verify_transaction_signature(&request, &None).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Invalid signature length"));
     }
 
-    #[test]
-    fn test_verify_transaction_signature_all_zeros() {
+    #[tokio::test]
+    async fn test_verify_transaction_signature_all_zeros() {
         let request = TransactionRequest {
             transaction_type: TransactionTypeRequest::RegisterDid {
                 did_document: json!({}),
@@ -662,7 +976,7 @@ mod tests {
             signature: "0".repeat(128), // All zeros
         };
 
-        let result = verify_transaction_signature(&request);
+        let result = verify_transaction_signature(&request, &None).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Invalid signature: all zeros"));
     }
@@ -675,7 +989,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_node_info() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
         let response = get_node_info(State(state)).await;
 
         assert!(response.0.success);
@@ -686,7 +1008,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_resolve_did_valid() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
         let did = "did:aura:test123".to_string();
 
         let response = resolve_did(Path(did.clone()), State(state)).await.unwrap();
@@ -699,7 +1029,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_resolve_did_invalid() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
         let invalid_did = "not-a-did".to_string();
 
         let response = resolve_did(Path(invalid_did), State(state)).await.unwrap();
@@ -710,7 +1048,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_schema_valid() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
         let schema_id = "schema123".to_string();
 
         let response = get_schema(Path(schema_id.clone()), State(state))
@@ -724,7 +1070,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_schema_invalid() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
         let invalid_id = "schema!@#$%".to_string();
 
         let response = get_schema(Path(invalid_id), State(state)).await.unwrap();
@@ -735,7 +1089,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_transaction_valid() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
         let request = TransactionRequest {
             transaction_type: TransactionTypeRequest::RegisterDid {
                 did_document: json!({"id": "did:aura:test"}),
@@ -757,7 +1119,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_transaction_invalid_did() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
         let request = TransactionRequest {
             transaction_type: TransactionTypeRequest::RegisterDid {
                 did_document: json!({}),
@@ -777,7 +1147,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_transaction_old_timestamp() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
         let old_timestamp = chrono::Utc::now().timestamp() - 400; // 400 seconds ago
 
         let request = TransactionRequest {
@@ -799,7 +1177,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_transaction_invalid_claims() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
         let request = TransactionRequest {
             transaction_type: TransactionTypeRequest::IssueCredential {
                 issuer: "did:aura:issuer".to_string(),
@@ -821,7 +1207,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_revocation_valid() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
 
         let response = check_revocation(Path(("list123".to_string(), 42)), State(state)).await;
 
@@ -831,7 +1225,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_revocation_invalid_list_id() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
         let long_id = "a".repeat(100); // Too long
 
         let response = check_revocation(Path((long_id, 42)), State(state)).await;
@@ -846,7 +1248,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_revocation_invalid_index() {
-        let state = Arc::new(ApiState { config: None });
+        let state = Arc::new(ApiState {
+            config: None,
+            nonce_tracker: None,
+            blockchain: None,
+            did_registry: None,
+            schema_registry: None,
+            revocation_registry: None,
+            transaction_pool: None,
+        });
 
         let response = check_revocation(
             Path(("list123".to_string(), 2_000_000)), // Too large

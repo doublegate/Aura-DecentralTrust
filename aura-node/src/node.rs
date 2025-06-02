@@ -1,11 +1,13 @@
 use crate::config::NodeConfig;
 use crate::network::NetworkManager;
 use aura_common::{AuraError, BlockNumber, Result};
-use aura_crypto::KeyPair;
+use aura_crypto::{KeyPair, PublicKey};
 use aura_ledger::{
     did_registry::DidRegistry, revocation_registry::RevocationRegistry, storage::Storage,
-    vc_schema_registry::VcSchemaRegistry, Block, ProofOfAuthority, Transaction, TransactionType,
+    vc_schema_registry::VcSchemaRegistry, Block, Blockchain, ProofOfAuthority, Transaction,
+    TransactionType,
 };
+use base64::Engine;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
@@ -27,6 +29,7 @@ pub struct AuraNode {
     config: NodeConfig,
     is_validator: bool,
     storage: Arc<Storage>,
+    blockchain: Arc<RwLock<Blockchain>>,
     consensus: Arc<RwLock<ProofOfAuthority>>,
     did_registry: Arc<RwLock<DidRegistry>>,
     #[allow(dead_code)]
@@ -39,6 +42,17 @@ pub struct AuraNode {
 }
 
 impl AuraNode {
+    /// Get the node components needed by the API
+    pub fn get_api_components(&self) -> crate::api::NodeComponents {
+        crate::api::NodeComponents {
+            blockchain: self.blockchain.clone(),
+            did_registry: self.did_registry.clone(),
+            schema_registry: self.schema_registry.clone(),
+            revocation_registry: self.revocation_registry.clone(),
+            transaction_pool: self.transaction_pool.clone(),
+        }
+    }
+
     pub async fn new(
         config: NodeConfig,
         data_dir: PathBuf,
@@ -57,13 +71,24 @@ impl AuraNode {
                 .get_block(&latest_block_num)?
                 .ok_or_else(|| anyhow::anyhow!("Latest block not found"))?;
 
-            // For now, create a new consensus with hardcoded validators
-            // In production, this would be loaded from genesis or chain state
-            Arc::new(RwLock::new(ProofOfAuthority::new(vec![])))
+            info!(
+                "Loading validators from existing chain state at block {}",
+                latest_block_num.0
+            );
+
+            // Load validators from chain state
+            let validators = Self::load_validators_from_chain(storage.clone())?;
+            Arc::new(RwLock::new(ProofOfAuthority::new(validators)))
         } else {
-            // Initialize with genesis validators
-            Arc::new(RwLock::new(ProofOfAuthority::new(vec![])))
+            info!("Initializing new chain with genesis validators");
+
+            // Initialize with genesis validators from config
+            let genesis_validators = Self::load_genesis_validators(&config)?;
+            Arc::new(RwLock::new(ProofOfAuthority::new(genesis_validators)))
         };
+
+        // Initialize blockchain
+        let blockchain = Arc::new(RwLock::new(Blockchain::new(storage.clone())));
 
         // Initialize registries
         let did_registry = Arc::new(RwLock::new(DidRegistry::new(storage.clone())));
@@ -72,15 +97,15 @@ impl AuraNode {
 
         // Load validator key if this is a validator node
         let validator_key = if is_validator {
-            if let Some(_key_path) = &config.consensus.validator_key_path {
-                // In production, load from secure storage
-                // For now, generate a new key
-                Some(
-                    KeyPair::generate()
-                        .map_err(|e| anyhow::anyhow!("Failed to generate key: {}", e))?,
-                )
+            if let Some(key_path) = &config.consensus.validator_key_path {
+                info!("Loading validator key from secure storage: {}", key_path);
+                Some(Self::load_or_create_validator_key(
+                    key_path,
+                    data_dir.as_path(),
+                )?)
             } else {
                 warn!("Validator node without key path configured, generating ephemeral key");
+                warn!("Set 'validator_key_path' in config for production use!");
                 Some(
                     KeyPair::generate()
                         .map_err(|e| anyhow::anyhow!("Failed to generate key: {}", e))?,
@@ -99,6 +124,7 @@ impl AuraNode {
             config,
             is_validator,
             storage,
+            blockchain,
             consensus,
             did_registry,
             schema_registry,
@@ -373,6 +399,156 @@ impl AuraNode {
 
         Ok(())
     }
+
+    /// Load validators from existing chain state
+    fn load_validators_from_chain(storage: Arc<Storage>) -> anyhow::Result<Vec<PublicKey>> {
+        // In a real implementation, this would scan the blockchain for validator updates
+        // For now, we'll extract validators from existing blocks and transactions
+
+        let mut validators = vec![];
+
+        // Try to get genesis block and use its validator as the initial validator
+        if let Some(genesis_block) = storage.get_block(&BlockNumber(0))? {
+            info!("Found genesis block, extracting initial validator");
+
+            // Add the genesis block validator to the set
+            validators.push(genesis_block.header.validator.clone());
+
+            // Scan through recent blocks to find other validators
+            if let Some(latest_block_num) = storage.get_latest_block_number()? {
+                let start_block = if latest_block_num.0 > 10 {
+                    latest_block_num.0 - 10
+                } else {
+                    1
+                };
+
+                for block_num in start_block..=latest_block_num.0 {
+                    if let Some(block) = storage.get_block(&BlockNumber(block_num))? {
+                        // Add any new validators we find
+                        if !validators.contains(&block.header.validator) {
+                            validators.push(block.header.validator.clone());
+                        }
+                    }
+                }
+            }
+
+            info!("Loaded {} validators from chain state", validators.len());
+            Ok(validators)
+        } else {
+            Err(anyhow::anyhow!(
+                "Genesis block not found when loading validators"
+            ))
+        }
+    }
+
+    /// Load genesis validators from config
+    fn load_genesis_validators(_config: &NodeConfig) -> anyhow::Result<Vec<PublicKey>> {
+        let mut validators = vec![];
+
+        // For testing/development, create default validators
+        // In production, this would come from a genesis configuration file
+        info!("Creating genesis validators for new chain");
+
+        // Create at least one validator for the initial node
+        let genesis_validator = KeyPair::generate()?;
+        validators.push(genesis_validator.public_key().clone());
+
+        info!("Created {} genesis validators", validators.len());
+
+        Ok(validators)
+    }
+
+    /// Load or create a validator key from secure storage
+    fn load_or_create_validator_key(
+        key_path: &str,
+        data_dir: &std::path::Path,
+    ) -> anyhow::Result<KeyPair> {
+        use std::fs;
+
+        // Resolve the key path (absolute or relative to data_dir)
+        let key_file_path = if std::path::Path::new(key_path).is_absolute() {
+            std::path::PathBuf::from(key_path)
+        } else {
+            data_dir.join(key_path)
+        };
+
+        info!("Validator key file path: {:?}", key_file_path);
+
+        // Create the parent directory if it doesn't exist
+        if let Some(parent) = key_file_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        if key_file_path.exists() {
+            info!("Loading existing validator key");
+            Self::load_validator_key_from_file(&key_file_path)
+        } else {
+            info!("Creating new validator key");
+            let keypair = KeyPair::generate()?;
+            Self::save_validator_key_to_file(&keypair, &key_file_path)?;
+            Ok(keypair)
+        }
+    }
+
+    /// Load validator key from encrypted file
+    fn load_validator_key_from_file(key_file_path: &std::path::Path) -> anyhow::Result<KeyPair> {
+        use std::fs;
+
+        // Read the encrypted key file
+        let encrypted_data = fs::read(key_file_path)
+            .map_err(|e| anyhow::anyhow!("Failed to read key file: {}", e))?;
+
+        // For now, we'll use a simple base64 encoding
+        // In production, this should be properly encrypted with a password or HSM
+        let key_data = base64::engine::general_purpose::STANDARD
+            .decode(&encrypted_data)
+            .map_err(|e| anyhow::anyhow!("Failed to decode key file: {}", e))?;
+
+        if key_data.len() != 32 {
+            return Err(anyhow::anyhow!("Invalid key file: wrong length"));
+        }
+
+        let mut key_bytes = [0u8; 32];
+        key_bytes.copy_from_slice(&key_data);
+
+        let private_key = aura_crypto::PrivateKey::from_bytes(&key_bytes)
+            .map_err(|e| anyhow::anyhow!("Failed to create private key: {}", e))?;
+
+        Ok(KeyPair::from_private_key(private_key))
+    }
+
+    /// Save validator key to encrypted file
+    fn save_validator_key_to_file(
+        keypair: &KeyPair,
+        key_file_path: &std::path::Path,
+    ) -> anyhow::Result<()> {
+        use std::fs;
+        use std::os::unix::fs::PermissionsExt;
+
+        // Get the private key bytes
+        let key_bytes = keypair.private_key().to_bytes();
+
+        // For now, we'll use base64 encoding
+        // In production, this should be properly encrypted
+        let encoded_key = base64::engine::general_purpose::STANDARD.encode(&key_bytes);
+
+        // Write to file with restrictive permissions
+        fs::write(key_file_path, encoded_key)
+            .map_err(|e| anyhow::anyhow!("Failed to write key file: {}", e))?;
+
+        // Set file permissions to 600 (owner read/write only)
+        let mut perms = fs::metadata(key_file_path)?.permissions();
+        perms.set_mode(0o600);
+        fs::set_permissions(key_file_path, perms)?;
+
+        info!(
+            "Validator key saved to {:?} with secure permissions",
+            key_file_path
+        );
+        warn!("SECURITY: Key is stored in base64 format. Use proper encryption in production!");
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -440,7 +616,7 @@ mod tests {
             id: aura_common::TransactionId(uuid::Uuid::new_v4().to_string()),
             transaction_type: tx_type,
             timestamp: Timestamp::now(),
-            sender: keypair.public_key().clone(),
+            sender: keypair.public_key(),
             signature: aura_crypto::Signature(vec![0; 64]), // Dummy signature
             nonce: 1,
             chain_id: "test-chain".to_string(),
@@ -488,7 +664,9 @@ mod tests {
             id: format!("{did}#key-1"),
             verification_type: "Ed25519VerificationKey2020".to_string(),
             controller: did.clone(),
-            public_key_multibase: "zEd25519...".to_string(),
+            public_key_multibase: Some("zEd25519...".to_string()),
+            public_key_jwk: None,
+            public_key_base58: None,
         })];
 
         let tx = create_test_transaction(TransactionType::RegisterDid { did_document: doc });
@@ -515,7 +693,7 @@ mod tests {
             id: aura_common::TransactionId(uuid::Uuid::new_v4().to_string()),
             transaction_type: TransactionType::RegisterDid { did_document: doc },
             timestamp: Timestamp::now(),
-            sender: keypair.public_key().clone(),
+            sender: keypair.public_key(),
             signature: aura_crypto::Signature(vec![0u8; 64]), // Invalid signature
             nonce: 0,
             chain_id: "test-chain".to_string(),
@@ -669,7 +847,7 @@ mod tests {
             id: aura_common::TransactionId(uuid::Uuid::new_v4().to_string()),
             transaction_type: TransactionType::RegisterDid { did_document: doc },
             timestamp: Timestamp::now(),
-            sender: keypair.public_key().clone(),
+            sender: keypair.public_key(),
             signature: aura_crypto::Signature(vec![0u8; 64]), // Invalid signature
             nonce: 0,
             chain_id: "test-chain".to_string(),
@@ -1055,5 +1233,258 @@ mod tests {
 
         // Note: In a real implementation, transactions might be ordered by nonce
         // but this basic pool doesn't guarantee ordering
+    }
+
+    #[tokio::test]
+    async fn test_load_genesis_validators() {
+        let temp_dir = TempDir::new().unwrap();
+        let config = NodeConfig {
+            node_id: "test-node".to_string(),
+            network: crate::config::NetworkConfig {
+                listen_addresses: vec![],
+                bootstrap_nodes: vec![],
+                max_peers: 50,
+            },
+            consensus: crate::config::ConsensusConfig {
+                validator_key_path: None,
+                block_time_secs: 5,
+                max_transactions_per_block: 100,
+            },
+            storage: crate::config::StorageConfig {
+                db_path: temp_dir.path().join("db").to_string_lossy().to_string(),
+                cache_size_mb: 128,
+            },
+            api: crate::config::ApiConfig {
+                listen_address: "127.0.0.1:8080".to_string(),
+                enable_cors: true,
+                max_request_size: 1048576,
+            },
+            security: crate::config::SecurityConfig {
+                jwt_secret: None,
+                credentials_path: None,
+                token_expiry_hours: 24,
+                rate_limit_rpm: 60,
+                rate_limit_rph: 1000,
+            },
+        };
+
+        let validators = AuraNode::load_genesis_validators(&config).unwrap();
+
+        assert_eq!(validators.len(), 1);
+        assert!(validators[0].to_bytes().len() == 32);
+    }
+
+    #[tokio::test]
+    async fn test_load_validators_from_chain() {
+        let temp_dir = TempDir::new().unwrap();
+        let storage = Arc::new(Storage::new(temp_dir.path()).unwrap());
+
+        // Create and store a genesis block with a validator
+        let validator_keypair = KeyPair::generate().unwrap();
+        let genesis_block = Block::new(
+            BlockNumber(0),
+            [0u8; 32],
+            vec![],
+            validator_keypair.public_key(),
+        );
+
+        storage.put_block(&genesis_block).unwrap();
+        storage.set_latest_block_number(&BlockNumber(0)).unwrap();
+
+        let validators = AuraNode::load_validators_from_chain(storage).unwrap();
+
+        assert_eq!(validators.len(), 1);
+        assert_eq!(validators[0], validator_keypair.public_key());
+    }
+
+    #[tokio::test]
+    async fn test_load_validators_from_chain_multiple_blocks() {
+        let temp_dir = TempDir::new().unwrap();
+        let storage = Arc::new(Storage::new(temp_dir.path()).unwrap());
+
+        // Create multiple validators
+        let validator1 = KeyPair::generate().unwrap();
+        let validator2 = KeyPair::generate().unwrap();
+        let validator3 = KeyPair::generate().unwrap();
+
+        // Create and store genesis block
+        let genesis_block = Block::new(
+            BlockNumber(0),
+            [0u8; 32],
+            vec![],
+            validator1.public_key().clone(),
+        );
+        storage.put_block(&genesis_block).unwrap();
+        storage.set_latest_block_number(&BlockNumber(0)).unwrap();
+
+        // Create additional blocks with different validators
+        let block1 = Block::new(
+            BlockNumber(1),
+            genesis_block.hash(),
+            vec![],
+            validator2.public_key().clone(),
+        );
+        storage.put_block(&block1).unwrap();
+        storage.set_latest_block_number(&BlockNumber(1)).unwrap();
+
+        let block2 = Block::new(
+            BlockNumber(2),
+            block1.hash(),
+            vec![],
+            validator3.public_key().clone(),
+        );
+        storage.put_block(&block2).unwrap();
+        storage.set_latest_block_number(&BlockNumber(2)).unwrap();
+
+        // Reuse validator1 for block 3
+        let block3 = Block::new(
+            BlockNumber(3),
+            block2.hash(),
+            vec![],
+            validator1.public_key().clone(),
+        );
+        storage.put_block(&block3).unwrap();
+        storage.set_latest_block_number(&BlockNumber(3)).unwrap();
+
+        let validators = AuraNode::load_validators_from_chain(storage).unwrap();
+
+        // Should have found 3 unique validators
+        assert_eq!(validators.len(), 3);
+        assert!(validators.contains(&validator1.public_key().clone()));
+        assert!(validators.contains(&validator2.public_key().clone()));
+        assert!(validators.contains(&validator3.public_key().clone()));
+    }
+
+    #[tokio::test]
+    async fn test_load_validators_from_chain_no_genesis() {
+        let temp_dir = TempDir::new().unwrap();
+        let storage = Arc::new(Storage::new(temp_dir.path()).unwrap());
+
+        // Don't create a genesis block
+        let result = AuraNode::load_validators_from_chain(storage);
+
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Genesis block not found"));
+    }
+
+    #[tokio::test]
+    async fn test_load_or_create_validator_key_new() {
+        let temp_dir = TempDir::new().unwrap();
+        let data_dir = temp_dir.path().to_path_buf();
+        let key_path = "validator.key";
+
+        // Key should not exist yet
+        let key_file_path = data_dir.join(key_path);
+        assert!(!key_file_path.exists());
+
+        // Load/create key
+        let keypair1 =
+            AuraNode::load_or_create_validator_key(key_path, data_dir.as_path()).unwrap();
+
+        // Key file should now exist
+        assert!(key_file_path.exists());
+
+        // Verify file permissions are restrictive (600)
+        let metadata = std::fs::metadata(&key_file_path).unwrap();
+        let permissions = metadata.permissions();
+
+        // On Unix, verify permissions are 600
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(permissions.mode() & 0o777, 0o600);
+        }
+
+        // Load the same key again - should be identical
+        let keypair2 =
+            AuraNode::load_or_create_validator_key(key_path, data_dir.as_path()).unwrap();
+
+        // Keys should be identical
+        assert_eq!(
+            keypair1.public_key().to_bytes(),
+            &keypair2.public_key().to_bytes()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_load_or_create_validator_key_absolute_path() {
+        let temp_dir = TempDir::new().unwrap();
+        let data_dir = temp_dir.path().to_path_buf();
+        let absolute_key_path = temp_dir.path().join("absolute_validator.key");
+        let absolute_key_str = absolute_key_path.to_string_lossy();
+
+        // Load/create key with absolute path
+        let keypair =
+            AuraNode::load_or_create_validator_key(&absolute_key_str, data_dir.as_path()).unwrap();
+
+        // Key file should exist at the absolute path
+        assert!(absolute_key_path.exists());
+
+        // Verify it's a valid keypair
+        assert_eq!(&keypair.public_key().to_bytes().len(), 32);
+    }
+
+    #[tokio::test]
+    async fn test_save_and_load_validator_key() {
+        let temp_dir = TempDir::new().unwrap();
+        let key_file_path = temp_dir.path().join("test_key.key");
+
+        // Generate a keypair
+        let original_keypair = KeyPair::generate().unwrap();
+
+        // Save it
+        AuraNode::save_validator_key_to_file(&original_keypair, &key_file_path).unwrap();
+
+        // Load it back
+        let loaded_keypair = AuraNode::load_validator_key_from_file(&key_file_path).unwrap();
+
+        // Should be identical
+        assert_eq!(
+            original_keypair.public_key().to_bytes(),
+            loaded_keypair.public_key().to_bytes()
+        );
+        assert_eq!(
+            original_keypair.private_key().to_bytes(),
+            loaded_keypair.private_key().to_bytes()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_load_validator_key_invalid_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let key_file_path = temp_dir.path().join("invalid_key.key");
+
+        // Write invalid data
+        std::fs::write(&key_file_path, "invalid_base64_data!@#$").unwrap();
+
+        // Should fail to load
+        let result = AuraNode::load_validator_key_from_file(&key_file_path);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Failed to decode key file"));
+    }
+
+    #[tokio::test]
+    async fn test_load_validator_key_wrong_length() {
+        let temp_dir = TempDir::new().unwrap();
+        let key_file_path = temp_dir.path().join("wrong_length_key.key");
+
+        // Write valid base64 but wrong length
+        let wrong_data =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, [1, 2, 3, 4]);
+        std::fs::write(&key_file_path, wrong_data).unwrap();
+
+        // Should fail to load
+        let result = AuraNode::load_validator_key_from_file(&key_file_path);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid key file: wrong length"));
     }
 }

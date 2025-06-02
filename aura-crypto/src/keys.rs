@@ -116,10 +116,12 @@ impl PublicKey {
     }
 }
 
+/// A keypair consisting of a private key and its corresponding public key
+/// For enhanced security, only the private key is stored - the public key is derived on demand
 #[derive(Debug)]
 pub struct KeyPair {
     private_key: PrivateKey,
-    public_key: PublicKey,
+    // public_key removed for security - derived when needed
 }
 
 impl Clone for KeyPair {
@@ -127,38 +129,27 @@ impl Clone for KeyPair {
         // Use Zeroizing to ensure temporary bytes are cleared
         let key_bytes = self.private_key.to_bytes();
         let private_key = PrivateKey::from_bytes(&*key_bytes).unwrap();
-        let public_key = private_key.public_key();
-        Self {
-            private_key,
-            public_key,
-        }
+        Self { private_key }
     }
 }
 
 impl KeyPair {
     pub fn generate() -> Result<Self> {
         let private_key = PrivateKey::generate()?;
-        let public_key = private_key.public_key();
-        Ok(Self {
-            private_key,
-            public_key,
-        })
+        Ok(Self { private_key })
     }
 
     pub fn from_private_key(private_key: PrivateKey) -> Self {
-        let public_key = private_key.public_key();
-        Self {
-            private_key,
-            public_key,
-        }
+        Self { private_key }
     }
 
     pub fn private_key(&self) -> &PrivateKey {
         &self.private_key
     }
 
-    pub fn public_key(&self) -> &PublicKey {
-        &self.public_key
+    pub fn public_key(&self) -> PublicKey {
+        // Derive public key on demand for enhanced security
+        self.private_key.public_key()
     }
 }
 
@@ -303,7 +294,7 @@ mod tests {
         let keypair2 = KeyPair::generate().unwrap();
 
         // Keypairs should be different
-        assert_ne!(keypair1.public_key(), keypair2.public_key());
+        assert_ne!(keypair1.public_key(), &keypair2.public_key());
         assert_ne!(
             keypair1.private_key().to_bytes().as_ref(),
             keypair2.private_key().to_bytes().as_ref()
@@ -316,7 +307,7 @@ mod tests {
         let expected_public_key = private_key.public_key();
 
         let keypair = KeyPair::from_private_key(private_key);
-        assert_eq!(keypair.public_key(), &expected_public_key);
+        assert_eq!(keypair.public_key(), expected_public_key);
     }
 
     #[test]
@@ -325,7 +316,7 @@ mod tests {
         let keypair2 = keypair1.clone();
 
         // Cloned keypair should have same keys
-        assert_eq!(keypair1.public_key(), keypair2.public_key());
+        assert_eq!(keypair1.public_key(), &keypair2.public_key());
         assert_eq!(
             keypair1.private_key().to_bytes().as_ref(),
             keypair2.private_key().to_bytes().as_ref()
@@ -349,11 +340,11 @@ mod tests {
 
         // Create keypair and verify consistency
         let keypair = KeyPair::from_private_key(private_key);
-        assert_eq!(keypair.public_key(), &public_key);
+        assert_eq!(keypair.public_key(), public_key);
 
         // Clone and verify consistency
         let cloned_keypair = keypair.clone();
-        assert_eq!(cloned_keypair.public_key(), keypair.public_key());
+        assert_eq!(&cloned_keypair.public_key(), &keypair.public_key());
 
         // Verify private key bytes remain the same
         assert_eq!(*keypair.private_key().to_bytes(), original_bytes);

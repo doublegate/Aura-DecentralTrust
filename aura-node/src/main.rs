@@ -1,14 +1,20 @@
 mod api;
 mod audit;
 mod auth;
+mod auth_setup;
 mod cert_pinning;
 mod config;
+mod did_resolver;
 mod error_sanitizer;
 mod network;
 mod node;
+mod nonce_tracker;
 mod rate_limit;
 mod tls;
 mod validation;
+
+#[cfg(test)]
+mod blockchain_integration_test;
 
 use clap::Parser;
 use std::path::PathBuf;
@@ -96,6 +102,9 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
+    // Get node components for API before moving node
+    let node_components = Some(node.get_api_components());
+
     // Start P2P network
     let network_handle = tokio::spawn(async move {
         if let Err(e) = node.run().await {
@@ -109,7 +118,14 @@ async fn main() -> anyhow::Result<()> {
     let api_data_dir = args.data_dir.clone();
     let api_config = Some(config.clone());
     let api_handle = tokio::spawn(async move {
-        if let Err(e) = api::start_api_server(&api_addr, enable_tls, api_data_dir, api_config).await
+        if let Err(e) = api::start_api_server(
+            &api_addr,
+            enable_tls,
+            api_data_dir,
+            api_config,
+            node_components,
+        )
+        .await
         {
             error!("API server error: {}", e);
         }

@@ -280,7 +280,7 @@ mod tests {
 
         // Verify we can retrieve the public key
         let public_key = wallet.get_did_public_key(&did).unwrap();
-        assert_eq!(public_key, *key_pair.public_key());
+        assert_eq!(public_key, key_pair.public_key());
     }
 
     #[test]
@@ -483,7 +483,7 @@ mod tests {
 
         // Verify
         let valid = wallet
-            .verify_credential(&credential, issuer_keypair.public_key())
+            .verify_credential(&credential, &issuer_keypair.public_key())
             .unwrap();
         assert!(valid);
     }
@@ -582,7 +582,7 @@ mod tests {
         let valid = wallet
             .verify_presentation(
                 &presentation,
-                holder_keypair.public_key(),
+                &holder_keypair.public_key(),
                 Some(challenge),
                 Some(domain),
             )

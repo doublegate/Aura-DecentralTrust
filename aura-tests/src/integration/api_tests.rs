@@ -55,7 +55,7 @@ mod tests {
         did_registry
             .register_did(
                 &did_doc,
-                keypair.public_key().clone(),
+                keypair.public_key(),
                 aura_common::types::BlockNumber(1),
             )
             .unwrap();
@@ -220,7 +220,7 @@ mod tests {
                     did_document: did_doc,
                 },
                 timestamp: Timestamp::now(),
-                sender: keypair.public_key().clone(),
+                sender: keypair.public_key(),
                 signature: aura_crypto::Signature(vec![0; 64]), // Would be real signature
                 nonce: 1,
                 chain_id: "test-chain".to_string(),
@@ -253,7 +253,7 @@ mod tests {
                 did_document: did_doc,
             },
             timestamp: Timestamp::now(),
-            sender: keypair.public_key().clone(),
+            sender: keypair.public_key(),
             signature: aura_crypto::Signature(vec![0; 64]),
             nonce: 1,
             chain_id: "test-chain".to_string(),
@@ -287,7 +287,7 @@ mod tests {
                 let mut reg = registry.write().await;
                 reg.register_did(
                     &did_doc,
-                    keypair.public_key().clone(),
+                    keypair.public_key(),
                     aura_common::types::BlockNumber(i as u64 + 1),
                 )
                 .unwrap();

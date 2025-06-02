@@ -108,6 +108,26 @@ impl Storage {
         Ok(())
     }
 
+    pub fn store_block(&self, block: &Block) -> Result<()> {
+        let cf = self
+            .db
+            .cf_handle(CF_BLOCKS)
+            .ok_or_else(|| AuraError::Storage("Column family not found".to_string()))?;
+
+        let key = block.header.block_number.0.to_be_bytes();
+        let value =
+            serde_json::to_vec(block).map_err(|e| AuraError::Serialization(e.to_string()))?;
+
+        self.db
+            .put_cf(cf, key, value)
+            .map_err(|e| AuraError::Storage(e.to_string()))?;
+
+        // Update latest block number
+        self.set_latest_block_number(&block.header.block_number)?;
+
+        Ok(())
+    }
+
     // DID operations
     pub fn put_did_record(&self, did: &AuraDid, record: &DidRecord) -> Result<()> {
         let cf = self
@@ -316,7 +336,7 @@ mod tests {
             BlockNumber(block_number),
             [0u8; 32],
             vec![],
-            keypair.public_key().clone(),
+            keypair.public_key(),
         )
     }
 
@@ -326,7 +346,7 @@ mod tests {
         let record = DidRecord {
             did_id: did_id.clone(),
             did_document_hash: vec![1, 2, 3, 4],
-            owner_public_key: keypair.public_key().to_bytes().to_vec(),
+            owner_public_key: &keypair.public_key().to_bytes().to_vec(),
             last_updated_block: 1,
             active: true,
         };
@@ -484,7 +504,7 @@ mod tests {
     fn test_nonce_operations() {
         let (storage, _temp_dir) = setup_storage();
         let keypair = KeyPair::generate().unwrap();
-        let account = keypair.public_key();
+        let account = &keypair.public_key();
 
         // Initial nonce should be 0
         let nonce = storage.get_nonce(account).unwrap();
@@ -514,11 +534,11 @@ mod tests {
         storage.increment_nonce(keypair1.public_key()).unwrap();
 
         // Increment nonce for account2
-        storage.increment_nonce(keypair2.public_key()).unwrap();
+        storage.increment_nonce(&keypair2.public_key()).unwrap();
 
         // Check nonces are tracked separately
         assert_eq!(storage.get_nonce(keypair1.public_key()).unwrap(), 2);
-        assert_eq!(storage.get_nonce(keypair2.public_key()).unwrap(), 1);
+        assert_eq!(storage.get_nonce(&keypair2.public_key()).unwrap(), 1);
     }
 
     #[test]

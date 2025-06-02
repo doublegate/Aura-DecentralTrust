@@ -185,7 +185,7 @@ mod tests {
         (0..3)
             .map(|_| {
                 let keypair = KeyPair::generate().unwrap();
-                let public_key = keypair.public_key().clone();
+                let public_key = keypair.public_key();
                 (keypair, public_key)
             })
             .collect()
@@ -200,7 +200,7 @@ mod tests {
                 did_document: did_doc,
             },
             timestamp: Timestamp::now(),
-            sender: keypair.public_key().clone(),
+            sender: keypair.public_key(),
             signature: Signature(vec![0; 64]),
             nonce,
             chain_id: "test-chain".to_string(),
@@ -502,14 +502,9 @@ mod tests {
     #[test]
     fn test_sign_block() {
         let keypair = KeyPair::generate().unwrap();
-        let poa = ProofOfAuthority::new(vec![keypair.public_key().clone()]);
+        let poa = ProofOfAuthority::new(vec![keypair.public_key()]);
 
-        let mut block = Block::new(
-            BlockNumber(0),
-            [0u8; 32],
-            vec![],
-            keypair.public_key().clone(),
-        );
+        let mut block = Block::new(BlockNumber(0), [0u8; 32], vec![], keypair.public_key());
 
         assert!(block.header.signature.is_empty());
 

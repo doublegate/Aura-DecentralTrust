@@ -26,7 +26,7 @@ pub fn benchmark_crypto(c: &mut Criterion) {
     group.bench_function("verify_signature", |b| {
         b.iter(|| {
             verify(
-                keypair.public_key(),
+                &keypair.public_key(),
                 black_box(message),
                 black_box(&signature),
             )

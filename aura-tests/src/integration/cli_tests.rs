@@ -29,7 +29,7 @@ mod tests {
         let keypair = KeyPair::generate().unwrap();
 
         // Verify keys are valid
-        let public_bytes = keypair.public_key().to_bytes();
+        let public_bytes = &keypair.public_key().to_bytes();
         let private_bytes = keypair.private_key().to_bytes();
 
         assert_eq!(public_bytes.len(), 32);

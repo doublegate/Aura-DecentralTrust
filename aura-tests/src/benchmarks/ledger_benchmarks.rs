@@ -31,18 +31,14 @@ pub fn benchmark_ledger(c: &mut Criterion) {
             let test_did = AuraDid::new(&format!("user-{counter}"));
             let test_doc = DidDocument::new(test_did.clone());
             did_registry
-                .register_did(
-                    &test_doc,
-                    keypair.public_key().clone(),
-                    BlockNumber(counter),
-                )
+                .register_did(&test_doc, keypair.public_key(), BlockNumber(counter))
                 .unwrap();
         })
     });
 
     // Register a DID for resolution benchmarks
     did_registry
-        .register_did(&did_doc, keypair.public_key().clone(), BlockNumber(1))
+        .register_did(&did_doc, keypair.public_key(), BlockNumber(1))
         .unwrap();
 
     group.bench_function("did_resolve", |b| {
@@ -57,7 +53,7 @@ pub fn benchmark_ledger(c: &mut Criterion) {
                 did_document: did_doc.clone(),
             },
             timestamp: Timestamp::now(),
-            sender: keypair.public_key().clone(),
+            sender: keypair.public_key(),
             signature: Signature(vec![0; 64]),
             nonce: 1,
             chain_id: "test".to_string(),
@@ -74,7 +70,7 @@ pub fn benchmark_ledger(c: &mut Criterion) {
                     did_document: DidDocument::new(AuraDid::new(&format!("user-{i}"))),
                 },
                 timestamp: Timestamp::now(),
-                sender: keypair.public_key().clone(),
+                sender: keypair.public_key(),
                 signature: Signature(vec![0; 64]),
                 nonce: i as u64 + 1,
                 chain_id: "test".to_string(),
@@ -91,7 +87,7 @@ pub fn benchmark_ledger(c: &mut Criterion) {
                         BlockNumber(1),
                         [0u8; 32],
                         black_box(txs.clone()),
-                        keypair.public_key().clone(),
+                        keypair.public_key(),
                     )
                 })
             },
@@ -99,12 +95,7 @@ pub fn benchmark_ledger(c: &mut Criterion) {
     }
 
     // Storage benchmarks
-    let block = Block::new(
-        BlockNumber(1),
-        [0u8; 32],
-        vec![],
-        keypair.public_key().clone(),
-    );
+    let block = Block::new(BlockNumber(1), [0u8; 32], vec![], keypair.public_key());
 
     group.bench_function("storage_put_block", |b| {
         let mut counter = 0u64;
@@ -114,7 +105,7 @@ pub fn benchmark_ledger(c: &mut Criterion) {
                 BlockNumber(counter),
                 [0u8; 32],
                 vec![],
-                keypair.public_key().clone(),
+                keypair.public_key(),
             );
             storage.put_block(black_box(&test_block)).unwrap()
         })

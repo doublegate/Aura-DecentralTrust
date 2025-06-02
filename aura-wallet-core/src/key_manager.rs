@@ -290,7 +290,7 @@ mod tests {
         let key_pair = km.generate_key_pair(&did).unwrap();
         let public_key = km.get_public_key(&did).unwrap();
 
-        assert_eq!(key_pair.public_key(), &public_key);
+        assert_eq!(key_pair.public_key(), public_key);
     }
 
     #[test]

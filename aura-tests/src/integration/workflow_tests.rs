@@ -59,7 +59,9 @@ async fn test_complete_did_lifecycle() {
             id: format!("{did}#key-1"),
             controller: did.clone(),
             verification_type: "Ed25519VerificationKey2020".to_string(),
-            public_key_multibase,
+            public_key_multibase: Some(public_key_multibase),
+            public_key_jwk: None,
+            public_key_base58: None,
         }));
 
     // 3. Create storage and registries
@@ -73,7 +75,7 @@ async fn test_complete_did_lifecycle() {
 
     let tx_id = TransactionId(uuid::Uuid::new_v4().to_string());
     let timestamp = Timestamp::now();
-    let sender = keypair.public_key().clone();
+    let sender = keypair.public_key();
 
     let mut tx = Transaction {
         id: tx_id,
@@ -142,7 +144,9 @@ async fn test_complete_did_lifecycle() {
             id: format!("{did}#key-2"),
             controller: did.clone(),
             verification_type: "Ed25519VerificationKey2020".to_string(),
-            public_key_multibase: new_key_multibase,
+            public_key_multibase: Some(new_key_multibase),
+            public_key_jwk: None,
+            public_key_base58: None,
         }));
 
     let update_tx_type = TransactionType::UpdateDid {
@@ -152,7 +156,7 @@ async fn test_complete_did_lifecycle() {
 
     let update_tx_id = TransactionId(uuid::Uuid::new_v4().to_string());
     let update_timestamp = Timestamp::now();
-    let update_sender = keypair.public_key().clone();
+    let update_sender = keypair.public_key();
 
     let mut update_tx = Transaction {
         id: update_tx_id,
@@ -187,7 +191,7 @@ async fn test_complete_did_lifecycle() {
     {
         let mut registry = did_registry.write().await;
         registry
-            .update_did(&did, &updated_doc, public_key, BlockNumber(2))
+            .update_did(&did, &updated_doc, &public_key, BlockNumber(2))
             .unwrap();
     }
 
@@ -294,7 +298,7 @@ async fn test_complete_vc_workflow() {
 
     // 7. Verify credential signature
     let is_valid = verify(
-        issuer_keypair.public_key(),
+        &issuer_keypair.public_key(),
         credential_json.as_bytes(),
         &signature,
     )
@@ -336,7 +340,7 @@ async fn test_complete_vc_workflow() {
             revoked_indices: vec![1], // Assuming credential has index 1
         },
         timestamp: Timestamp::now(),
-        sender: issuer_keypair.public_key().clone(),
+        sender: issuer_keypair.public_key(),
         signature: Signature(vec![0; 64]),
         nonce: 1,
         chain_id: "test-chain".to_string(),
@@ -644,7 +648,7 @@ async fn test_transaction_validation_pipeline() {
             id: TransactionId(uuid::Uuid::new_v4().to_string()),
             transaction_type: tx_type.clone(),
             timestamp: Timestamp::now(),
-            sender: keypair.public_key().clone(),
+            sender: keypair.public_key(),
             signature: Signature(vec![0; 64]),
             nonce: nonce as u64 + 1,
             chain_id: "test-chain".to_string(),
@@ -683,7 +687,7 @@ async fn test_transaction_validation_pipeline() {
         assert!(!signed_tx.chain_id.is_empty());
 
         // Verify signature
-        let is_valid = verify_json(keypair.public_key(), &tx_for_signing, &signature).is_ok();
+        let is_valid = verify_json(&keypair.public_key(), &tx_for_signing, &signature).is_ok();
         assert!(is_valid);
 
         // Test expiration
@@ -704,7 +708,7 @@ async fn test_transaction_validation_pipeline() {
         };
         // Verify that the original signature doesn't work for different chain_id
         if let Ok(is_valid) = verify_json(
-            keypair.public_key(),
+            &keypair.public_key(),
             &wrong_chain_tx_for_signing,
             &signed_tx.signature,
         ) {

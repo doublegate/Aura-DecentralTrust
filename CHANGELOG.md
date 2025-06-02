@@ -28,6 +28,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 1B Implementation - COMPLETED June 2, 2025)
+- **Security**: Secure credential generation system (`auth_setup.rs`)
+  - Generates 32-character alphanumeric passwords on first run
+  - Saves credentials to `credentials.toml` with 600 permissions
+  - Loads existing credentials if file exists
+- **Security**: Nonce tracking system (`nonce_tracker.rs`)
+  - RocksDB persistence for nonce storage
+  - 5-minute expiry window for replay protection
+  - Automatic cleanup of expired nonces
+- **API**: All endpoints now connected to blockchain registries
+  - DID resolution uses actual DID registry
+  - Schema retrieval connected to VC schema registry
+  - Transaction submission to blockchain with validation
+  - Revocation checking from revocation registry
+  - Added `get_api_components()` method to AuraNode
+- **Blockchain**: Full blockchain implementation in aura-ledger
+  - Block validation and storage
+  - Chain height tracking
+  - Genesis block handling
+  - Transaction processing and state updates
+- **DID**: Enhanced DID resolver with W3C key format support
+  - Supports JWK, Base58, and Multibase formats
+  - Updated VerificationMethod for all key formats
+  - Integrated into signature verification
+- **Tests**: Added 15 new tests for Phase 1B functionality
+  - Total test count now 593 (all passing)
+
+### Changed
+- **API**: Updated main.rs to pass node components to API
+- **API**: All mock responses replaced with actual blockchain queries
+- **Node**: Integrated blockchain state updates in block processing
+- **Tests**: Fixed all formatting and clippy issues
+- **Documentation**: Updated progress tracking in all documentation files
+
+### Fixed
+- **Security**: Removed hardcoded credentials from auth.rs
+- **Security**: Implemented missing nonce validation in transaction submission
+- **API**: DID resolution now returns actual DID documents from registry
+- **API**: Schema retrieval now queries actual registry
+- **API**: Transaction submission now processes through blockchain
+- **API**: Revocation status now checked from actual registry
+- **Node**: Fixed transaction processing in block production
+- **Tests**: Fixed 11 failing tests after blockchain integration
+
 ## [0.1.5] - 2025-06-01
 
 ### Added

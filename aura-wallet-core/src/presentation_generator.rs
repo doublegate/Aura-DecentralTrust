@@ -379,7 +379,7 @@ mod tests {
         let valid = generator
             .verify_presentation(
                 &presentation,
-                holder_keypair.public_key(),
+                &holder_keypair.public_key(),
                 Some(challenge),
                 Some(domain),
             )
@@ -415,7 +415,7 @@ mod tests {
         let valid = generator
             .verify_presentation(
                 &presentation,
-                holder_keypair.public_key(),
+                &holder_keypair.public_key(),
                 Some("wrong_challenge"),
                 None,
             )
@@ -451,7 +451,7 @@ mod tests {
         let valid = generator
             .verify_presentation(
                 &presentation,
-                holder_keypair.public_key(),
+                &holder_keypair.public_key(),
                 None,
                 Some("https://wrong.com"),
             )
@@ -481,7 +481,7 @@ mod tests {
         // Verify with wrong key
         let wrong_keypair = KeyPair::generate().unwrap();
         let valid = generator
-            .verify_presentation(&presentation, wrong_keypair.public_key(), None, None)
+            .verify_presentation(&presentation, &wrong_keypair.public_key(), None, None)
             .unwrap();
 
         assert!(!valid);
@@ -495,7 +495,7 @@ mod tests {
         let presentation = VerifiablePresentation::new(holder_did, vec![]);
 
         let result =
-            generator.verify_presentation(&presentation, holder_keypair.public_key(), None, None);
+            generator.verify_presentation(&presentation, &holder_keypair.public_key(), None, None);
 
         assert!(result.is_err());
         match result {

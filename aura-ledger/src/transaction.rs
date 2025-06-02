@@ -154,7 +154,7 @@ mod tests {
         let signature = Signature(vec![0; 64]);
         let tx = Transaction::new(
             tx_type.clone(),
-            keypair.public_key().clone(),
+            keypair.public_key(),
             signature.clone(),
             1,
             "test-chain".to_string(),
@@ -181,7 +181,7 @@ mod tests {
 
         let mut tx = Transaction::new(
             tx_type,
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![]), // Placeholder
             1,
             "test-chain".to_string(),
@@ -228,7 +228,7 @@ mod tests {
 
         let mut tx = Transaction::new(
             tx_type,
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![]), // Placeholder
             1,
             "test-chain".to_string(),
@@ -252,7 +252,7 @@ mod tests {
 
         let mut tx = Transaction::new(
             tx_type,
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![]), // Placeholder
             1,
             "test-chain".to_string(),
@@ -361,7 +361,7 @@ mod tests {
 
         let tx = Transaction::new(
             tx_type,
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![0; 64]),
             1,
             "test-chain".to_string(),
@@ -386,7 +386,7 @@ mod tests {
 
         let tx1 = Transaction::new(
             tx_type.clone(),
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![0; 64]),
             1,
             "chain-1".to_string(),
@@ -394,7 +394,7 @@ mod tests {
 
         let tx2 = Transaction::new(
             tx_type,
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![0; 64]),
             1,
             "chain-2".to_string(),
@@ -413,7 +413,7 @@ mod tests {
 
         let tx1 = Transaction::new(
             tx_type.clone(),
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![0; 64]),
             1,
             "test-chain".to_string(),
@@ -421,7 +421,7 @@ mod tests {
 
         let tx2 = Transaction::new(
             tx_type,
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![0; 64]),
             2,
             "test-chain".to_string(),
@@ -440,7 +440,7 @@ mod tests {
 
         let tx = Transaction::new(
             tx_type,
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![0; 64]),
             1,
             "test-chain".to_string(),
@@ -471,7 +471,7 @@ mod tests {
 
         let tx1 = Transaction::new(
             tx_type.clone(),
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![0; 64]),
             1,
             "test-chain".to_string(),
@@ -479,7 +479,7 @@ mod tests {
 
         let tx2 = Transaction::new(
             tx_type,
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![0; 64]),
             1,
             "test-chain".to_string(),
@@ -525,7 +525,7 @@ mod tests {
         let tx_type = TransactionType::RegisterSchema { schema };
         let mut tx = Transaction::new(
             tx_type,
-            keypair.public_key().clone(),
+            keypair.public_key(),
             Signature(vec![]),
             1,
             "test-chain".to_string(),

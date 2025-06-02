@@ -568,14 +568,14 @@ mod tests {
 
         // Verify signature
         let valid = store
-            .verify_credential_signature(&credential, issuer_keypair.public_key())
+            .verify_credential_signature(&credential, &issuer_keypair.public_key())
             .unwrap();
         assert!(valid);
 
         // Verify with wrong key
         let wrong_keypair = KeyPair::generate().unwrap();
         let invalid = store
-            .verify_credential_signature(&credential, wrong_keypair.public_key())
+            .verify_credential_signature(&credential, &wrong_keypair.public_key())
             .unwrap();
         assert!(!invalid);
     }
@@ -593,7 +593,7 @@ mod tests {
         );
 
         let keypair = KeyPair::generate().unwrap();
-        let result = store.verify_credential_signature(&credential, keypair.public_key());
+        let result = store.verify_credential_signature(&credential, &keypair.public_key());
 
         assert!(result.is_err());
         match result {

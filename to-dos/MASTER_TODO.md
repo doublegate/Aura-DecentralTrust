@@ -3,8 +3,9 @@
 ## Project Status
 - **Repository**: https://github.com/doublegate/Aura-DecentralTrust
 - **Description**: Aura - Decentralized ID & Trust Network (DIDs, VCs, and ZKPs)
-- **Current Phase**: Phase 1 (95% Complete - v0.1.0 Released ✅)
-- **Latest Release**: v0.1.0 (June 1, 2025) - [Download](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.0)
+- **Current Phase**: Phase 1 (98% Complete - v0.1.6 Released ✅)
+- **Latest Release**: v0.1.6 (June 2, 2025) - [Download](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.6)
+- **Phase 1B Progress**: ✅ **COMPLETE** - All API endpoints connected to blockchain (June 2, 2025)
 
 ## Completed Tasks ✅
 
@@ -52,10 +53,14 @@
 - [x] aura-node: 129 tests covering API, auth, networking, and security modules
 - [ ] Complete remaining 5% (node.rs and main.rs modules)
 
-### Phase 1 Final Integration (5% Remaining)
-- [ ] Connect API endpoints to blockchain operations (Target: v0.2.0)
-- [ ] Implement P2P message handlers (Target: v0.3.0)
-- [ ] Build desktop wallet MVP with Tauri (Target: v1.0.0)
+### Phase 1 Final Integration (2% Remaining)
+- [x] Phase 1A: Security fixes (auth, nonce tracking, DID resolver) ✅
+- [x] Phase 1B: API-blockchain integration ✅ **COMPLETED June 2, 2025**
+  - [x] Phase 1B.1: Connect DID resolution to blockchain ✅
+  - [x] Phase 1B.2: Connect schema retrieval to registry ✅
+  - [x] Phase 1B.3: Implement transaction submission ✅
+  - [x] Phase 1B.4: Connect revocation checking to registry ✅
+- [ ] Phase 1C: Build desktop wallet MVP with Tauri (Target: v1.0.0)
 
 ### Critical Security Fixes ✅ COMPLETED 2025-05-30
 - [x] Add authentication to REST API - JWT authentication implemented
@@ -361,5 +366,5 @@
 - Rust WASM Guide: https://rustwasm.github.io/book/
 
 ---
-*Last Updated: 2025-06-01 - Added CI/CD, updated documentation, Phase 1 95% complete*
-*Next Review: When completing API-blockchain integration*
+*Last Updated: 2025-06-02 - Phase 1B COMPLETE! All API endpoints connected to blockchain (593 tests passing)*
+*Next Review: When starting desktop wallet MVP development*

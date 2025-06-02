@@ -30,7 +30,9 @@ impl DidManager {
             id: format!("{did}#key-1"),
             controller: did.clone(),
             verification_type: "Ed25519VerificationKey2020".to_string(),
-            public_key_multibase: self.encode_public_key(key_pair.public_key()),
+            public_key_multibase: Some(self.encode_public_key(&key_pair.public_key())),
+            public_key_jwk: None,
+            public_key_base58: None,
         };
 
         did_document.add_verification_method(verification_method.clone());
@@ -326,7 +328,7 @@ mod tests {
         let (did, _, key_pair) = dm.create_did().unwrap();
         let public_key = dm.get_public_key(&did).unwrap();
 
-        assert_eq!(public_key, *key_pair.public_key());
+        assert_eq!(public_key, key_pair.public_key());
     }
 
     #[test]
@@ -371,12 +373,12 @@ mod tests {
         let public_key = key_pair.public_key();
 
         // Encode
-        let encoded = dm.encode_public_key(public_key);
+        let encoded = dm.encode_public_key(&public_key);
         assert!(encoded.starts_with('z')); // Base58btc multibase prefix
 
         // Decode
         let decoded = dm.decode_public_key(&encoded).unwrap();
-        assert_eq!(decoded, *public_key);
+        assert_eq!(decoded, public_key);
     }
 
     #[test]

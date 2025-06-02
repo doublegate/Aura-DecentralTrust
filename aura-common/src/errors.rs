@@ -43,6 +43,12 @@ pub enum AuraError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+
+    #[error("Invalid block: {0}")]
+    InvalidBlock(String),
+
+    #[error("Block not found: {0}")]
+    BlockNotFound(u64),
 }
 
 pub type Result<T> = std::result::Result<T, AuraError>;
@@ -69,6 +75,8 @@ mod tests {
             AuraError::AlreadyExists("DID already registered".to_string()),
             AuraError::Unauthorized,
             AuraError::Internal("Unexpected error".to_string()),
+            AuraError::InvalidBlock("Invalid block data".to_string()),
+            AuraError::BlockNotFound(42),
         ];
 
         for error in errors {
@@ -112,6 +120,14 @@ mod tests {
                 AuraError::Unauthorized => assert_eq!(display, "Unauthorized"),
                 AuraError::Internal(msg) => {
                     assert!(display.contains("Internal error") && display.contains(msg))
+                }
+                AuraError::InvalidBlock(msg) => {
+                    assert!(display.contains("Invalid block") && display.contains(msg))
+                }
+                AuraError::BlockNotFound(num) => {
+                    assert!(
+                        display.contains("Block not found") && display.contains(&num.to_string())
+                    )
                 }
             }
         }

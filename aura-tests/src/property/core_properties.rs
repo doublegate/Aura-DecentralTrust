@@ -99,20 +99,20 @@ mod tests {
             prop_assert_eq!(signature.to_bytes().len(), 64);
 
             // Verification with correct key should succeed
-            let is_valid = verify(keypair.public_key(), &message, &signature).unwrap();
+            let is_valid = verify(&keypair.public_key(), &message, &signature).unwrap();
             prop_assert!(is_valid);
 
             // Verification with wrong message should fail
             if !message.is_empty() {
                 let mut wrong_message = message.clone();
                 wrong_message[0] ^= 0xFF; // Flip bits in first byte
-                let is_valid_wrong = verify(keypair.public_key(), &wrong_message, &signature).unwrap();
+                let is_valid_wrong = verify(&keypair.public_key(), &wrong_message, &signature).unwrap();
                 prop_assert!(!is_valid_wrong);
             }
 
             // Verification with wrong key should fail
             let wrong_keypair = KeyPair::generate().unwrap();
-            let is_valid_wrong_key = verify(wrong_keypair.public_key(), &message, &signature).unwrap();
+            let is_valid_wrong_key = verify(&wrong_keypair.public_key(), &message, &signature).unwrap();
             prop_assert!(!is_valid_wrong_key);
         }
 
@@ -132,7 +132,7 @@ mod tests {
                     id: TransactionId(uuid::Uuid::new_v4().to_string()),
                     transaction_type: TransactionType::RegisterDid { did_document: did_doc.clone() },
                     timestamp: Timestamp::now(),
-                    sender: keypair.public_key().clone(),
+                    sender: keypair.public_key(),
                     signature: Signature(vec![0; 64]),
                     nonce,
                     chain_id: "test".to_string(),
@@ -236,7 +236,7 @@ mod tests {
                 id: TransactionId(uuid::Uuid::new_v4().to_string()),
                 transaction_type: TransactionType::RegisterDid { did_document: did_doc.clone() },
                 timestamp: now,
-                sender: keypair.public_key().clone(),
+                sender: keypair.public_key(),
                 signature: Signature(vec![0; 64]),
                 nonce: 1,
                 chain_id: "test".to_string(),
@@ -257,7 +257,7 @@ mod tests {
                 id: TransactionId(uuid::Uuid::new_v4().to_string()),
                 transaction_type: TransactionType::RegisterDid { did_document: did_doc },
                 timestamp: now,
-                sender: keypair.public_key().clone(),
+                sender: keypair.public_key(),
                 signature: Signature(vec![0; 64]),
                 nonce: 2,
                 chain_id: "test".to_string(),
@@ -289,7 +289,7 @@ mod tests {
                         id: TransactionId(format!("tx-{i}")),
                         transaction_type: TransactionType::RegisterDid { did_document: did_doc },
                         timestamp: Timestamp::now(),
-                        sender: keypair.public_key().clone(),
+                        sender: keypair.public_key(),
                         signature: Signature(vec![0; 64]),
                         nonce: i as u64 + 1,
                         chain_id: "test".to_string(),

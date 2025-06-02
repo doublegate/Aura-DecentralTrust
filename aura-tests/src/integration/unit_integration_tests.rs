@@ -60,7 +60,7 @@ mod integration_tests {
         });
 
         // 7. Verify the credential signature
-        let public_key = issuer_keypair.public_key();
+        let public_key = &issuer_keypair.public_key();
         let sig_bytes = base64::Engine::decode(
             &base64::engine::general_purpose::STANDARD,
             &credential.proof.as_ref().unwrap().proof_value,
@@ -365,14 +365,22 @@ mod integration_tests {
             id: format!("{did}#key-1"),
             controller: did.clone(),
             verification_type: "Ed25519VerificationKey2020".to_string(),
-            public_key_multibase: "z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH".to_string(),
+            public_key_multibase: Some(
+                "z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH".to_string(),
+            ),
+            public_key_jwk: None,
+            public_key_base58: None,
         };
 
         let vm2 = VerificationMethod {
             id: format!("{did}#key-2"),
             controller: did.clone(),
             verification_type: "X25519KeyAgreementKey2020".to_string(),
-            public_key_multibase: "z6LSbysY2xFMRpGMhb7tFTLMpeuPRaqaWM1yECx2AtzE3KCc".to_string(),
+            public_key_multibase: Some(
+                "z6LSbysY2xFMRpGMhb7tFTLMpeuPRaqaWM1yECx2AtzE3KCc".to_string(),
+            ),
+            public_key_jwk: None,
+            public_key_base58: None,
         };
 
         doc.add_verification_method(vm1.clone());

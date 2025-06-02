@@ -59,7 +59,25 @@ pub struct VerificationMethod {
     pub controller: AuraDid,
     #[serde(rename = "type")]
     pub verification_type: String,
-    pub public_key_multibase: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub public_key_jwk: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub public_key_base58: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub public_key_multibase: Option<String>,
+}
+
+impl VerificationMethod {
+    /// Validate that at least one public key format is provided
+    pub fn validate(&self) -> Result<(), String> {
+        if self.public_key_jwk.is_none()
+            && self.public_key_base58.is_none()
+            && self.public_key_multibase.is_none()
+        {
+            return Err("VerificationMethod must have at least one public key format".to_string());
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,7 +129,11 @@ mod tests {
             id: "did:aura:test123#key-1".to_string(),
             controller: create_test_did(),
             verification_type: "Ed25519VerificationKey2020".to_string(),
-            public_key_multibase: "z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK".to_string(),
+            public_key_multibase: Some(
+                "z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK".to_string(),
+            ),
+            public_key_jwk: None,
+            public_key_base58: None,
         }
     }
 
