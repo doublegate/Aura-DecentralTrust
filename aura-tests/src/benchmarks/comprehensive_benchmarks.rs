@@ -16,8 +16,8 @@ use aura_ledger::{
 };
 use aura_wallet_core::wallet::AuraWallet;
 use criterion::{BenchmarkId, Criterion};
-use std::hint::black_box;
 use std::collections::HashMap;
+use std::hint::black_box;
 use std::sync::Arc;
 use tempfile::TempDir;
 use tokio::sync::RwLock;

@@ -51,6 +51,28 @@ sudo apt-get install -y librocksdb-dev libzstd-dev clang
 cargo build --release
 ```
 
+## Code Style Guidelines
+
+### Format Strings
+- **ALWAYS use inline variable syntax in format! macros**
+  - ✅ Good: `format!("user-{i}")`, `format!("{id}#key-{i}")`
+  - ❌ Bad: `format!("user-{}", i)`, `format!("{}#key-{}", id, i)`
+- This applies to all formatting macros: `format!`, `println!`, `eprintln!`, `write!`, `writeln!`
+
+### Pre-Commit Checks
+**IMPORTANT**: Before committing any code changes, ALWAYS run:
+```bash
+# Format all code
+cargo fmt --all
+
+# Run clippy with strict CI settings
+cargo clippy --all-targets --all-features -- -D warnings
+
+# Fix any issues before committing!
+```
+
+This prevents CI/CD failures and avoids multiple fix commits.
+
 ## Key Technical Decisions
 
 - **Core Components**: Written in Rust for performance and memory safety

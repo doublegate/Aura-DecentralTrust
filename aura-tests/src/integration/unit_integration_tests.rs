@@ -380,15 +380,11 @@ mod integration_tests {
 
         // Add relationships
         doc.authentication
-            .push(VerificationRelationship::Reference(format!(
-                "{did}#key-1"
-            )));
+            .push(VerificationRelationship::Reference(format!("{did}#key-1")));
         doc.assertion_method
             .push(VerificationRelationship::Embedded(vm1.clone()));
         doc.key_agreement
-            .push(VerificationRelationship::Reference(format!(
-                "{did}#key-2"
-            )));
+            .push(VerificationRelationship::Reference(format!("{did}#key-2")));
 
         // Add services
         let service1 = ServiceEndpoint {

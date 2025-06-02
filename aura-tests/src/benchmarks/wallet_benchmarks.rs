@@ -1,20 +1,17 @@
 use aura_common::AuraDid;
 use aura_wallet_core::wallet::AuraWallet;
 use criterion::Criterion;
-use std::hint::black_box;
 use std::collections::HashMap;
+use std::hint::black_box;
 
 pub fn benchmark_wallet(c: &mut Criterion) {
     let mut group = c.benchmark_group("wallet");
 
     // Wallet initialization
     group.bench_function("wallet_initialize", |b| {
-        b.iter_with_setup(
-            AuraWallet::new,
-            |mut wallet| {
-                wallet.initialize(black_box("test_password")).unwrap();
-            },
-        )
+        b.iter_with_setup(AuraWallet::new, |mut wallet| {
+            wallet.initialize(black_box("test_password")).unwrap();
+        })
     });
 
     // Create an initialized wallet for other benchmarks
