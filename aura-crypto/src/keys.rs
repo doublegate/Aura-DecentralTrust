@@ -294,7 +294,7 @@ mod tests {
         let keypair2 = KeyPair::generate().unwrap();
 
         // Keypairs should be different
-        assert_ne!(keypair1.public_key(), &keypair2.public_key());
+        assert_ne!(keypair1.public_key(), keypair2.public_key());
         assert_ne!(
             keypair1.private_key().to_bytes().as_ref(),
             keypair2.private_key().to_bytes().as_ref()
@@ -316,7 +316,7 @@ mod tests {
         let keypair2 = keypair1.clone();
 
         // Cloned keypair should have same keys
-        assert_eq!(keypair1.public_key(), &keypair2.public_key());
+        assert_eq!(keypair1.public_key(), keypair2.public_key());
         assert_eq!(
             keypair1.private_key().to_bytes().as_ref(),
             keypair2.private_key().to_bytes().as_ref()

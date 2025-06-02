@@ -136,14 +136,14 @@ mod integration_tests {
         let public_key = key1.public_key();
 
         // Verify with correct key
-        assert!(verify(public_key, message, &signature).unwrap());
+        assert!(verify(&public_key, message, &signature).unwrap());
 
         // Verify with wrong key should fail
         let wrong_key = key2.public_key();
-        assert!(!verify(wrong_key, message, &signature).unwrap());
+        assert!(!verify(&wrong_key, message, &signature).unwrap());
 
         // Verify with wrong message should fail
-        assert!(!verify(public_key, b"Different message", &signature).unwrap());
+        assert!(!verify(&public_key, b"Different message", &signature).unwrap());
 
         // Test hashing
         let hash1 = sha256(b"test data");

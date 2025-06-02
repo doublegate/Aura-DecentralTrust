@@ -136,7 +136,7 @@ mod tests {
         let signature = sign(keypair1.private_key(), message).unwrap();
 
         // Verify with keypair2's public key
-        let valid = verify(&&keypair2.public_key(), message, &signature).unwrap();
+        let valid = verify(&keypair2.public_key(), message, &signature).unwrap();
         assert!(!valid);
     }
 

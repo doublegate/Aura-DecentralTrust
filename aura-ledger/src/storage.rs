@@ -346,7 +346,7 @@ mod tests {
         let record = DidRecord {
             did_id: did_id.clone(),
             did_document_hash: vec![1, 2, 3, 4],
-            owner_public_key: &keypair.public_key().to_bytes().to_vec(),
+            owner_public_key: keypair.public_key().to_bytes().to_vec(),
             last_updated_block: 1,
             active: true,
         };
@@ -530,14 +530,14 @@ mod tests {
         let keypair2 = KeyPair::generate().unwrap();
 
         // Increment nonce for account1
-        storage.increment_nonce(keypair1.public_key()).unwrap();
-        storage.increment_nonce(keypair1.public_key()).unwrap();
+        storage.increment_nonce(&keypair1.public_key()).unwrap();
+        storage.increment_nonce(&keypair1.public_key()).unwrap();
 
         // Increment nonce for account2
         storage.increment_nonce(&keypair2.public_key()).unwrap();
 
         // Check nonces are tracked separately
-        assert_eq!(storage.get_nonce(keypair1.public_key()).unwrap(), 2);
+        assert_eq!(storage.get_nonce(&keypair1.public_key()).unwrap(), 2);
         assert_eq!(storage.get_nonce(&keypair2.public_key()).unwrap(), 1);
     }
 

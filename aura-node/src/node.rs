@@ -1405,7 +1405,7 @@ mod tests {
         // Keys should be identical
         assert_eq!(
             keypair1.public_key().to_bytes(),
-            &keypair2.public_key().to_bytes()
+            keypair2.public_key().to_bytes()
         );
     }
 
@@ -1424,7 +1424,7 @@ mod tests {
         assert!(absolute_key_path.exists());
 
         // Verify it's a valid keypair
-        assert_eq!(&keypair.public_key().to_bytes().len(), 32);
+        assert_eq!(keypair.public_key().to_bytes().len(), 32);
     }
 
     #[tokio::test]

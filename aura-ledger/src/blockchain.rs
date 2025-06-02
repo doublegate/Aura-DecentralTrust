@@ -244,10 +244,7 @@ mod tests {
     fn test_genesis_block() {
         let keypair1 = KeyPair::generate().unwrap();
         let keypair2 = KeyPair::generate().unwrap();
-        let validators = vec![
-            keypair1.public_key().clone(),
-            &keypair2.public_key().clone(),
-        ];
+        let validators = vec![keypair1.public_key().clone(), keypair2.public_key()];
 
         let genesis = GenesisBlock {
             timestamp: Timestamp::now(),
@@ -378,12 +375,7 @@ mod tests {
             vec![],
             keypair1.public_key().clone(),
         );
-        let block2 = Block::new(
-            BlockNumber(1),
-            [0u8; 32],
-            vec![],
-            &keypair2.public_key().clone(),
-        );
+        let block2 = Block::new(BlockNumber(1), [0u8; 32], vec![], keypair2.public_key());
 
         // Same block number and previous hash but different validators
         assert_ne!(block1.hash(), block2.hash());
@@ -614,7 +606,7 @@ mod tests {
         // Modify validator - should change hash
         let keypair2 = KeyPair::generate().unwrap();
         block2 = block1.clone();
-        block2.header.validator = &keypair2.public_key().clone();
+        block2.header.validator = keypair2.public_key();
         assert_ne!(block1.hash(), block2.hash());
     }
 
