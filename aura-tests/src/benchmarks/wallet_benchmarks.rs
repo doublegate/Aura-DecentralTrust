@@ -61,7 +61,7 @@ pub fn benchmark_wallet(c: &mut Criterion) {
             vec!["TestCredential".to_string()],
             claims,
         );
-        credential.id = Some(format!("cred-{}", i));
+        credential.id = Some(format!("cred-{i}"));
 
         wallet
             .store_credential(credential, vec!["test".to_string()])

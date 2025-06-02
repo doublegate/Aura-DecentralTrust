@@ -28,7 +28,7 @@ pub fn benchmark_ledger(c: &mut Criterion) {
         let mut counter = 0u64;
         b.iter(|| {
             counter += 1;
-            let test_did = AuraDid::new(&format!("user-{}", counter));
+            let test_did = AuraDid::new(&format!("user-{counter}"));
             let test_doc = DidDocument::new(test_did.clone());
             did_registry
                 .register_did(
@@ -71,7 +71,7 @@ pub fn benchmark_ledger(c: &mut Criterion) {
             .map(|i| Transaction {
                 id: TransactionId(uuid::Uuid::new_v4().to_string()),
                 transaction_type: TransactionType::RegisterDid {
-                    did_document: DidDocument::new(AuraDid::new(&format!("user-{}", i))),
+                    did_document: DidDocument::new(AuraDid::new(&format!("user-{i}"))),
                 },
                 timestamp: Timestamp::now(),
                 sender: keypair.public_key().clone(),

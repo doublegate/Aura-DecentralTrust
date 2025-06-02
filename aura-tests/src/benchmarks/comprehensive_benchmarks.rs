@@ -37,7 +37,7 @@ pub fn benchmark_extended_crypto(c: &mut Criterion) {
         let data = vec![0u8; *size];
 
         group.bench_with_input(
-            BenchmarkId::new("encrypt_sizes", format!("{}B", size)),
+            BenchmarkId::new("encrypt_sizes", format!("{size}B")),
             &data,
             |b, data| {
                 b.iter(|| encrypt(&key, black_box(data)).unwrap());
@@ -46,7 +46,7 @@ pub fn benchmark_extended_crypto(c: &mut Criterion) {
 
         let encrypted = encrypt(&key, &data).unwrap();
         group.bench_with_input(
-            BenchmarkId::new("decrypt_sizes", format!("{}B", size)),
+            BenchmarkId::new("decrypt_sizes", format!("{size}B")),
             &encrypted,
             |b, encrypted| {
                 b.iter(|| decrypt(&key, black_box(encrypted)).unwrap());
@@ -60,7 +60,7 @@ pub fn benchmark_extended_crypto(c: &mut Criterion) {
         let message = vec![0u8; *msg_size];
 
         group.bench_with_input(
-            BenchmarkId::new("sign_sizes", format!("{}B", msg_size)),
+            BenchmarkId::new("sign_sizes", format!("{msg_size}B")),
             &message,
             |b, message| {
                 b.iter(|| sign(keypair.private_key(), black_box(message)).unwrap());
@@ -69,7 +69,7 @@ pub fn benchmark_extended_crypto(c: &mut Criterion) {
 
         let signature = sign(keypair.private_key(), &message).unwrap();
         group.bench_with_input(
-            BenchmarkId::new("verify_sizes", format!("{}B", msg_size)),
+            BenchmarkId::new("verify_sizes", format!("{msg_size}B")),
             &(&message, &signature),
             |b, (message, signature)| {
                 b.iter(|| {
@@ -95,7 +95,7 @@ pub fn benchmark_did_operations(c: &mut Criterion) {
     for len in [8, 16, 32, 64].iter() {
         let identifier = "a".repeat(*len);
         group.bench_with_input(
-            BenchmarkId::new("did_creation", format!("{}_chars", len)),
+            BenchmarkId::new("did_creation", format!("{len}_chars")),
             &identifier,
             |b, id| {
                 b.iter(|| AuraDid::new(black_box(id)));
@@ -111,7 +111,7 @@ pub fn benchmark_did_operations(c: &mut Criterion) {
             let mut doc = DidDocument::new(black_box(did.clone()));
             // Add verification methods
             let vm = aura_common::did::VerificationMethod {
-                id: format!("{}#key-1", did),
+                id: format!("{did}#key-1"),
                 controller: did.clone(),
                 verification_type: "Ed25519VerificationKey2020".to_string(),
                 public_key_multibase: format!(
@@ -142,7 +142,7 @@ pub fn benchmark_did_operations(c: &mut Criterion) {
                         let id = counter * 10 + i;
                         tokio::spawn(async move {
                             let keypair = KeyPair::generate().unwrap();
-                            let did = AuraDid::new(&format!("concurrent-user-{}", id));
+                            let did = AuraDid::new(&format!("concurrent-user-{id}"));
                             let doc = DidDocument::new(did);
 
                             let mut reg = registry.write().await;
@@ -196,7 +196,7 @@ pub fn benchmark_transactions(c: &mut Criterion) {
     ];
 
     for (name, tx_type) in tx_types {
-        group.bench_function(format!("transaction_create_{}", name), |b| {
+        group.bench_function(format!("transaction_create_{name}"), |b| {
             let mut nonce = 0u64;
             b.iter(|| {
                 nonce += 1;
@@ -247,9 +247,9 @@ pub fn benchmark_transactions(c: &mut Criterion) {
     // Batch transaction processing
     let transactions: Vec<Transaction> = (0..100)
         .map(|i| Transaction {
-            id: TransactionId(format!("batch-tx-{}", i)),
+            id: TransactionId(format!("batch-tx-{i}")),
             transaction_type: TransactionType::RegisterDid {
-                did_document: DidDocument::new(AuraDid::new(&format!("batch-user-{}", i))),
+                did_document: DidDocument::new(AuraDid::new(&format!("batch-user-{i}"))),
             },
             timestamp: Timestamp::now(),
             sender: keypair.public_key().clone(),
@@ -287,10 +287,10 @@ pub fn benchmark_blockchain(c: &mut Criterion) {
     for tx_count in [1, 10, 100, 1000, 10000].iter() {
         let transactions: Vec<Transaction> = (0..*tx_count)
             .map(|i| {
-                let did = AuraDid::new(&format!("user-{}", i));
+                let did = AuraDid::new(&format!("user-{i}"));
                 let doc = DidDocument::new(did);
                 Transaction {
-                    id: TransactionId(format!("tx-{}", i)),
+                    id: TransactionId(format!("tx-{i}")),
                     transaction_type: TransactionType::RegisterDid { did_document: doc },
                     timestamp: Timestamp::now(),
                     sender: KeyPair::generate().unwrap().public_key().clone(),
@@ -303,7 +303,7 @@ pub fn benchmark_blockchain(c: &mut Criterion) {
             .collect();
 
         group.bench_with_input(
-            BenchmarkId::new("merkle_root", format!("{}_txs", tx_count)),
+            BenchmarkId::new("merkle_root", format!("{tx_count}_txs")),
             &transactions,
             |b, transactions| {
                 b.iter(|| Block::calculate_merkle_root(black_box(transactions)));
@@ -316,9 +316,9 @@ pub fn benchmark_blockchain(c: &mut Criterion) {
     for tx_count in [0, 10, 100, 500].iter() {
         let transactions: Vec<Transaction> = (0..*tx_count)
             .map(|i| Transaction {
-                id: TransactionId(format!("block-tx-{}", i)),
+                id: TransactionId(format!("block-tx-{i}")),
                 transaction_type: TransactionType::RegisterDid {
-                    did_document: DidDocument::new(AuraDid::new(&format!("block-user-{}", i))),
+                    did_document: DidDocument::new(AuraDid::new(&format!("block-user-{i}"))),
                 },
                 timestamp: Timestamp::now(),
                 sender: validator.public_key().clone(),
@@ -330,7 +330,7 @@ pub fn benchmark_blockchain(c: &mut Criterion) {
             .collect();
 
         group.bench_with_input(
-            BenchmarkId::new("block_creation", format!("{}_txs", tx_count)),
+            BenchmarkId::new("block_creation", format!("{tx_count}_txs")),
             &transactions,
             |b, transactions| {
                 b.iter(|| {
@@ -385,9 +385,9 @@ pub fn benchmark_wallet_extended(c: &mut Criterion) {
         let mut claims = HashMap::new();
         for i in 0..*claim_count {
             claims.insert(
-                format!("claim_{}", i),
+                format!("claim_{i}"),
                 serde_json::json!({
-                    "value": format!("test_value_{}", i),
+                    "value": format!("test_value_{i}"),
                     "timestamp": Timestamp::now(),
                 }),
             );
@@ -401,7 +401,7 @@ pub fn benchmark_wallet_extended(c: &mut Criterion) {
         );
 
         group.bench_with_input(
-            BenchmarkId::new("credential_storage", format!("{}_claims", claim_count)),
+            BenchmarkId::new("credential_storage", format!("{claim_count}_claims")),
             &credential,
             |b, credential| {
                 b.iter(|| {
@@ -424,7 +424,7 @@ pub fn benchmark_wallet_extended(c: &mut Criterion) {
 
         let credential = aura_common::vc::VerifiableCredential::new(
             issuer_did.clone(),
-            AuraDid::new(&format!("subject-{}", i)),
+            AuraDid::new(&format!("subject-{i}")),
             vec!["TestCredential".to_string()],
             claims,
         );
