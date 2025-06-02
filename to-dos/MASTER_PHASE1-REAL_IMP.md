@@ -206,16 +206,92 @@ Phase 1 is complete when:
 5. ✅ Security vulnerabilities (replay attacks) are mitigated
 6. ✅ All TODOs are resolved or moved to Phase 2
 
+## Priority 7: Test Framework Completeness 🧪
+
+### 7.1 Revocation Registry Integration in Tests
+- **File**: `aura-tests/src/integration/workflow_tests.rs` (lines 302-304)
+- **Issue**: RevocationRegistry requires list_id and index, not credential_id
+- **Current**: 
+  ```rust
+  // For now, we'll skip this check as it needs proper integration
+  let is_revoked = false; // registry.is_credential_revoked(list_id, index).unwrap();
+  ```
+- **Required**: Implement proper credential-to-revocation-list mapping
+
+### 7.2 Revocation Transaction Processing
+- **File**: `aura-tests/src/integration/workflow_tests.rs` (lines 345-349)
+- **Issue**: Revocation transactions created but not processed
+- **Current**: Comments indicate revocation should be processed through blockchain
+- **Required**: 
+  - Process revocation transaction through blockchain
+  - Update revocation registry based on transaction
+  - Verify revocation status after processing
+
+### 7.3 Key-Value Store for Tests
+- **File**: `aura-tests/src/integration/workflow_tests.rs` (lines 568-569)
+- **Issue**: Tests simulate storage without proper key-value store
+- **Current**: Just verifies encryption/decryption works
+- **Required**: Implement test helpers for persistent key-value storage
+
+### 7.4 CLI Binary Tests
+- **File**: `aura-tests/src/integration/cli_tests.rs` (lines 74, 92, 105, 117)
+- **Status**: 4 tests marked with `#[ignore]` because binary not built
+- **Tests**:
+  - `test_help_flag` - Verify help output
+  - `test_version_flag` - Check version display
+  - `test_invalid_config_path` - Test error handling
+  - `test_node_startup_and_shutdown` - Test lifecycle
+- **Required**: Enable these tests in CI after binary is built
+
+### 7.5 Conditional API Tests
+- **File**: `aura-tests/src/integration/api_tests.rs`
+- **Issue**: Multiple tests skip when node not running
+- **Current**: Tests print "Skipping test - node not running"
+- **Required**: Create test harness that starts node before API tests
+
+### 7.6 Unused Test Utilities
+- **File**: `aura-tests/src/property/core_properties.rs`
+- **Functions**: 
+  - `arb_timestamp()` (lines 21-24)
+  - `arb_transaction_id()` (lines 26-31)
+- **Status**: Marked with `#[allow(dead_code)]`
+- **Note**: These are helper functions for property tests that may be needed later
+
+### 7.7 Benchmarks Not Integrated
+- **File**: `aura-tests/src/lib.rs` (lines 19-21)
+- **Issue**: Benchmarks module commented out
+- **Current**:
+  ```rust
+  // Performance benchmark modules (only included when running benchmarks)
+  // #[cfg(feature = "bench")]
+  // pub mod benchmarks;
+  ```
+- **Required**: Add bench feature to Cargo.toml and enable benchmarks
+
+### 7.8 Missing Transaction Validation
+- **Multiple Files**: References to `Transaction::validate()` removed
+- **Issue**: Method doesn't exist but tests need validation
+- **Current**: Manual field checks replace validate() calls
+- **Required**: Implement proper transaction validation method
+
+### 7.9 Private Key Operations Limitations
+- **File**: `aura-tests/src/integration/workflow_tests.rs` (lines 576-577)
+- **Issue**: Can't clone PrivateKey or convert to PublicKey directly
+- **Current**: Limited to basic operations
+- **Required**: Consider if these operations should be supported
+
 ## Notes
 
 - Many of these issues were temporarily bypassed to get tests passing
 - The core implementations exist (registries, blockchain, etc.) - they just need to be wired together
 - This represents the final 5% of Phase 1 work
 - Completing these items will make the system actually functional rather than just architecturally complete
+- Test framework issues are primarily integration points rather than missing functionality
 
 ---
 
 *Generated: June 1, 2025*
 *Updated: June 1, 2025 (added Priority 6 for implemented but unused code)*
-*Estimated Effort: 10-17 developer days*
+*Updated: June 1, 2025 (added Priority 7 for test framework completeness)*
+*Estimated Effort: 10-17 developer days (not including test framework items)*
 *Priority: Complete before v0.2.0 release*

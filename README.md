@@ -15,9 +15,10 @@
 We're thrilled to announce the v0.1.5 release of Aura DecentralTrust with comprehensive test coverage! 
 
 ### What's New in v0.1.5
-- ✅ **95% Test Coverage**: 505 tests across all crates (ALL PASSING)
+- ✅ **95% Test Coverage**: 578 tests across all crates (including unified test framework)
 - ✅ **Property-Based Testing**: Added invariant validation with proptest
 - ✅ **Performance Benchmarks**: Critical operations now benchmarked
+- ✅ **Test Framework Consolidation**: Merged aura-benchmarks into unified aura-tests
 - ✅ **CI/CD Improvements**: All platform tests passing (Linux, macOS, Windows)
 - ✅ **Documentation**: Complete test coverage documentation and Phase 1 roadmap
 
@@ -183,6 +184,26 @@ cargo run --bin aura-node -- --config /path/to/custom/config.toml
 cargo run --example basic_usage
 ```
 
+### Running Tests and Benchmarks
+
+```bash
+# Run all tests
+cargo test
+
+# Run tests for a specific crate
+cargo test -p aura-ledger
+
+# Run tests with output
+cargo test -- --nocapture
+
+# Run benchmarks (requires nightly for some features)
+cargo bench -p aura-tests
+
+# Run specific benchmark group
+cargo bench -p aura-tests crypto
+cargo bench -p aura-tests blockchain
+```
+
 ## Core Components
 
 ### aura-common
@@ -245,7 +266,7 @@ The Aura node exposes the following REST API endpoints (all require JWT authenti
 - ✅ P2P network infrastructure
 - ✅ REST API with JWT authentication
 - ✅ Security hardening complete
-- ✅ **Comprehensive test coverage (95% - 505 tests)** - COMPLETED June 1, 2025
+- ✅ **Comprehensive test coverage (95% - 578 tests)** - COMPLETED June 1, 2025
 - ⏳ API-blockchain integration (v0.2.0) - 9-15 days remaining
 - ⏳ Desktop wallet MVP (v1.0.0)
 
@@ -302,7 +323,7 @@ For security concerns, please email security@aura-network.org
 - **Platforms**: Linux, macOS (Intel/ARM), Windows
 - **Dependencies**: 100+ (managed via Cargo)
 - **Code Quality**: Zero clippy warnings, security audit passing
-- **Test Coverage**: 95% (505 tests across all crates)
+- **Test Coverage**: 95% (578 tests across all crates)
 - **CI/CD**: Fully automated with GitHub Actions
 
 ![Alt](https://repobeats.axiom.co/api/embed/b91bd1b950b741e8d35baf666dc9933c5289d418.svg "Repobeats Analytics")

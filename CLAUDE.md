@@ -119,6 +119,12 @@ cargo clippy
 
 # Run linter with CI settings (strict)
 cargo clippy --all-targets --all-features -- -D warnings
+
+# Run benchmarks
+cargo bench -p aura-tests
+
+# Run specific benchmark group
+cargo bench -p aura-tests crypto
 ```
 
 ## Recent Updates (2025-06-01 Evening)
@@ -131,10 +137,11 @@ Released version 0.1.5 with comprehensive test coverage:
 
 ### Test Coverage Completion (4:12 PM)
 Successfully completed comprehensive test coverage for the entire project:
-- **Total Tests**: 505 (ALL PASSING) - up from 452
+- **Total Tests**: 578 (including aura-tests framework) - up from 452
 - **Coverage**: 95% across all crates
 - **Test Types**: Unit tests, integration tests, property-based tests, performance benchmarks
-- **Key Fixes**: Resolved 17 failing aura-node tests
+- **Key Fixes**: Resolved 17 failing aura-node tests + 21 aura-tests compilation errors
+- **Test Framework**: Consolidated aura-benchmarks into unified aura-tests crate
 - **Documentation**: Created TEST_COVERAGE_FINAL_2025-06-01.md and MASTER_PHASE1-REAL_IMP.md
 - **Remaining Work**: 5% API-blockchain integration documented (9-15 days)
 

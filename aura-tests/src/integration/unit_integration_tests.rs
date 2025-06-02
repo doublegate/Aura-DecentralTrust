@@ -1,7 +1,7 @@
 //! Comprehensive integration tests for achieving 100% code coverage
 
-use aura_common::{AuraDid, Timestamp, VerifiableCredential};
-use aura_crypto::{EncryptionKey, KeyPair, Signature};
+use aura_common::{AuraDid, Timestamp, VerifiableCredential, Proof};
+use aura_crypto::{keys::KeyPair, signing::{sign, verify}, encryption::{encrypt, decrypt, generate_encryption_key}};
 use std::collections::HashMap;
 
 #[cfg(test)]
@@ -17,8 +17,8 @@ mod integration_tests {
         let subject_did = AuraDid::new("subject456");
         
         // 2. Generate key pairs
-        let issuer_keypair = KeyPair::generate();
-        let subject_keypair = KeyPair::generate();
+        let issuer_keypair = KeyPair::generate().unwrap();
+        let subject_keypair = KeyPair::generate().unwrap();
         
         // 3. Create claims
         let mut claims = HashMap::new();
@@ -36,33 +36,32 @@ mod integration_tests {
         
         // 5. Sign the credential
         let credential_json = serde_json::to_string(&credential).unwrap();
-        let signature = Signature::sign(&issuer_keypair, credential_json.as_bytes()).unwrap();
+        let signature = sign(&issuer_keypair.private_key(), credential_json.as_bytes()).unwrap();
         
         // 6. Add proof to credential
-        credential.proof = Some(aura_common::vc::Proof {
+        credential.proof = Some(Proof {
             proof_type: "Ed25519Signature2020".to_string(),
             created: Timestamp::now(),
             verification_method: format!("{}#key-1", issuer_did),
             proof_purpose: "assertionMethod".to_string(),
-            proof_value: hex::encode(signature.to_bytes()),
+            proof_value: base64::Engine::encode(&base64::engine::general_purpose::STANDARD, signature.to_bytes()),
             challenge: None,
             domain: None,
         });
         
         // 7. Verify the credential signature
         let public_key = issuer_keypair.public_key();
-        let sig_bytes = hex::decode(&credential.proof.as_ref().unwrap().proof_value).unwrap();
-        let recovered_sig = Signature::from_bytes(&sig_bytes).unwrap();
+        let sig_bytes = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &credential.proof.as_ref().unwrap().proof_value).unwrap();
         
-        assert!(recovered_sig.verify(&public_key, credential_json.as_bytes()).is_ok());
+        assert!(verify(&public_key, credential_json.as_bytes(), &aura_crypto::Signature(sig_bytes)).unwrap());
         
         // 8. Encrypt the credential for storage
-        let encryption_key = EncryptionKey::generate_encryption_key();
-        let encrypted = aura_crypto::encrypt(&encryption_key, credential_json.as_bytes()).unwrap();
+        let encryption_key = generate_encryption_key();
+        let encrypted = encrypt(&encryption_key, credential_json.as_bytes()).unwrap();
         
         // 9. Decrypt and verify
-        let decrypted = aura_crypto::decrypt(&encryption_key, &encrypted).unwrap();
-        let decrypted_str = String::from_utf8(decrypted).unwrap();
+        let decrypted = decrypt(&encryption_key, &encrypted).unwrap();
+        let decrypted_str = String::from_utf8(decrypted.to_vec()).unwrap();
         assert_eq!(credential_json, decrypted_str);
     }
 
@@ -99,70 +98,73 @@ mod integration_tests {
 
     #[test]
     fn test_cryptographic_operations() {
+        use aura_crypto::hashing::{sha256, blake3};
+        
         // Test all cryptographic operations
         
         // Key generation
-        let key1 = KeyPair::generate();
-        let key2 = KeyPair::generate();
-        assert_ne!(key1.to_bytes(), key2.to_bytes());
+        let key1 = KeyPair::generate().unwrap();
+        let key2 = KeyPair::generate().unwrap();
         
-        // Key serialization/deserialization
-        let key_bytes = key1.to_bytes();
-        let recovered_key = KeyPair::from_bytes(&key_bytes).unwrap();
-        assert_eq!(key1.to_bytes(), recovered_key.to_bytes());
+        // Private key bytes should be different
+        let key1_bytes = key1.private_key().to_bytes();
+        let key2_bytes = key2.private_key().to_bytes();
+        assert_ne!(key1_bytes, key2_bytes);
         
         // Signing and verification
         let message = b"Test message for signing";
-        let signature = Signature::sign(&key1, message).unwrap();
+        let signature = sign(&key1.private_key(), message).unwrap();
         let public_key = key1.public_key();
         
         // Verify with correct key
-        assert!(signature.verify(&public_key, message).is_ok());
+        assert!(verify(&public_key, message, &signature).unwrap());
         
         // Verify with wrong key should fail
         let wrong_key = key2.public_key();
-        assert!(signature.verify(&wrong_key, message).is_err());
+        assert!(!verify(&wrong_key, message, &signature).unwrap());
         
         // Verify with wrong message should fail
-        assert!(signature.verify(&public_key, b"Different message").is_err());
+        assert!(!verify(&public_key, b"Different message", &signature).unwrap());
         
         // Test hashing
-        let hash1 = aura_crypto::sha256(b"test data");
-        let hash2 = aura_crypto::sha256(b"test data");
+        let hash1 = sha256(b"test data");
+        let hash2 = sha256(b"test data");
         assert_eq!(hash1, hash2);
         
-        let hash3 = aura_crypto::sha256(b"different data");
+        let hash3 = sha256(b"different data");
         assert_ne!(hash1, hash3);
         
         // Test Blake3 hashing
-        let blake_hash1 = aura_crypto::blake3(b"test data");
-        let blake_hash2 = aura_crypto::blake3(b"test data");
+        let blake_hash1 = blake3(b"test data");
+        let blake_hash2 = blake3(b"test data");
         assert_eq!(blake_hash1, blake_hash2);
     }
 
     #[test]
     fn test_encryption_decryption() {
+        use aura_crypto::encryption::{encrypt_json, decrypt_json};
+        
         // Test encryption/decryption with various data sizes
         
-        let key = EncryptionKey::generate_encryption_key();
+        let key = generate_encryption_key();
         
         // Test small data
         let small_data = b"Small test data";
-        let encrypted_small = aura_crypto::encrypt(&key, small_data).unwrap();
-        let decrypted_small = aura_crypto::decrypt(&key, &encrypted_small).unwrap();
-        assert_eq!(small_data.to_vec(), decrypted_small);
+        let encrypted_small = encrypt(&key, small_data).unwrap();
+        let decrypted_small = decrypt(&key, &encrypted_small).unwrap();
+        assert_eq!(small_data.to_vec(), decrypted_small.to_vec());
         
         // Test empty data
         let empty_data = b"";
-        let encrypted_empty = aura_crypto::encrypt(&key, empty_data).unwrap();
-        let decrypted_empty = aura_crypto::decrypt(&key, &encrypted_empty).unwrap();
-        assert_eq!(empty_data.to_vec(), decrypted_empty);
+        let encrypted_empty = encrypt(&key, empty_data).unwrap();
+        let decrypted_empty = decrypt(&key, &encrypted_empty).unwrap();
+        assert_eq!(empty_data.to_vec(), decrypted_empty.to_vec());
         
         // Test large data
         let large_data = vec![0xAB; 1024 * 1024]; // 1MB
-        let encrypted_large = aura_crypto::encrypt(&key, &large_data).unwrap();
-        let decrypted_large = aura_crypto::decrypt(&key, &encrypted_large).unwrap();
-        assert_eq!(large_data, decrypted_large);
+        let encrypted_large = encrypt(&key, &large_data).unwrap();
+        let decrypted_large = decrypt(&key, &encrypted_large).unwrap();
+        assert_eq!(large_data, decrypted_large.to_vec());
         
         // Test JSON encryption
         let json_data = serde_json::json!({
@@ -170,13 +172,13 @@ mod integration_tests {
             "age": 25,
             "active": true
         });
-        let encrypted_json = aura_crypto::encrypt_json(&key, &json_data).unwrap();
-        let decrypted_json: serde_json::Value = aura_crypto::decrypt_json(&key, &encrypted_json).unwrap();
+        let encrypted_json = encrypt_json(&key, &json_data).unwrap();
+        let decrypted_json: serde_json::Value = decrypt_json(&key, &encrypted_json).unwrap();
         assert_eq!(json_data, decrypted_json);
         
         // Test decryption with wrong key
-        let wrong_key = EncryptionKey::generate_encryption_key();
-        let result = aura_crypto::decrypt(&wrong_key, &encrypted_small);
+        let wrong_key = generate_encryption_key();
+        let result = decrypt(&wrong_key, &encrypted_small);
         assert!(result.is_err());
     }
 

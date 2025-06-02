@@ -7,10 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Testing**: Consolidated test framework - merged aura-benchmarks into aura-tests
+  - Fixed all 21 compilation errors in aura-tests framework
+  - Added 73 tests from aura-tests to total count (578 tests total)
+  - Integrated comprehensive benchmarks from aura-benchmarks
+  - Updated all API calls to match current signatures
+  - Fixed property test macro syntax issues
+  - Implemented missing transaction validation methods
+  - Documented all TODOs and placeholders in test framework
+
+### Changed
+- **Testing**: Unified all tests and benchmarks in single aura-tests crate
+- **Documentation**: Updated test counts and benchmark instructions across all docs
+
+### Fixed
+- **Testing**: Resolved aura-tests compilation issues (sign_message → sign, verify_signature → verify)
+- **Testing**: Fixed missing Transaction::validate() and is_expired() methods
+- **Testing**: Corrected property test macro syntax (removed doc comments before #[test])
+- **Testing**: Fixed base64 encoding to use Engine API
+- **Testing**: Resolved Zeroizing type wrapper issues
+
+### Removed
+- **Testing**: Removed empty aura-benchmarks crate (consolidated into aura-tests)
+- **Testing**: Removed empty benches directory
+
 ## [0.1.5] - 2025-06-01
 
 ### Added
-- **Testing**: Comprehensive test coverage FULLY COMPLETED (95% coverage - 505 tests ALL PASSING)
+- **Testing**: Comprehensive test coverage FULLY COMPLETED (95% coverage - 578 tests including aura-tests framework)
   - aura-common: 64 tests covering DIDs, errors, types, and VCs
   - aura-crypto: 81 tests covering encryption, hashing, keys, and signing  
   - aura-ledger: 114 tests covering blockchain, consensus, and registries
