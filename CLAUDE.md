@@ -38,7 +38,7 @@ cd Aura-DecentralTrust
 sudo dnf install -y rocksdb-devel libzstd-devel clang-devel
 
 # Standard build with system RocksDB:
-ROCKSDB_LIB_DIR=/usr/lib64 LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo build --release
+cargo build --release
 
 # If you still have bindgen/clang issues:
 BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-redhat-linux/15/include" \
@@ -48,7 +48,7 @@ cargo build --release
 
 # For Ubuntu/Debian:
 sudo apt-get install -y librocksdb-dev libzstd-dev clang
-ROCKSDB_LIB_DIR=/usr/lib LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo build --release
+cargo build --release
 ```
 
 ## Key Technical Decisions
@@ -160,7 +160,7 @@ The project has been updated to work with latest dependencies:
 ### Build Requirements
 - **RocksDB**: Requires rocksdb-devel system package and environment variables
 - **Clang**: Required for bindgen to generate RocksDB bindings
-- **Environment Variables**:
+- **Environment Variables** (Optional - Usually NOT Needed):
   - `ROCKSDB_LIB_DIR`: Path to system RocksDB libraries
   - `LIBROCKSDB_SYS_DISABLE_BUNDLED=1`: Use system RocksDB instead of bundled
   - `BINDGEN_EXTRA_CLANG_ARGS`: May be needed for clang headers
@@ -175,10 +175,10 @@ The project has been updated to work with latest dependencies:
 ### Running the Node
 ```bash
 # Standard run (HTTP)
-ROCKSDB_LIB_DIR=/usr/lib64 LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo run --bin aura-node
+cargo run --bin aura-node
 
 # Run with TLS (generates certificates)
-ROCKSDB_LIB_DIR=/usr/lib64 LIBROCKSDB_SYS_DISABLE_BUNDLED=1 cargo run --bin aura-node -- --enable-tls
+cargo run --bin aura-node -- --enable-tls
 
 # Get auth token
 curl -X POST http://localhost:8080/auth/login \
@@ -201,8 +201,8 @@ curl -X POST http://localhost:8080/auth/login \
 ### Release Workflow Commands
 ```bash
 # Create and push a new tag (triggers release workflow)
-git tag -a v0.1.0 -m "Phase 1 Foundation Release"
-git push origin v0.1.0
+git tag -a v0.1.5 -m "Phase 1 Foundation Release"
+git push origin v0.1.5
 
 # The release workflow automatically:
 # - Builds binaries for Linux, macOS (Intel/ARM), Windows

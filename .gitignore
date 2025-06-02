@@ -102,8 +102,10 @@ aura-wallet-*/
 wallet-builds/
 
 # Performance test results
-benchmarks/
-perf-results/
+/benchmarks/
+/perf-results/
+bench-results/
+*.bench
 
 # Core dumps
 core

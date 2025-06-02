@@ -1,7 +1,7 @@
 // Integration Test Suite for Aura DecentralTrust
 //
 // This module contains all integration tests organized by functionality:
-// - api_tests: REST API endpoint testing  
+// - api_tests: REST API endpoint testing
 // - cli_tests: Binary/CLI interface testing
 // - unit_integration_tests: Cross-crate integration without running services
 // - workflow_tests: End-to-end workflow testing with full stack

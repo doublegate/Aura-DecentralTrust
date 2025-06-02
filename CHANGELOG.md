@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Testing**: Unified all tests and benchmarks in single aura-tests crate
 - **Documentation**: Updated test counts and benchmark instructions across all docs
+- **Code Style**: Updated all format! macros to use inline variable syntax (e.g., `format!("{i}")` instead of `format!("{}", i)`)
 
 ### Fixed
 - **Testing**: Resolved aura-tests compilation issues (sign_message → sign, verify_signature → verify)
@@ -27,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Testing**: Corrected property test macro syntax (removed doc comments before #[test])
 - **Testing**: Fixed base64 encoding to use Engine API
 - **Testing**: Resolved Zeroizing type wrapper issues
+- **CI/CD**: Fixed all clippy warnings and formatting issues
+  - Removed unused imports in benchmark files
+  - Updated deprecated `criterion::black_box` to `std::hint::black_box`
+  - Fixed needless borrows in function calls
+  - Resolved redundant closure warnings
+  - Converted single-pattern match to if-let
+  - Fixed unused variable warnings with underscore prefix
 
 ### Removed
 - **Testing**: Removed empty aura-benchmarks crate (consolidated into aura-tests)

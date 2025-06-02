@@ -1,4 +1,4 @@
-# Aura: Decentralized ID Wallet - Trust & Data Management
+# Aura: Decentralized ID Wallet - Trust & Data Management (w/ Blockchain Tech)
 
 **Your Data, Your Rules, Verifiably.**
 
@@ -289,7 +289,7 @@ Contributions are welcome! Please read our contributing guidelines before submit
 
 ## License
 
-This project is dual-licensed under MIT and Apache 2.0 licenses.
+This project is dual-licensed under [MIT](LICENSE) and Apache 2.0 licenses.
 
 ## Security
 
