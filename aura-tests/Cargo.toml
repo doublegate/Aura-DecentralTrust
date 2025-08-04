@@ -16,7 +16,7 @@ aura-wallet-core = { path = "../aura-wallet-core" }
 tokio = { workspace = true, features = ["full", "test-util"] }
 tokio-test = "0.4"
 proptest = "1.6"
-criterion = { version = "0.6", features = ["html_reports"] }
+criterion = { version = "0.7", features = ["html_reports"] }
 tempfile = "3.8"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 serde = { workspace = true }
