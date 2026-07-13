@@ -151,7 +151,7 @@ jobs:
         echo "Created junit.xml with test summary"
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./cobertura.xml,./lcov.info
