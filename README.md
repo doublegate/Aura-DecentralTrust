@@ -7,7 +7,7 @@
 [![Release](https://img.shields.io/badge/release-v0.1.6-blue.svg)](https://github.com/doublegate/Aura-DecentralTrust/releases/tag/v0.1.6)
 [![CI](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml/badge.svg)](https://github.com/doublegate/Aura-DecentralTrust/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/github/doublegate/Aura-DecentralTrust/graph/badge.svg?token=ALCFBYJSOX)](https://codecov.io/github/doublegate/Aura-DecentralTrust)
-[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
+[![Rust Version](https://img.shields.io/badge/rust-1.89%2B-orange.svg)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 🎉 v0.1.6 Released with CI/CD Enhancements!
@@ -125,7 +125,7 @@ curl -X POST http://localhost:8080/auth/login \
 
 ### Prerequisites
 
-- Rust 1.70+ (install from https://rustup.rs)
+- Rust 1.89+ (install from https://rustup.rs)
 - C/C++ development tools (gcc, g++, clang)
 - For GCC 15+ users: CXXFLAGS configuration may be needed (see build notes)
 

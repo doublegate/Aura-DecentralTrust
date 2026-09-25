@@ -243,18 +243,10 @@ impl NetworkManager {
                 Some(SwarmEvent::NewListenAddr { address, .. }) => {
                     info!("Listening on: {}", address);
                 }
-                Some(SwarmEvent::ConnectionEstablished {
-                    peer_id,
-                    connection_id: _,
-                    ..
-                }) => {
+                Some(SwarmEvent::ConnectionEstablished { peer_id, .. }) => {
                     info!("Connected to peer: {}", peer_id);
                 }
-                Some(SwarmEvent::ConnectionClosed {
-                    peer_id,
-                    connection_id: _,
-                    ..
-                }) => {
+                Some(SwarmEvent::ConnectionClosed { peer_id, .. }) => {
                     info!("Disconnected from peer: {}", peer_id);
                 }
                 _ => {}

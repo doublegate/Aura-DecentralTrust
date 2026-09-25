@@ -8,7 +8,7 @@ This guide provides step-by-step instructions for implementing the critical secu
 
 Add to `aura-node/Cargo.toml`:
 ```toml
-jsonwebtoken = "9.3"
+jsonwebtoken = { version = "11.1", features = ["aws_lc_rs"] }  # >= 10 needs an explicit backend
 axum-extra = { version = "0.10", features = ["typed-header"] }
 tower = { version = "0.5", features = ["util", "filter"] }
 argon2 = "0.5"

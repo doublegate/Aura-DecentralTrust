@@ -28,6 +28,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Dependencies (consolidated update, supersedes Dependabot #11-#39)
+- **Crypto (moved together as one RustCrypto / dalek generation)**: `ed25519-dalek` 2.1 -> 3.0,
+  `x25519-dalek` 2.0 -> 3.0, `sha2` 0.10 -> 0.11, `aes-gcm` 0.10 -> 0.11, `rand` 0.9 -> 0.10,
+  `getrandom` 0.3 -> 0.4. Signatures, digests and AES-GCM ciphertexts are byte-identical;
+  known-answer tests (RFC 8032 test 1, FIPS 180-2 "abc", GCM test cases 13/14) now pin them.
+- **Storage / network / web**: `rocksdb` 0.23 -> 0.25, `libp2p` 0.56 -> 0.57, `axum-server`
+  0.7 -> 0.8, `tower-http` 0.6 -> 0.7, `jsonwebtoken` 9.3 -> 11.1 (explicit `aws_lc_rs`
+  backend), `toml` 0.8 -> 1.1, `base64` 0.22 -> 0.23, `reqwest` 0.12 -> 0.13, `criterion`
+  0.6 -> 0.8, plus patch/minor updates of every other dependency.
+- **GitHub Actions**: `actions/checkout` v4 -> v7, `actions/cache` v4 -> v6,
+  `actions/upload-artifact` v4 -> v7, `codecov/codecov-action` v5 -> v7,
+  `softprops/action-gh-release` v2 -> v3; the archived `codecov/test-results-action` is
+  replaced by `codecov-action` with `report_type: test_results`. `cargo-audit` and
+  `cargo-tarpaulin` are now installed at pinned versions with `--locked`.
+- **Removed** `rustls-pemfile` (unmaintained, RUSTSEC-2025-0134); PEM loading uses
+  `rustls-pki-types`' `PemObject`.
+- **Held**: `bincode` stays on 2.0.1 because 3.0.0 is a tombstone release (its `lib.rs` is a
+  single `compile_error!`); `wasm-bindgen` 0.2.108 / `wasm-bindgen-futures` 0.4.58 are pinned
+  exactly by `libp2p-swarm` 0.48.
+- **MSRV** is now Rust 1.89 (`aes` 0.9.3 under `aes-gcm` 0.11; `libp2p` 0.57, `rocksdb` 0.25 and
+  `jsonwebtoken` 11 need 1.88).
+
+### Fixed
+- `main` did not compile: the July 2025 `rand` 0.9 bump broke `aura-crypto`, and `rcgen`
+  0.14.10 renamed `CertifiedKey::key_pair` to `signing_key`.
+- `decrypt` panicked on a nonce that was not 12 bytes; it now returns `DecryptionError`.
+- `PrivateKey::generate` returns `KeyGenerationError` on an OS RNG failure instead of
+  panicking, and zeroizes its temporary seed copy.
+- Windows CI checkout failed on a committed RocksDB directory named `aura-ledger/:memory:`;
+  it is removed and ignored.
+- `cargo audit` failed on RUSTSEC-2026-0118/0119 (`hickory-proto`); resolved by the update.
+- New toolchain clippy lints (`useless_vec`, `unneeded_struct_pattern`,
+  `cloned_ref_to_slice_refs`, `unnecessary_unwrap`).
+
 ### Added (Phase 1B Implementation - COMPLETED June 2, 2025)
 - **Security**: Secure credential generation system (`auth_setup.rs`)
   - Generates 32-character alphanumeric passwords on first run

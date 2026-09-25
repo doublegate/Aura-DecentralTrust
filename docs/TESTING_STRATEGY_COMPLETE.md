@@ -158,8 +158,8 @@ Located in `benches/performance_benchmarks.rs`:
 ### Tools and Frameworks:
 - **Unit Tests**: Rust's built-in test framework
 - **Async Tests**: tokio::test for async operations
-- **Property Tests**: proptest 1.6.0
-- **Benchmarks**: criterion 0.6.0
+- **Property Tests**: proptest 1.11.0
+- **Benchmarks**: criterion 0.8.2
 - **Coverage**: cargo-tarpaulin (attempted)
 
 ### Test Helpers:

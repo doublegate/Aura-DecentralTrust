@@ -162,8 +162,8 @@ fn initialize_auth(config: &mut config::NodeConfig) -> anyhow::Result<()> {
 
         // Generate a secure random key
         use rand::Rng;
-        let mut rng = rand::thread_rng();
-        let secret: Vec<u8> = (0..32).map(|_| rng.gen()).collect();
+        let mut secret = vec![0u8; 32];
+        rand::rng().fill_bytes(&mut secret);
 
         // Save to config for consistency during this run
         use base64::Engine;

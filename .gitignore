@@ -70,6 +70,9 @@ temp/
 *.sqlite
 *.sqlite3
 rocksdb/
+# RocksDB opened with the SQLite-style path ":memory:" creates a real directory
+# of that name; ':' is invalid in Windows paths and breaks checkout there.
+:memory:/
 
 # Build artifacts
 dist/

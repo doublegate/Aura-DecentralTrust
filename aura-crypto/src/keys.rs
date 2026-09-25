@@ -1,6 +1,6 @@
 use crate::{CryptoError, Result};
 use ed25519_dalek::{SigningKey, VerifyingKey};
-use rand::{rngs::OsRng, Rng};
+use rand::{rngs::SysRng, TryRng};
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
@@ -23,10 +23,18 @@ impl std::fmt::Debug for PrivateKey {
 
 impl PrivateKey {
     pub fn generate() -> Result<Self> {
-        let mut csprng = OsRng;
-        let key_bytes: [u8; 32] = csprng.gen();
+        // Draw the seed straight from the operating system CSPRNG. A failure of
+        // the OS RNG is surfaced as an error rather than a panic, and the local
+        // copy of the seed is zeroized when this function returns.
+        let mut key_bytes = Zeroizing::new([0u8; 32]);
+        SysRng
+            .try_fill_bytes(key_bytes.as_mut())
+            .map_err(|e| CryptoError::KeyGenerationError(e.to_string()))?;
         let key = SigningKey::from_bytes(&key_bytes);
-        Ok(Self { key, key_bytes })
+        Ok(Self {
+            key,
+            key_bytes: *key_bytes,
+        })
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {

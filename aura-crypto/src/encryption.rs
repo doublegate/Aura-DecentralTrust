@@ -1,9 +1,10 @@
 use crate::{CryptoError, Result};
 use aes_gcm::{
-    aead::{Aead, AeadCore, KeyInit, OsRng},
-    Aes256Gcm, Key, Nonce,
+    aead::{Aead, Generate, KeyInit, Nonce},
+    Aes256Gcm,
 };
 use bincode::{Decode, Encode};
+use rand::{rngs::SysRng, TryRng};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 
@@ -15,13 +16,21 @@ pub struct EncryptedData {
 
 /// Generate a new encryption key wrapped in Zeroizing for automatic cleanup
 pub fn generate_encryption_key() -> Zeroizing<[u8; 32]> {
-    let key = Aes256Gcm::generate_key(OsRng);
-    Zeroizing::new(key.into())
+    // Filled in place from the OS CSPRNG so no un-zeroized copy of the key is left behind.
+    // Like the previous aead `OsRng`, an OS RNG failure here is a panic: the
+    // signature has no error channel, and continuing without a key is not an option.
+    let mut key = Zeroizing::new([0u8; 32]);
+    SysRng
+        .try_fill_bytes(key.as_mut())
+        .expect("operating system CSPRNG failure");
+    key
 }
 
 pub fn encrypt(key: &[u8; 32], plaintext: &[u8]) -> Result<EncryptedData> {
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
-    let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+    let cipher = Aes256Gcm::new(key.into());
+    // Fresh 96-bit random nonce per message, drawn from the OS CSPRNG.
+    let nonce = Nonce::<Aes256Gcm>::try_generate()
+        .map_err(|e| CryptoError::EncryptionError(e.to_string()))?;
 
     // Encrypt directly without creating a copy
     let ciphertext = cipher
@@ -36,8 +45,11 @@ pub fn encrypt(key: &[u8; 32], plaintext: &[u8]) -> Result<EncryptedData> {
 
 /// Decrypt data and return it wrapped in Zeroizing for automatic cleanup
 pub fn decrypt(key: &[u8; 32], encrypted: &EncryptedData) -> Result<Zeroizing<Vec<u8>>> {
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
-    let nonce = Nonce::from_slice(&encrypted.nonce);
+    let cipher = Aes256Gcm::new(key.into());
+    // A nonce of the wrong length is malformed input: reject it as a decryption
+    // failure instead of panicking (the 0.10-era `from_slice` panicked here).
+    let nonce = <&Nonce<Aes256Gcm>>::try_from(encrypted.nonce.as_slice())
+        .map_err(|_| CryptoError::DecryptionError("Invalid nonce length".to_string()))?;
 
     let plaintext = cipher
         .decrypt(nonce, encrypted.ciphertext.as_ref())
@@ -67,6 +79,7 @@ pub fn decrypt_json<T: for<'a> Deserialize<'a>>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use aes_gcm::Key;
     use serde_json::json;
 
     #[test]
@@ -348,8 +361,8 @@ mod tests {
         assert_eq!(key.len(), 32); // 256 bits = 32 bytes
 
         // Test that the key works with AES-256-GCM
-        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&*key));
-        let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+        let cipher = Aes256Gcm::new(<&Key<Aes256Gcm>>::from(&*key));
+        let nonce = Nonce::<Aes256Gcm>::generate();
         let plaintext = b"Test";
 
         // This should not panic
@@ -382,18 +395,49 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_decrypt_invalid_nonce_size() {
         let key = generate_encryption_key();
         let plaintext = b"Test message";
 
         let mut encrypted = encrypt(&key, plaintext).unwrap();
 
-        // Modify nonce to invalid size
-        encrypted.nonce = vec![0u8; 11]; // Should be 12 bytes, this will panic
+        // A nonce that is not exactly 12 bytes is malformed input and must be
+        // rejected with an error, never a panic.
+        for len in [0usize, 11, 13, 24] {
+            encrypted.nonce = vec![0u8; len];
+            let result = decrypt(&key, &encrypted);
+            assert!(
+                matches!(result, Err(CryptoError::DecryptionError(_))),
+                "nonce of length {len} was not rejected"
+            );
+        }
+    }
 
-        // This will panic when trying to create nonce from invalid size
-        let _ = decrypt(&key, &encrypted);
+    #[test]
+    fn test_known_answer_vector() {
+        // NIST SP 800-38D / McGrew-Viega test case 13: AES-256-GCM, zero key,
+        // zero 96-bit IV, empty plaintext. Pins the primitive across the
+        // aes-gcm 0.10 -> 0.11 upgrade so a behaviour change cannot pass silently.
+        let key = [0u8; 32];
+        let encrypted = EncryptedData {
+            ciphertext: vec![
+                0x53, 0x0f, 0x8a, 0xfb, 0xc7, 0x45, 0x36, 0xb9, 0xa9, 0x63, 0xb4, 0xf1, 0xc4, 0xcb,
+                0x73, 0x8b,
+            ],
+            nonce: vec![0u8; 12],
+        };
+        assert_eq!(&*decrypt(&key, &encrypted).unwrap(), b"");
+
+        // Test case 14: one zero block of plaintext under the same key and IV.
+        let encrypted = EncryptedData {
+            ciphertext: vec![
+                0xce, 0xa7, 0x40, 0x3d, 0x4d, 0x60, 0x6b, 0x6e, 0x07, 0x4e, 0xc5, 0xd3, 0xba, 0xf3,
+                0x9d, 0x18, 0xd0, 0xd1, 0xc8, 0xa7, 0x99, 0x99, 0x6b, 0xf0, 0x26, 0x5b, 0x98, 0xb5,
+                0xd4, 0x8a, 0xb9, 0x19,
+            ],
+            nonce: vec![0u8; 12],
+        };
+        assert_eq!(&*decrypt(&key, &encrypted).unwrap(), &[0u8; 16]);
     }
 
     #[test]

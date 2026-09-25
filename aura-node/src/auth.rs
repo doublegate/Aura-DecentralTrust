@@ -96,7 +96,9 @@ fn hash_password(password: &str) -> String {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(password.as_bytes());
-    format!("{:x}", hasher.finalize())
+    // sha2 0.11 digests no longer implement LowerHex; hex::encode yields the
+    // identical lowercase hex string.
+    hex::encode(hasher.finalize())
 }
 
 /// Create a new JWT token
@@ -255,6 +257,13 @@ mod tests {
         let hash3 = hash_password("different_password");
         assert_ne!(hash1, hash3);
 
+        // Known answer: the encoding must stay lowercase hex of SHA-256 across
+        // the sha2 0.10 -> 0.11 upgrade (0.11 digests dropped LowerHex).
+        assert_eq!(
+            hash_password("password"),
+            "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+        );
+
         // Hash should be a valid hex string of expected length (SHA256 = 64 chars)
         assert_eq!(hash1.len(), 64);
         assert!(hash1.chars().all(|c| c.is_ascii_hexdigit()));
@@ -269,13 +278,8 @@ mod tests {
         let result = initialize_auth(jwt_secret.clone(), None);
 
         // Check if it's already initialized (from other tests)
-        if result.is_err() {
-            assert!(result
-                .unwrap_err()
-                .to_string()
-                .contains("already initialized"));
-        } else {
-            assert!(result.is_ok());
+        if let Err(e) = result {
+            assert!(e.to_string().contains("already initialized"));
         }
     }
 

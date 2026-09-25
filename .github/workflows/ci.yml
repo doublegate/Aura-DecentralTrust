@@ -26,7 +26,7 @@ jobs:
           - os: windows-latest
             rust: beta  # Exclude beta on Windows to reduce build time
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@master
@@ -44,19 +44,19 @@ jobs:
     # macOS has clang by default, no need to install
     
     - name: Cache cargo registry
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.cargo/registry
         key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
     
     - name: Cache cargo index
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.cargo/git
         key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
     
     - name: Cache cargo build
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
@@ -80,13 +80,14 @@ jobs:
     name: Security Audit
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
     
+    # Pinned so a new cargo-audit release cannot change the gate with no commit to blame.
     - name: Install cargo-audit
-      run: cargo install cargo-audit
+      run: cargo install cargo-audit --version 0.22.2 --locked
     
     - name: Run cargo audit
       run: cargo audit
@@ -98,7 +99,7 @@ jobs:
       contents: read
       statuses: write
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -110,8 +111,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
     
+    # Pinned for the same reason as cargo-audit above.
     - name: Install coverage tools
-      run: cargo install cargo-tarpaulin
+      run: cargo install cargo-tarpaulin --version 0.37.4 --locked
     
     - name: Run tests with coverage
       run: |
@@ -151,7 +153,7 @@ jobs:
         echo "Created junit.xml with test summary"
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./cobertura.xml,./lcov.info
@@ -161,13 +163,16 @@ jobs:
     
     - name: Upload test results to Codecov
       if: ${{ !cancelled() }}
-      uses: codecov/test-results-action@v1
+      # codecov/test-results-action is archived upstream; codecov-action with
+      # report_type: test_results is its documented replacement.
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./junit.xml
+        report_type: test_results
     
     - name: Upload coverage artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-report
         path: |

@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use rand::{distributions::Alphanumeric, Rng};
+use rand::{distr::Alphanumeric, RngExt};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -18,7 +18,7 @@ pub struct SetupConfig {
 
 /// Generate a secure random password
 pub fn generate_secure_password(length: usize) -> String {
-    rand::thread_rng()
+    rand::rng()
         .sample_iter(&Alphanumeric)
         .take(length)
         .map(char::from)

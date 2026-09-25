@@ -15,11 +15,11 @@ jobs:
     permissions:
       contents: write
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     
     - name: Create Release
       id: create_release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         generate_release_notes: true
         draft: false
@@ -54,7 +54,7 @@ jobs:
             artifact_name: aura-node.exe
             asset_name: aura-node-windows-amd64.exe
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -78,7 +78,7 @@ jobs:
         cp ./target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ./${{ matrix.asset_name }}
     
     - name: Upload Release Asset
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: ${{ matrix.asset_name }}
       env:

@@ -19,7 +19,7 @@ The system consists of four main components:
 
 ### Prerequisites
 
-- Rust 1.70+ (install from https://rustup.rs)
+- Rust 1.89+ (install from https://rustup.rs)
 - C/C++ development tools (gcc, gcc-c++, clang)
 - System libraries:
   - rocksdb-devel (RocksDB database) - **REQUIRED for main branch**
