@@ -27,14 +27,24 @@ pub fn generate_encryption_key() -> Zeroizing<[u8; 32]> {
 }
 
 pub fn encrypt(key: &[u8; 32], plaintext: &[u8]) -> Result<EncryptedData> {
-    let cipher = Aes256Gcm::new(key.into());
     // Fresh 96-bit random nonce per message, drawn from the OS CSPRNG.
     let nonce = Nonce::<Aes256Gcm>::try_generate()
         .map_err(|e| CryptoError::EncryptionError(e.to_string()))?;
+    encrypt_with_nonce(key, &nonce, plaintext)
+}
+
+/// Deterministic core of [`encrypt`]. Private on purpose: a caller-chosen nonce
+/// is only safe in known-answer tests, never in production use.
+fn encrypt_with_nonce(
+    key: &[u8; 32],
+    nonce: &Nonce<Aes256Gcm>,
+    plaintext: &[u8],
+) -> Result<EncryptedData> {
+    let cipher = Aes256Gcm::new(key.into());
 
     // Encrypt directly without creating a copy
     let ciphertext = cipher
-        .encrypt(&nonce, plaintext)
+        .encrypt(nonce, plaintext)
         .map_err(|e| CryptoError::EncryptionError(e.to_string()))?;
 
     Ok(EncryptedData {
@@ -438,6 +448,20 @@ mod tests {
             nonce: vec![0u8; 12],
         };
         assert_eq!(&*decrypt(&key, &encrypted).unwrap(), &[0u8; 16]);
+
+        // Encrypt direction: the same vectors must come out of the encrypt path.
+        let zero_nonce = Nonce::<Aes256Gcm>::default();
+        let tc13 = encrypt_with_nonce(&key, &zero_nonce, b"").unwrap();
+        assert_eq!(
+            tc13.ciphertext,
+            [
+                0x53, 0x0f, 0x8a, 0xfb, 0xc7, 0x45, 0x36, 0xb9, 0xa9, 0x63, 0xb4, 0xf1, 0xc4, 0xcb,
+                0x73, 0x8b,
+            ]
+        );
+        assert_eq!(tc13.nonce, vec![0u8; 12]);
+        let tc14 = encrypt_with_nonce(&key, &zero_nonce, &[0u8; 16]).unwrap();
+        assert_eq!(tc14.ciphertext, encrypted.ciphertext);
     }
 
     #[test]

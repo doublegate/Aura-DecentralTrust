@@ -56,8 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `decrypt` panicked on a nonce that was not 12 bytes; it now returns `DecryptionError`.
 - `PrivateKey::generate` returns `KeyGenerationError` on an OS RNG failure instead of
   panicking, and zeroizes its temporary seed copy.
-- Windows CI checkout failed on a committed RocksDB directory named `aura-ledger/:memory:`;
-  it is removed and ignored.
+- Windows CI checkout failed on committed RocksDB directories named `:memory:` (in
+  `aura-ledger/` and `aura-node/`); they are removed and ignored.
 - `cargo audit` failed on RUSTSEC-2026-0118/0119 (`hickory-proto`); resolved by the update.
 - New toolchain clippy lints (`useless_vec`, `unneeded_struct_pattern`,
   `cloned_ref_to_slice_refs`, `unnecessary_unwrap`).
