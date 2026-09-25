@@ -18,62 +18,68 @@ repository = "https://github.com/aura-decentraltrust/aura"
 
 [workspace.dependencies]
 # Async runtime
-tokio = { version = "1.45.1", features = ["full"] }
-async-trait = "0.1.88"
+tokio = { version = "1.53.1", features = ["full"] }
+async-trait = "0.1.92"
 
 # Serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.140"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+# Held at 2.x: bincode 3.0.0 is a tombstone release whose lib.rs is a single
+# compile_error!; there is no 3.x API to migrate to. See CHANGELOG.
 bincode = "2.0.1"
 
 # Cryptography
-ed25519-dalek = { version = "2.1", features = ["serde"] }
-x25519-dalek = "2.0.1"
-sha2 = "0.10.9"
-blake3 = "1.8.2"
-aes-gcm = "0.10.3"
-rand = "0.9.1"
+ed25519-dalek = { version = "3.0.0", features = ["serde"] }
+x25519-dalek = "3.0.0"
+sha2 = "0.11.0"
+blake3 = "1.8.7"
+aes-gcm = { version = "0.11.1", features = ["rand_core"] }
+rand = "0.10.3"
 
 # P2P Networking
-libp2p = { version = "0.56.0", features = ["tokio", "gossipsub", "kad", "identify", "yamux", "noise", "tcp", "dns", "websocket", "macros"] }
+libp2p = { version = "0.57.0", features = ["tokio", "gossipsub", "kad", "identify", "yamux", "noise", "tcp", "dns", "websocket", "macros"] }
 
 # Database
-rocksdb = "0.23.0"
+rocksdb = "0.25.0"
 
 # Logging
-tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # Error handling
-thiserror = "2.0.12"
-anyhow = "1.0.98"
+thiserror = "2.0.21"
+anyhow = "1.0.104"
 
 # Time
-chrono = { version = "0.4.41", features = ["serde"] }
+chrono = { version = "0.4.45", features = ["serde"] }
 
 # DID/VC Standards
 # did_url = "0.1.0"  # Removed - not used and causes form_urlencoded issues
-multibase = "0.9.1"
+multibase = "0.9.3"
 multicodec = "0.1.0"
 
 # Utilities
-uuid = { version = "1.17.0", features = ["v4", "serde"] }
+uuid = { version = "1.26.1", features = ["v4", "serde"] }
 hex = "0.4.3"
-toml = "0.8.22"
-base64 = "0.22.1"
+toml = "1.1.6"
+base64 = "0.23.1"
 
 # Web framework
-axum = { version = "0.8.4", features = ["macros"] }
-tower-http = { version = "0.6.4", features = ["cors", "limit"] }
-tower = { version = "0.5.2", features = ["limit", "buffer"] }
-jsonwebtoken = "9.3.0"
+axum = { version = "0.8.9", features = ["macros"] }
+tower-http = { version = "0.7.1", features = ["cors", "limit"] }
+tower = { version = "0.5.3", features = ["limit", "buffer"] }
+# jsonwebtoken >= 10 requires an explicit crypto backend. aws_lc_rs is the one
+# rustls already uses here (tls.rs installs its provider), so no new C build is
+# added; the rust_crypto backend would pull in the `rsa` crate, which carries the
+# unfixed RUSTSEC-2023-0071 (Marvin) advisory even though only HS256 is used.
+jsonwebtoken = { version = "11.1.0", features = ["aws_lc_rs"] }
 
 # Testing
-proptest = "1.6.0"
-criterion = "0.6.0"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
-tempfile = "3.8"
-futures = "0.3"
+proptest = "1.11.0"
+criterion = { version = "0.8.2", features = ["html_reports"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls"] }
+tempfile = "3.27.0"
+futures = "0.3.34"
 
 
 [profile.release]

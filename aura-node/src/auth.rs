@@ -96,7 +96,9 @@ fn hash_password(password: &str) -> String {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(password.as_bytes());
-    format!("{:x}", hasher.finalize())
+    // sha2 0.11 digests no longer implement LowerHex; hex::encode yields the
+    // identical lowercase hex string.
+    hex::encode(hasher.finalize())
 }
 
 /// Create a new JWT token
@@ -255,6 +257,13 @@ mod tests {
         let hash3 = hash_password("different_password");
         assert_ne!(hash1, hash3);
 
+        // Known answer: the encoding must stay lowercase hex of SHA-256 across
+        // the sha2 0.10 -> 0.11 upgrade (0.11 digests dropped LowerHex).
+        assert_eq!(
+            hash_password("password"),
+            "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+        );
+
         // Hash should be a valid hex string of expected length (SHA256 = 64 chars)
         assert_eq!(hash1.len(), 64);
         assert!(hash1.chars().all(|c| c.is_ascii_hexdigit()));
@@ -269,13 +278,8 @@ mod tests {
         let result = initialize_auth(jwt_secret.clone(), None);
 
         // Check if it's already initialized (from other tests)
-        if result.is_err() {
-            assert!(result
-                .unwrap_err()
-                .to_string()
-                .contains("already initialized"));
-        } else {
-            assert!(result.is_ok());
+        if let Err(e) = result {
+            assert!(e.to_string().contains("already initialized"));
         }
     }
 
@@ -531,14 +535,18 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.toml");
 
-        // Initialize auth with credential generation
-        let result = initialize_auth(
-            b"test_jwt_secret".to_vec(),
-            Some(config_path.to_str().unwrap()),
-        );
+        // Initialize auth with credential generation. The secret is unique to
+        // this test so we can tell whether this call is the one that won the
+        // process-wide OnceCell.
+        let secret = b"test_jwt_secret";
+        let _ = initialize_auth(secret.to_vec(), Some(config_path.to_str().unwrap()));
 
-        // Handle case where globals are already initialized
-        if result.is_ok() {
+        // JWT_SECRET is global and tests run in parallel: when another test got
+        // there first, initialize_auth returns Ok early without generating
+        // credentials, and checking `result.is_ok()` alone made this test
+        // order-dependent. Only assert when this call set the secret, in which
+        // case it also wrote credentials.toml before touching CREDENTIALS.
+        if JWT_SECRET.get().map(Vec::as_slice) == Some(secret.as_slice()) {
             // Verify credentials were generated
             let creds_file = temp_dir.path().join("credentials.toml");
             assert!(creds_file.exists());

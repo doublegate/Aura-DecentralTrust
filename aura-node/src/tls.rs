@@ -2,7 +2,7 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio_rustls::rustls::{
     self,
-    pki_types::{CertificateDer, PrivateKeyDer},
+    pki_types::{pem::PemObject, CertificateDer, PrivateKeyDer},
 };
 use tokio_rustls::TlsAcceptor;
 use tracing::warn;
@@ -90,10 +90,10 @@ impl TlsConfig {
         use rcgen::{generate_simple_self_signed, CertifiedKey};
 
         let subject_alt_names = vec!["localhost".to_string(), "127.0.0.1".to_string()];
-        let CertifiedKey { cert, key_pair } = generate_simple_self_signed(subject_alt_names)?;
+        let CertifiedKey { cert, signing_key } = generate_simple_self_signed(subject_alt_names)?;
 
         let cert_pem = cert.pem();
-        let key_pem = key_pair.serialize_pem();
+        let key_pem = signing_key.serialize_pem();
 
         Ok((cert_pem.into_bytes(), key_pem.into_bytes()))
     }
@@ -143,30 +143,23 @@ impl TlsConfig {
 
 /// Load certificates from PEM file
 fn load_certs(path: &str) -> anyhow::Result<Vec<CertificateDer<'static>>> {
-    let cert_file = std::fs::File::open(path)?;
-    let mut reader = std::io::BufReader::new(cert_file);
-    let certs = rustls_pemfile::certs(&mut reader)
-        .map(|cert| cert.map(|c| c.to_owned()))
-        .collect::<Result<Vec<_>, _>>()?;
+    let certs = CertificateDer::pem_file_iter(path)?.collect::<Result<Vec<_>, _>>()?;
     Ok(certs)
 }
 
 /// Load private key from PEM file
+///
+/// Returns the first PKCS#1, PKCS#8 or SEC1 private key in the file, skipping
+/// any other PEM sections (the same selection rustls-pemfile's `read_one` loop
+/// made before it was replaced; see RUSTSEC-2025-0134).
 fn load_key(path: &str) -> anyhow::Result<PrivateKeyDer<'static>> {
-    let key_file = std::fs::File::open(path)?;
-    let mut reader = std::io::BufReader::new(key_file);
+    use tokio_rustls::rustls::pki_types::pem::Error as PemError;
 
-    loop {
-        match rustls_pemfile::read_one(&mut reader)? {
-            Some(rustls_pemfile::Item::Pkcs1Key(key)) => return Ok(PrivateKeyDer::Pkcs1(key)),
-            Some(rustls_pemfile::Item::Pkcs8Key(key)) => return Ok(PrivateKeyDer::Pkcs8(key)),
-            Some(rustls_pemfile::Item::Sec1Key(key)) => return Ok(PrivateKeyDer::Sec1(key)),
-            None => break,
-            _ => {}
-        }
+    match PrivateKeyDer::from_pem_file(path) {
+        Ok(key) => Ok(key),
+        Err(PemError::NoItemsFound) => Err(anyhow::anyhow!("No private key found in file")),
+        Err(e) => Err(e.into()),
     }
-
-    Err(anyhow::anyhow!("No private key found in file"))
 }
 
 /// Create or load TLS configuration

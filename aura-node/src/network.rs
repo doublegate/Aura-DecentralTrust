@@ -243,18 +243,10 @@ impl NetworkManager {
                 Some(SwarmEvent::NewListenAddr { address, .. }) => {
                     info!("Listening on: {}", address);
                 }
-                Some(SwarmEvent::ConnectionEstablished {
-                    peer_id,
-                    connection_id: _,
-                    ..
-                }) => {
+                Some(SwarmEvent::ConnectionEstablished { peer_id, .. }) => {
                     info!("Connected to peer: {}", peer_id);
                 }
-                Some(SwarmEvent::ConnectionClosed {
-                    peer_id,
-                    connection_id: _,
-                    ..
-                }) => {
+                Some(SwarmEvent::ConnectionClosed { peer_id, .. }) => {
                     info!("Disconnected from peer: {}", peer_id);
                 }
                 _ => {}
@@ -584,6 +576,58 @@ mod tests {
 
         let manager = NetworkManager::new(config).await;
         assert!(manager.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_run_loop_connects_and_disconnects_peers() {
+        // Drive run() on two real swarms over loopback TCP and check that the
+        // ConnectionEstablished and ConnectionClosed arms both take effect.
+        let slice = Duration::from_millis(200);
+
+        let mut a = NetworkManager::new(test_network_config()).await.unwrap();
+        let a_id = *a.swarm.local_peer_id();
+
+        // Let A bind its ephemeral port, then read back the concrete address.
+        let mut a_addr = None;
+        for _ in 0..50 {
+            let _ = tokio::time::timeout(slice, a.run()).await;
+            a_addr = a.swarm.listeners().next().cloned();
+            if a_addr.is_some() {
+                break;
+            }
+        }
+        let a_addr = a_addr.expect("node A never reported a listen address");
+
+        let mut b = NetworkManager::new(NetworkConfig {
+            listen_addresses: vec![],
+            bootstrap_nodes: vec![a_addr.to_string()],
+            max_peers: 10,
+        })
+        .await
+        .unwrap();
+        let b_id = *b.swarm.local_peer_id();
+
+        let mut connected = false;
+        for _ in 0..50 {
+            let _ = tokio::time::timeout(slice, async { tokio::join!(a.run(), b.run()) }).await;
+            if a.swarm.is_connected(&b_id) && b.swarm.is_connected(&a_id) {
+                connected = true;
+                break;
+            }
+        }
+        assert!(connected, "nodes did not connect over loopback");
+
+        // Dropping B closes its connections; A must observe ConnectionClosed.
+        drop(b);
+        let mut closed = false;
+        for _ in 0..50 {
+            let _ = tokio::time::timeout(slice, a.run()).await;
+            if !a.swarm.is_connected(&b_id) {
+                closed = true;
+                break;
+            }
+        }
+        assert!(closed, "node A did not observe the disconnect");
     }
 
     #[tokio::test]

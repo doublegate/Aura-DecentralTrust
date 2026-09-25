@@ -14,11 +14,11 @@ aura-wallet-core = { path = "../aura-wallet-core" }
 
 # Testing dependencies
 tokio = { workspace = true, features = ["full", "test-util"] }
-tokio-test = "0.4"
-proptest = "1.6"
-criterion = { version = "0.6", features = ["html_reports"] }
-tempfile = "3.8"
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+tokio-test = "0.4.5"
+proptest = { workspace = true }
+criterion = { workspace = true }
+tempfile = { workspace = true }
+reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
@@ -32,7 +32,7 @@ anyhow = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true }
 bincode = { workspace = true }
-bs58 = "0.5"
+bs58 = "0.5.1"
 toml = { workspace = true }
 
 [[test]]

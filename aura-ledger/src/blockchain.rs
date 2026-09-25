@@ -341,12 +341,12 @@ mod tests {
         let tx2 = create_test_transaction();
 
         // Same transactions in same order should produce same merkle root
-        let root1 = Block::calculate_merkle_root(&vec![tx1.clone(), tx2.clone()]);
-        let root2 = Block::calculate_merkle_root(&vec![tx1.clone(), tx2.clone()]);
+        let root1 = Block::calculate_merkle_root(&[tx1.clone(), tx2.clone()]);
+        let root2 = Block::calculate_merkle_root(&[tx1.clone(), tx2.clone()]);
         assert_eq!(root1, root2);
 
         // Different order should produce different merkle root
-        let root3 = Block::calculate_merkle_root(&vec![tx2.clone(), tx1.clone()]);
+        let root3 = Block::calculate_merkle_root(&[tx2.clone(), tx1.clone()]);
         assert_ne!(root1, root3);
     }
 
@@ -453,11 +453,11 @@ mod tests {
         let tx2 = create_test_transaction();
         let tx3 = create_test_transaction();
 
-        let root1 = Block::calculate_merkle_root(&vec![tx1.clone()]);
-        let root2 = Block::calculate_merkle_root(&vec![tx2.clone()]);
-        let root3 = Block::calculate_merkle_root(&vec![tx1.clone(), tx2.clone()]);
-        let root4 = Block::calculate_merkle_root(&vec![tx2.clone(), tx1.clone()]);
-        let root5 = Block::calculate_merkle_root(&vec![tx1.clone(), tx2.clone(), tx3.clone()]);
+        let root1 = Block::calculate_merkle_root(std::slice::from_ref(&tx1));
+        let root2 = Block::calculate_merkle_root(std::slice::from_ref(&tx2));
+        let root3 = Block::calculate_merkle_root(&[tx1.clone(), tx2.clone()]);
+        let root4 = Block::calculate_merkle_root(&[tx2.clone(), tx1.clone()]);
+        let root5 = Block::calculate_merkle_root(&[tx1.clone(), tx2.clone(), tx3.clone()]);
 
         // All roots should be different
         assert_ne!(root1, root2);
