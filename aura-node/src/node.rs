@@ -522,8 +522,6 @@ impl AuraNode {
         keypair: &KeyPair,
         key_file_path: &std::path::Path,
     ) -> anyhow::Result<()> {
-        use std::fs;
-
         // Get the private key bytes
         let key_bytes = keypair.private_key().to_bytes();
 
@@ -531,24 +529,47 @@ impl AuraNode {
         // In production, this should be properly encrypted
         let encoded_key = base64::engine::general_purpose::STANDARD.encode(&key_bytes);
 
-        // Write to file with restrictive permissions
-        fs::write(key_file_path, encoded_key)
-            .map_err(|e| anyhow::anyhow!("Failed to write key file: {}", e))?;
-
-        // Set file permissions to 600 (owner read/write only). Unix only, as for
-        // credentials.toml in auth_setup.rs; this did not compile on Windows.
+        // On Unix the file is created with mode 0600 in the same open() call, so
+        // the key is never readable by other users, not even briefly. The
+        // previous write-then-chmod left a window at the umask default (usually
+        // 0644) and left the key world-readable if the chmod failed.
         #[cfg(unix)]
         {
-            use std::os::unix::fs::PermissionsExt;
-            let mut perms = fs::metadata(key_file_path)?.permissions();
-            perms.set_mode(0o600);
-            fs::set_permissions(key_file_path, perms)?;
+            use std::io::Write;
+            use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .mode(0o600)
+                .open(key_file_path)
+                .map_err(|e| anyhow::anyhow!("Failed to create key file: {}", e))?;
+            // `mode` only applies when the file is created. Tighten a
+            // pre-existing file through the open handle before the key goes in.
+            file.set_permissions(std::fs::Permissions::from_mode(0o600))
+                .map_err(|e| anyhow::anyhow!("Failed to restrict key file permissions: {}", e))?;
+            file.write_all(encoded_key.as_bytes())
+                .and_then(|()| file.sync_all())
+                .map_err(|e| anyhow::anyhow!("Failed to write key file: {}", e))?;
+
+            info!(
+                "Validator key saved to {:?} with 0600 permissions",
+                key_file_path
+            );
         }
 
-        info!(
-            "Validator key saved to {:?} with secure permissions",
-            key_file_path
-        );
+        #[cfg(not(unix))]
+        {
+            std::fs::write(key_file_path, encoded_key.as_bytes())
+                .map_err(|e| anyhow::anyhow!("Failed to write key file: {}", e))?;
+            warn!(
+                "Validator key saved to {:?}, but its file permissions are NOT restricted on \
+                 this platform. Restrict access to it with an ACL.",
+                key_file_path
+            );
+        }
+
         warn!("SECURITY: Key is stored in base64 format. Use proper encryption in production!");
 
         Ok(())
@@ -1451,6 +1472,54 @@ mod tests {
             original_keypair.private_key().to_bytes(),
             loaded_keypair.private_key().to_bytes()
         );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_save_validator_key_tightens_existing_file() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = TempDir::new().unwrap();
+        let key_file_path = temp_dir.path().join("loose_key.key");
+
+        // A pre-existing, world-readable file must not keep its mode when the
+        // key is written into it (OpenOptions::mode only applies on creation).
+        std::fs::write(&key_file_path, "stale contents that are longer than a key").unwrap();
+        std::fs::set_permissions(&key_file_path, std::fs::Permissions::from_mode(0o644)).unwrap();
+
+        let keypair = KeyPair::generate().unwrap();
+        AuraNode::save_validator_key_to_file(&keypair, &key_file_path).unwrap();
+
+        let mode = std::fs::metadata(&key_file_path)
+            .unwrap()
+            .permissions()
+            .mode();
+        assert_eq!(mode & 0o777, 0o600);
+
+        // The file is truncated and holds exactly the new key.
+        let loaded = AuraNode::load_validator_key_from_file(&key_file_path).unwrap();
+        assert_eq!(
+            keypair.private_key().to_bytes(),
+            loaded.private_key().to_bytes()
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_save_validator_key_creates_file_0600() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = TempDir::new().unwrap();
+        let key_file_path = temp_dir.path().join("new_key.key");
+
+        let keypair = KeyPair::generate().unwrap();
+        AuraNode::save_validator_key_to_file(&keypair, &key_file_path).unwrap();
+
+        let mode = std::fs::metadata(&key_file_path)
+            .unwrap()
+            .permissions()
+            .mode();
+        assert_eq!(mode & 0o777, 0o600);
     }
 
     #[tokio::test]

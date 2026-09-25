@@ -50,6 +50,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MSRV** is now Rust 1.89 (`aes` 0.9.3 under `aes-gcm` 0.11; `libp2p` 0.57, `rocksdb` 0.25 and
   `jsonwebtoken` 11 need 1.88).
 
+### Security
+- The validator private key file was written with `fs::write` (umask default, usually
+  0644) and only then `chmod`ed to 0600, so it was readable by other local users for a
+  window and stayed readable if the `chmod` failed. On Unix it is now created with mode
+  0600 in the same `open()` call, and a pre-existing file is tightened through the open
+  handle before the key is written. On other platforms the node now warns that the file's
+  permissions are not restricted instead of logging "secure permissions".
+
 ### Fixed
 - `main` did not compile: the July 2025 `rand` 0.9 bump broke `aura-crypto`, and `rcgen`
   0.14.10 renamed `CertifiedKey::key_pair` to `signing_key`.
@@ -60,8 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `aura-ledger/` and `aura-node/`); they are removed and ignored.
 - `cargo audit` failed on RUSTSEC-2026-0118/0119 (`hickory-proto`); resolved by the update.
 - `aura-node` did not compile on Windows: the validator key file's `0o600` permission code
-  used `std::os::unix` unconditionally. It is now `#[cfg(unix)]`, as `credentials.toml`
-  already was (Windows CI had never reached this point because checkout failed first).
+  used `std::os::unix` unconditionally (Windows CI had never reached this point because
+  checkout failed first).
 - `test_auth_setup_integration` was order-dependent on the process-wide `JWT_SECRET`
   `OnceCell` and failed intermittently under parallel test execution.
 - New toolchain clippy lints (`useless_vec`, `unneeded_struct_pattern`,
