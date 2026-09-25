@@ -59,6 +59,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows CI checkout failed on committed RocksDB directories named `:memory:` (in
   `aura-ledger/` and `aura-node/`); they are removed and ignored.
 - `cargo audit` failed on RUSTSEC-2026-0118/0119 (`hickory-proto`); resolved by the update.
+- `aura-node` did not compile on Windows: the validator key file's `0o600` permission code
+  used `std::os::unix` unconditionally. It is now `#[cfg(unix)]`, as `credentials.toml`
+  already was (Windows CI had never reached this point because checkout failed first).
+- `test_auth_setup_integration` was order-dependent on the process-wide `JWT_SECRET`
+  `OnceCell` and failed intermittently under parallel test execution.
 - New toolchain clippy lints (`useless_vec`, `unneeded_struct_pattern`,
   `cloned_ref_to_slice_refs`, `unnecessary_unwrap`).
 

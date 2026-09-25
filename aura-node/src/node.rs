@@ -523,7 +523,6 @@ impl AuraNode {
         key_file_path: &std::path::Path,
     ) -> anyhow::Result<()> {
         use std::fs;
-        use std::os::unix::fs::PermissionsExt;
 
         // Get the private key bytes
         let key_bytes = keypair.private_key().to_bytes();
@@ -536,10 +535,15 @@ impl AuraNode {
         fs::write(key_file_path, encoded_key)
             .map_err(|e| anyhow::anyhow!("Failed to write key file: {}", e))?;
 
-        // Set file permissions to 600 (owner read/write only)
-        let mut perms = fs::metadata(key_file_path)?.permissions();
-        perms.set_mode(0o600);
-        fs::set_permissions(key_file_path, perms)?;
+        // Set file permissions to 600 (owner read/write only). Unix only, as for
+        // credentials.toml in auth_setup.rs; this did not compile on Windows.
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(key_file_path)?.permissions();
+            perms.set_mode(0o600);
+            fs::set_permissions(key_file_path, perms)?;
+        }
 
         info!(
             "Validator key saved to {:?} with secure permissions",
@@ -1387,14 +1391,11 @@ mod tests {
         // Key file should now exist
         assert!(key_file_path.exists());
 
-        // Verify file permissions are restrictive (600)
-        let metadata = std::fs::metadata(&key_file_path).unwrap();
-        let permissions = metadata.permissions();
-
-        // On Unix, verify permissions are 600
+        // On Unix, verify permissions are restrictive (600)
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
+            let permissions = std::fs::metadata(&key_file_path).unwrap().permissions();
             assert_eq!(permissions.mode() & 0o777, 0o600);
         }
 
