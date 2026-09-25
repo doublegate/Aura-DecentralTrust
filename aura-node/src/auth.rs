@@ -535,14 +535,18 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.toml");
 
-        // Initialize auth with credential generation
-        let result = initialize_auth(
-            b"test_jwt_secret".to_vec(),
-            Some(config_path.to_str().unwrap()),
-        );
+        // Initialize auth with credential generation. The secret is unique to
+        // this test so we can tell whether this call is the one that won the
+        // process-wide OnceCell.
+        let secret = b"test_jwt_secret";
+        let _ = initialize_auth(secret.to_vec(), Some(config_path.to_str().unwrap()));
 
-        // Handle case where globals are already initialized
-        if result.is_ok() {
+        // JWT_SECRET is global and tests run in parallel: when another test got
+        // there first, initialize_auth returns Ok early without generating
+        // credentials, and checking `result.is_ok()` alone made this test
+        // order-dependent. Only assert when this call set the secret, in which
+        // case it also wrote credentials.toml before touching CREDENTIALS.
+        if JWT_SECRET.get().map(Vec::as_slice) == Some(secret.as_slice()) {
             // Verify credentials were generated
             let creds_file = temp_dir.path().join("credentials.toml");
             assert!(creds_file.exists());
