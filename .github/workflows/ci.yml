@@ -113,7 +113,7 @@ jobs:
     
     # Pinned for the same reason as cargo-audit above.
     - name: Install coverage tools
-      run: cargo install cargo-tarpaulin --version 0.37.4 --locked
+      run: cargo install cargo-tarpaulin --version 0.37.5 --locked
     
     - name: Run tests with coverage
       run: |

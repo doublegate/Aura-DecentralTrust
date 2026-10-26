@@ -14,7 +14,7 @@ aura-wallet-core = { path = "../aura-wallet-core" }
 
 # Testing dependencies
 tokio = { workspace = true, features = ["full", "test-util"] }
-tokio-test = "0.4.5"
+tokio-test = "0.4.6"
 proptest = { workspace = true }
 criterion = { workspace = true }
 tempfile = { workspace = true }

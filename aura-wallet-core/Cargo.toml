@@ -23,7 +23,7 @@ uuid = { workspace = true }
 multibase = { workspace = true }
 hex = { workspace = true }
 bincode = { workspace = true }
-zeroize = { version = "1.9.0", features = ["derive"] }
+zeroize = { version = "1.9.1", features = ["derive"] }
 
 [features]
 default = []
