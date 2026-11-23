@@ -72,7 +72,7 @@ tower = { version = "0.5.3", features = ["limit", "buffer"] }
 # rustls already uses here (tls.rs installs its provider), so no new C build is
 # added; the rust_crypto backend would pull in the `rsa` crate, which carries the
 # unfixed RUSTSEC-2023-0071 (Marvin) advisory even though only HS256 is used.
-jsonwebtoken = { version = "11.1.0", features = ["aws_lc_rs"] }
+jsonwebtoken = { version = "12.0.0", features = ["aws_lc_rs"] }
 
 # Testing
 proptest = "1.12.0"
